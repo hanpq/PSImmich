@@ -19,8 +19,6 @@ on:
       - "tests/**"
 
 env:
-  PFX_BASE64: ${{ secrets.PFX_BASE64 }}
-  PFX_PASS: ${{ secrets.PFX_PASS }}
   PSTOOLS_APITOKEN: ${{ secrets.PSTOOLS_APITOKEN }}
   PSTOOLS_SOURCE: ${{ secrets.PSTOOLS_SOURCE }}
 
@@ -28,8 +26,7 @@ jobs:
   Build:
     name: Build
     # Cannot run on ubuntu because Set-AuthenticodeSignature is not available from the module Microsoft.Powershell.Security on linux
-    #runs-on: ubuntu-latest
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -49,7 +46,7 @@ jobs:
         run: |
           ./build.ps1 -ResolveDependency -tasks pack
         shell: pwsh
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: output
           path: output
@@ -61,7 +58,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: "0"
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: output
           path: "output"
@@ -69,7 +66,7 @@ jobs:
         run: |
           ./build.ps1 -ResolveDependency -tasks test
         shell: pwsh
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: CodeCoverage_Linux_Core
           path: output/testResults/
@@ -81,7 +78,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: "0"
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: output
           path: "output"
@@ -89,7 +86,7 @@ jobs:
         run: |
           ./build.ps1 -ResolveDependency -tasks test
         shell: pwsh
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: CodeCoverage_Windows_Core
           path: output/testResults/
@@ -101,7 +98,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: "0"
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: output
           path: "output"
@@ -109,7 +106,7 @@ jobs:
         run: |
           ./build.ps1 -ResolveDependency -tasks test
         shell: powershell
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: CodeCoverage_Windows_Desktop
           path: output/testResults/
@@ -121,7 +118,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: "0"
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: output
           path: "output"
@@ -129,7 +126,7 @@ jobs:
         run: |
           ./build.ps1 -ResolveDependency -tasks test
         shell: pwsh
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: CodeCoverage_MacOS_Core
           path: output/testResults/
@@ -145,19 +142,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: "0"
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: CodeCoverage_Linux_Core
           path: output/testResults/
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: CodeCoverage_MacOS_Core
           path: output/testResults/
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: CodeCoverage_Windows_Core
           path: output/testResults/
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: CodeCoverage_Windows_Desktop
           path: output/testResults/
@@ -167,7 +164,7 @@ jobs:
           name: civoShell
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./output/testResults/CodeCov.xml
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: CodeCovState
           path: ./
@@ -185,7 +182,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: "0"
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: output
           path: "output"
