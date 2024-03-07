@@ -18,4 +18,5 @@ function Get-Something
     [cmdletBinding()]
     param()
 
+    # Trigger build
 }
