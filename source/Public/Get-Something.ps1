@@ -18,5 +18,4 @@ function Get-Something
     [cmdletBinding()]
     param()
 
-    Invoke-GarbageCollect
 }
