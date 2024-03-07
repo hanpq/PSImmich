@@ -24,14 +24,12 @@
     AliasesToExport      = '*'
     PrivateData          = @{
         PSData = @{
-            LicenseUri               = 'https://github.com/hanpq/PSImmich/blob/main/LICENSE'
+            LicenseUri   = 'https://github.com/hanpq/PSImmich/blob/main/LICENSE'
             #RequireLicenseAcceptance = $false
-            Prerelease               = ''
-            Tags                     = @('PSEdition_Desktop', 'PSEdition_Core', 'Windows', 'Linux', 'MacOS')
-            ProjectUri               = 'https://getps.dev/modules/PSImmich/getstarted'
-            ReleaseNotes             = ''
+            Prerelease   = ''
+            Tags         = @('PSEdition_Desktop', 'PSEdition_Core', 'Windows', 'Linux', 'MacOS')
+            ProjectUri   = 'https://getps.dev/modules/PSImmich/getstarted'
+            ReleaseNotes = ''
         }
     }
 }
-
-
