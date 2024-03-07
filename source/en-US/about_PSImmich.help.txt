@@ -1,0 +1,25 @@
+TOPIC
+    about_PSImmich
+
+SHORT DESCRIPTION
+    Powershell wrapper for the Immich API
+
+LONG DESCRIPTION
+    {{ Add Long description here }}
+
+EXAMPLES
+    PS C:\> {{ add examples here }}
+
+NOTE:
+    Thank you to all those who contributed to this module, by writing code, sharing opinions, and provided feedback.
+
+TROUBLESHOOTING NOTE:
+    Look out on the Github repository for issues and new releases.
+
+SEE ALSO
+   - https://github.com/hanpq/PSImmich
+
+
+KEYWORDS
+      {{ Add coma separated keywords here }}
+

@@ -1,0 +1,210 @@
+﻿name: Build
+on:
+  workflow_dispatch:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "source/**"
+      - "tests/**"
+  push:
+    branches:
+      - main
+    tags-ignore:
+      - "*-*"
+    paths:
+      - "source/**"
+      - "tests/**"
+
+env:
+  PFX_BASE64: ${{ secrets.PFX_BASE64 }}
+  PFX_PASS: ${{ secrets.PFX_PASS }}
+  PSTOOLS_APITOKEN: ${{ secrets.PSTOOLS_APITOKEN }}
+  PSTOOLS_SOURCE: ${{ secrets.PSTOOLS_SOURCE }}
+
+jobs:
+  Build:
+    name: Build
+    # Cannot run on ubuntu because Set-AuthenticodeSignature is not available from the module Microsoft.Powershell.Security on linux
+    #runs-on: ubuntu-latest
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: "0"
+      - name: Calculate ModuleVersion (GitVersion)
+        run: |
+          dotnet tool install --global GitVersion.Tool
+          dotnet-gitversion
+          $gitVersionObject = dotnet-gitversion | ConvertFrom-Json
+          $gitVersionObject.PSObject.Properties.ForEach{
+              Write-Host -Object "Setting Task Variable '$($_.Name)' with value '$($_.Value)'."
+              Write-Output "$($_.Name)=$($_.Value)" >> $env:GITHUB_ENV
+          }
+          Write-Output "updatebuildnumber=$($gitVersionObject.FullSemVer)" >> $env:GITHUB_ENV
+        shell: pwsh
+      - name: Build & Package Module
+        run: |
+          ./build.ps1 -ResolveDependency -tasks pack
+        shell: pwsh
+      - uses: actions/upload-artifact@v3
+        with:
+          name: output
+          path: output
+  Test_Linux_Core:
+    name: Test Linux Core
+    runs-on: ubuntu-latest
+    needs: Build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: "0"
+      - uses: actions/download-artifact@v3
+        with:
+          name: output
+          path: "output"
+      - name: Linux_Core
+        run: |
+          ./build.ps1 -ResolveDependency -tasks test
+        shell: pwsh
+      - uses: actions/upload-artifact@v3
+        with:
+          name: CodeCoverage_Linux_Core
+          path: output/testResults/
+  Test_Windows_Core:
+    name: Test Windows Core
+    runs-on: windows-latest
+    needs: Build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: "0"
+      - uses: actions/download-artifact@v3
+        with:
+          name: output
+          path: "output"
+      - name: Windows_Core
+        run: |
+          ./build.ps1 -ResolveDependency -tasks test
+        shell: pwsh
+      - uses: actions/upload-artifact@v3
+        with:
+          name: CodeCoverage_Windows_Core
+          path: output/testResults/
+  Test_Windows_Desktop:
+    name: Test Windows Desktop
+    runs-on: windows-latest
+    needs: Build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: "0"
+      - uses: actions/download-artifact@v3
+        with:
+          name: output
+          path: "output"
+      - name: Windows_Desktop
+        run: |
+          ./build.ps1 -ResolveDependency -tasks test
+        shell: powershell
+      - uses: actions/upload-artifact@v3
+        with:
+          name: CodeCoverage_Windows_Desktop
+          path: output/testResults/
+  Test_MacOS_Core:
+    name: Test MacOS Core
+    runs-on: macos-latest
+    needs: Build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: "0"
+      - uses: actions/download-artifact@v3
+        with:
+          name: output
+          path: "output"
+      - name: MacOS_Core
+        run: |
+          ./build.ps1 -ResolveDependency -tasks test
+        shell: pwsh
+      - uses: actions/upload-artifact@v3
+        with:
+          name: CodeCoverage_MacOS_Core
+          path: output/testResults/
+  Publish_Code_Coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    needs:
+      - Test_MacOS_Core
+      - Test_Linux_Core
+      - Test_Windows_Core
+      - Test_Windows_Desktop
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: "0"
+      - uses: actions/download-artifact@v3
+        with:
+          name: CodeCoverage_Linux_Core
+          path: output/testResults/
+      - uses: actions/download-artifact@v3
+        with:
+          name: CodeCoverage_MacOS_Core
+          path: output/testResults/
+      - uses: actions/download-artifact@v3
+        with:
+          name: CodeCoverage_Windows_Core
+          path: output/testResults/
+      - uses: actions/download-artifact@v3
+        with:
+          name: CodeCoverage_Windows_Desktop
+          path: output/testResults/
+      - name: Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          name: civoShell
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./output/testResults/CodeCov.xml
+      - uses: actions/upload-artifact@v3
+        with:
+          name: CodeCovState
+          path: ./
+
+  Deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs:
+      - Test_MacOS_Core
+      - Test_Linux_Core
+      - Test_Windows_Core
+      - Test_Windows_Desktop
+    if: ${{ success() && (github.ref == 'refs/heads/main' || StartsWith(github.ref,'refs/tags/')) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: "0"
+      - uses: actions/download-artifact@v3
+        with:
+          name: output
+          path: "output"
+      - run: |
+          ./build.ps1 -ResolveDependency -tasks publish
+        shell: pwsh
+        env:
+          GitHubToken: ${{ secrets.GITHUBTOKEN }}
+          GalleryApiToken: ${{ secrets.GALLERYAPITOKEN }}
+  Cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs:
+      - Deploy
+    steps:
+      - uses: geekyeggo/delete-artifact@v2
+        with:
+          name: |
+            CodeCov*
+            output
+          failOnError: false

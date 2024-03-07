@@ -1,0 +1,115 @@
+####################################################
+#          ModuleBuilder Configuration             #
+####################################################
+CopyPaths:
+  - en-US
+  - include
+Encoding: UTF8
+VersionedOutputDirectory: true
+Prefix: prefix.ps1
+Suffix: suffix.ps1
+
+####################################################
+#      ModuleBuilder Submodules Configuration      #
+####################################################
+
+NestedModule:
+
+####################################################
+#       Sampler Pipeline Configuration             #
+####################################################
+
+ModuleBuildTasks:
+  Sampler:
+    - "*.build.Sampler.ib.tasks"
+  Sampler.GitHubTasks:
+    - "*.ib.tasks"
+
+
+BuildWorkflow:
+  ".":
+    - build
+    - test
+
+  build:
+    - Clean
+    - Build_ModuleOutput_ModuleBuilder
+    - Build_NestedModules_ModuleBuilder
+    - Create_changelog_release_output
+
+  pack:
+    - build
+    - package_module_nupkg
+
+  test:
+    - Import_Pester
+    - Invoke_Pester_Tests_v5
+    - Pester_Run_Times
+    - Fail_Build_If_Pester_Tests_Failed
+    - Convert_Pester_Coverage
+    - Pester_if_Code_Coverage_Under_Threshold
+
+  publish:
+    - Create_ChangeLog_GitHub_PR
+    - Update_GetPSDev_Docs
+    - Publish_release_to_GitHub
+    - publish_module_to_gallery
+    - publish_module_to_proget
+
+####################################################
+#       PESTER  Configuration                      #
+####################################################
+
+Pester:
+  Configuration:
+    Run:
+      Path:
+      ExcludePath:
+    Filter:
+      Tag:
+      ExcludeTag:
+    Output:
+      Verbosity: Detailed
+    CodeCoverage:
+      Path:
+      OutputFormat:
+      CoveragePercentTarget: 80
+      OutputPath: CodeCov.xml
+      OutputEncoding: ascii
+      ExcludeTests:
+    TestResult:
+      OutputFormat: NUnitXML
+      OutputPath:
+      OutputEncoding:
+      TestSuiteName:
+  ExcludeFromCodeCoverage:
+
+####################################################
+#       Misc                                       #
+####################################################
+
+TaskHeader: |
+  param($Path)
+  ""
+  "=" * 79
+  Write-Build Cyan "`t`t`t$($Task.Name.replace("_"," ").ToUpper())"
+  Write-Build DarkGray  "$(Get-BuildSynopsis $Task)"
+  "-" * 79
+  Write-Build DarkGray "  $Path"
+  Write-Build DarkGray "  $($Task.InvocationInfo.ScriptName):$($Task.InvocationInfo.ScriptLineNumber)"
+  ""
+
+####################################################
+#       Github tasks                               #
+####################################################
+
+GitHubConfig:
+  GitHubFilesToAdd:
+    - "CHANGELOG.md"
+  GitHubConfigUserName: hanpq
+  GitHubConfigUserEmail: hannes.palmquist@outlook.com
+  UpdateChangelogOnPrerelease: false
+  UpdateChangelogOnPrerelease: false
+  Docs:
+    DocsRepo:
+      - "https://github.com/hanpq/getps.dev.git"

@@ -1,0 +1,21 @@
+codecov:
+  require_ci_to_pass: false
+  branch: main
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+
+coverage:
+  range: 50..80
+  round: down
+  precision: 0
+
+  status:
+    project:
+      default:
+        target: 70
+    patch:
+      default:
+        target: auto
+        threshold: 5
