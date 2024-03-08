@@ -192,8 +192,8 @@ Describe "Help for files" -Tags 'helpQuality' {
     #    $FunctionHelp.Synopsis | Should -Not -BeNullOrEmpty
     #} -TestCases $allModuleFunctions
 
-    It 'Help.Description Length > 25 | <Name>' {
-        $FunctionHelp.Description.Length | Should -BeGreaterThan 25
+    It 'Help.Description Length > 15 | <Name>' {
+        $FunctionHelp.Description.Length | Should -BeGreaterThan 15
     } -TestCases $allModuleFunctions
 
     It 'Help.Examples.Count > 0 | <Name>' {

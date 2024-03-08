@@ -1,9 +1,6 @@
 BeforeDiscovery {
-    $RootItem = Get-Item $PSScriptRoot
-    while ($RootItem.GetDirectories().Name -notcontains 'source')
-    {
-        $RootItem = $RootItem.Parent
-    }
+        $RootItem = Get-Item $PSScriptRoot
+    while ($RootItem.GetDirectories().Name -notcontains "source") {$RootItem = $RootItem.Parent}
     $ProjectPath = $RootItem.FullName
     $ProjectName = (Get-ChildItem $ProjectPath\*\*.psd1 | Where-Object {
         ($_.Directory.Name -eq 'source') -and
@@ -14,19 +11,18 @@ BeforeDiscovery {
                 catch
                 {
                     $false
-                }) }
+                })
+        }
     ).BaseName
 
-    Import-Module $ProjectName
+    Import-Module $ProjectName -Force
 }
 
 InModuleScope $ProjectName {
-    Describe Get-Something {
-        Mock Invoke-GarbageCollect {} -Verifiable
-
-        Context 'default' {
-            It 'Should be true' {
-                $true | Should -BeTrue
+    Describe Connect-Immich {
+        Context -Name 'When no parameters are specified' {
+            It -Name 'Should throw' {
+                { Connect-Immich } | Should -Throw
             }
         }
     }
