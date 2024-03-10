@@ -14,8 +14,18 @@
         [securestring]$SecureString
     )
 
-    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureString)
-    $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+    # Windows Powershell does not include ConvertFrom-SecureString -AsPlainText parameter.
+    if ($PSVersionTable.PSEdition -eq 'Desktop')
+    {
+        $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureString)
+        $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+    }
+    # Due to text encoding differences between windows and linux PtrToStringAuto does not work as expected with BSTR
+    elseif ($PSVersionTable.PSEdition -eq 'Core')
+    {
+        $UnsecurePassword = ConvertFrom-SecureString -SecureString $ImmichSession.AccessToken -AsPlainText
+    }
+
     return ($UnsecurePassword -join '')
 }

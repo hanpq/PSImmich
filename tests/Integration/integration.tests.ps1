@@ -63,10 +63,14 @@ Describe Connect-Immich {
             $ImmichSession.AccessToken | Should -BeOfType [SecureString]
         }
         It -name 'AccessToken should be correct' {
-            $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($ImmichSession.AccessToken)
-            $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-            [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
-            ($UnsecurePassword -join '') | Should -Be $env:PSIMMICHAPIKEY
+            if ($PSVersionTable.PSEdition -eq 'Desktop') {
+                $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($ImmichSession.AccessToken)
+                $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+                [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+            } elseif ($PSVersionTable.PSEdition -eq 'Core') {
+                $UnsecurePassword = ConvertFrom-SecureString -SecureString $ImmichSession.AccessToken -AsPlainText
+            }
+            $UnsecurePassword | Should -Be $env:PSIMMICHAPIKEY
         }
         It -name 'Credentials should be empty' {
             $ImmichSession.Credential | Should -BeNullOrEmpty
