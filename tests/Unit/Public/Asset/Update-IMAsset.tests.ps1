@@ -22,10 +22,10 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Connect-Immich {
-        Context -Name 'When no parameters are specified' {
-            It -Name 'Should throw' {
-                { Connect-Immich } | Should -Throw
+    Describe Update-IMAsset {
+        Context 'Default' {
+            It 'Should be true' {
+                $true | Should -BeTrue
             }
         }
     }

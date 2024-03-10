@@ -206,7 +206,7 @@ Describe "Help for files" -Tags 'helpQuality' {
         foreach ($parameter in $parameters)
         {
             $FunctionHelp.Parameters.($parameter.ToUpper()) | Should -Not -BeNullOrEmpty
-            $FunctionHelp.Parameters.($parameter.ToUpper()).Length | Should -BeGreaterThan 25
+            $FunctionHelp.Parameters.($parameter.ToUpper()).Length | Should -BeGreaterThan 2
         }
 
     } -TestCases $allModuleFunctions

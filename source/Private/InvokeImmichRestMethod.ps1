@@ -1,15 +1,4 @@
-﻿<#PSScriptInfo
-{
-  "VERSION": "1.0.0",
-  "GUID": "fd399995-5714-4944-b370-23b2b4dcd299",
-  "FILENAME": "InvokeImmichRestMethod.ps1",
-  "AUTHOR": "Hannes Palmquist",
-  "CREATEDDATE": "2024-03-07",
-  "COMPANYNAME": [],
-  "COPYRIGHT": "(c) 2024, Hannes Palmquist, All Rights Reserved"
-}
-PSScriptInfo#>
-function InvokeImmichRestMethod
+﻿function InvokeImmichRestMethod
 {
     <#
     .DESCRIPTION
@@ -26,6 +15,8 @@ function InvokeImmichRestMethod
         Defines body attributes for the REST API call
     .PARAMETER Headers
         Defines header attributes for the REST API call
+    .PARAMETER QueryParameters
+         Defines QueryParameters for the REST API call
     .EXAMPLE
         InvokeImmichRestMethod
     #>
@@ -36,7 +27,8 @@ function InvokeImmichRestMethod
         [immichsession]$ImmichSession,
         [string]$RelativePath,
         [hashtable]$Body = @{},
-        [hashtable]$Headers = @{}
+        [hashtable]$Headers = @{},
+        [hashtable]$QueryParameters = @{}
     )
 
     if (-not $ImmichSession)
@@ -84,8 +76,39 @@ function InvokeImmichRestMethod
         {
             $InvokeRestMethodSplat.Body = $Body
         }
+        if ($QueryParameters)
+        {
+            $InvokeRestMethodSplat.Uri += '?'
+            $QueryParameterStringArray = foreach ($QueryParameter in $QueryParameters.Keys)
+            {
+                switch ($QueryParameters.$QueryParameter.GetType().Name)
+                {
+                    'string'
+                    {
+                        "$($QueryParameter)=$($QueryParameters.$QueryParameter)"
+                    }
+                    'boolean'
+                    {
+                        "$($QueryParameter)=$($QueryParameters.$QueryParameter.ToString().ToLower())"
+                    }
+                    'int32'
+                    {
+                        "$($QueryParameter)=$($QueryParameters.$QueryParameter)"
+                    }
+                    'datetime'
+                    {
+                        "$($QueryParameter)=$($QueryParameters.$QueryParameter.ToString('yyyy-MM-ddTHH:mm:ss'))"
+                    }
+                    default
+                    {
+                        Write-Warning -Message "Unknown type of queryparameter $QueryParameter : $($QueryParameters.$QueryParameter.GetType().Name)"
+                    }
+                }
+            }
+            $InvokeRestMethodSplat.Uri += [URI]::EscapeUriString(($QueryParameterStringArray -join '&'))
+        }
     }
-    elseif ($InvokeRestMethodSplat.Method -eq 'Post')
+    elseif (@('Post', 'Put', 'Delete') -contains $InvokeRestMethodSplat.Method)
     {
         # Might need to be changed, some post requests require formdata
         $InvokeRestMethodSplat.Body = $Body | ConvertTo-Json -Compress

@@ -43,6 +43,7 @@ class ImmichSession
         }
         $JWTResponse = InvokeImmichRestMethod -NoAuth -Method:'Post' -ImmichSession $this -RelativePath '/auth/login' -Body $BodyObject
         $this.JWT = ConvertTo-SecureString -String $JWTResponse.accessToken -AsPlainText -Force
+        $this.AccessToken = ConvertTo-SecureString -String $JWTResponse.accessToken -AsPlainText -Force
         Remove-Variable -Name JWTResponse
     }
 
