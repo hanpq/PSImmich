@@ -61,7 +61,7 @@
             }
             'AccessToken'
             {
-                $Headers.'X-API-Key' = (ConvertFrom-SecureString -SecureString $ImmichSession.AccessToken -AsPlainText)
+                $Headers.'X-API-Key' = ConvertFromSecureString -SecureString $ImmichSession.AccessToken
             }
         }
     }

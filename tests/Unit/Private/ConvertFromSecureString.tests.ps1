@@ -23,7 +23,7 @@
 }
 
 InModuleScope $ProjectName {
-    Describe InvokeImmichRestMethod {
+    Describe ConvertFromSecureString {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue
