@@ -56,8 +56,7 @@
         {
             'Credential'
             {
-                $InvokeRestMethodSplat.Authentication = 'Bearer'
-                $InvokeRestMethodSplat.Token = $ImmichSession.JWT
+                $Headers.Authorization = "Bearer $($ImmichSession.JWT)"
             }
             'AccessToken'
             {
