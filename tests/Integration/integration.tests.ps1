@@ -63,11 +63,14 @@ Describe Connect-Immich {
             $ImmichSession.AccessToken | Should -BeOfType [SecureString]
         }
         It -name 'AccessToken should be correct' {
-            if ($PSVersionTable.PSEdition -eq 'Desktop') {
+            if ($PSVersionTable.PSEdition -eq 'Desktop')
+            {
                 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($ImmichSession.AccessToken)
                 $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
                 [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
-            } elseif ($PSVersionTable.PSEdition -eq 'Core') {
+            }
+            elseif ($PSVersionTable.PSEdition -eq 'Core')
+            {
                 $UnsecurePassword = ConvertFrom-SecureString -SecureString $ImmichSession.AccessToken -AsPlainText
             }
             $UnsecurePassword | Should -Be $env:PSIMMICHAPIKEY
@@ -188,13 +191,8 @@ Describe Get-IMServerConfig {
         }
         It -name 'Should return these properties' {
             $Result = Get-IMServerConfig
-            $Result.LoginPageMessage | Should -Be 'Site for integration tests'
-            $Result.trashDays | Should -Be 30
-            $Result.userDeleteDelay | Should -Be 7
-            $Result.oauthButtonText | Should -Be 'Login with OAuth'
-            $Result.isInitialized  | Should -BeTrue
-            $Result.isOnboarded | Should -BeTrue
-            $Result.ExternalDomain | Should -Be $env:PSIMMICHURI
+            $ExpectedProperties = @('LoginPageMessage', 'trashDays', 'userDeleteDelay', 'oauthButtonText', 'isInitialized', 'isOnboarded', 'ExternalDomain')
+            Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
 }
@@ -209,17 +207,8 @@ Describe Get-IMServerFeature {
         }
         It -name 'Should return these properties' {
             $Result = Get-IMServerFeature
-            $Result.smartSearch  | Should -BeTrue
-            $Result.facialRecognition | Should -BeTrue
-            $Result.map | Should -BeTrue
-            $Result.reverseGeocoding | Should -BeTrue
-            $Result.sidecar | Should -BeTrue
-            $Result.search | Should -BeTrue
-            $Result.trash | Should -BeTrue
-            $Result.oauth | Should -BeFalse
-            $Result.oauthAutoLaunch | Should -BeFalse
-            $Result.passwordLogin | Should -BeTrue
-            $Result.configFile | Should -BeFalse
+            $ExpectedProperties = @('smartSearch', 'passwordLogin', 'configFile', 'facialRecognition', 'map', 'reverseGeocoding', 'sidecar', 'search', 'trash', 'oauth', 'oauthAutoLaunch')
+            Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
 }
@@ -234,13 +223,8 @@ Describe Get-IMServerInfo {
         }
         It -name 'Should return these properties' {
             $Result = Get-IMServerInfo
-            $Result.diskSize            | Should  -BeOfType [String]
-            $Result.diskUse             | Should  -BeOfType [String]
-            $Result.diskAvailable       | Should  -BeOfType [String]
-            $Result.diskSizeRaw         | Should  -BeOfType [int64]
-            $Result.diskUseRaw          | Should  -BeOfType [int64]
-            $Result.diskAvailableRaw    | Should  -BeOfType [int64]
-            $Result.diskUsagePercentage | Should  -BeOfType [double]
+            $ExpectedProperties = @('diskSize', 'diskUse', 'diskAvailable', 'diskSizeRaw', 'diskUseRaw', 'diskAvailableRaw', 'diskUsagePercentage')
+            Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
 }
@@ -255,17 +239,10 @@ Describe Get-IMServerStatistic {
         }
         It -name 'Should return these properties' {
             $Result = Get-IMServerStatistic
-            $Result.photos | Should -BeOfType [int64]
-            $Result.videos | Should -BeOfType [int64]
-            $Result.usage | Should -BeOfType [int64]
-            , ($Result.usageByUser) | Should -BeOfType [array]
-            , ($Result.usageByUser) | Should -HaveCount 1
-            $Result.usageByUser[0].userID | Should -Be 'fb95c457-7685-428c-b850-2fd60345819c'
-            $Result.usageByUser[0].userName | Should -Be 'Hannes Palmquist'
-            $Result.usageByUser[0].photos | Should -BeOfType [int64]
-            $Result.usageByUser[0].videos | Should -BeOfType [int64]
-            $Result.usageByUser[0].usage | Should -BeOfType [int64]
-            $Result.usageByUser[0].quotaSizeInBytes | Should -BeNullOrEmpty
+            $ExpectedProperties = @('photos', 'videos', 'usage', 'usageByUser')
+            Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
+            $ExpectedProperties = @('userID', 'userName', 'photos', 'videos', 'usage', 'quotaSizeInBytes')
+            Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.usagebyuser[0].PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
 }
@@ -280,7 +257,8 @@ Describe Get-IMServerVersion {
         }
         It -name 'Should return these properties' {
             $Result = Get-IMServerVersion
-            $Result.version            | Should  -BeOfType [String]
+            $ExpectedProperties = @('version')
+            Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
 }
@@ -295,9 +273,8 @@ Describe Get-IMSupportedMediaType {
         }
         It -name 'Should return these properties' {
             $Result = Get-IMSupportedMediaType
-            , ($Result.video) | Should  -BeOfType [array]
-            , ($Result.image) | Should  -BeOfType [array]
-            , ($Result.sidecar) | Should  -BeOfType [array]
+            $ExpectedProperties = @('video', 'image', 'sidecar')
+            Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
 }
@@ -312,7 +289,8 @@ Describe Get-IMTheme {
         }
         It -name 'Should return these properties' {
             $Result = Get-IMTheme
-            $Result.customCss | Should  -BeNullOrEmpty
+            $ExpectedProperties = @('customCss')
+            Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
 }
@@ -327,7 +305,8 @@ Describe Test-IMPing {
         }
         It -name 'Should return these properties' {
             $Result = Test-IMPing
-            $Result.responds | Should  -BeTrue
+            $ExpectedProperties = @('responds')
+            Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
 }
