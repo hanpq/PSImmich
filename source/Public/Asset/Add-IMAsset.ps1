@@ -9,8 +9,20 @@
         -Session $Session
     .PARAMETER FilePath
         Defines the asset ids that should be removed. Accepts pipeline input.
-    .PARAMETER force
-        Defines that force should be used for the removal process.
+    .PARAMETER Duration
+        asd
+    .PARAMETER isArchived
+        asd
+    .PARAMETER isFavorite
+        asd
+    .PARAMETER isOffline
+        asd
+    .PARAMETER isReadOnly
+        asd
+    .PARAMETER isVisible
+        asd
+    .PARAMETER libraryId
+        asd
     .EXAMPLE
         Add-IMAsset
 
@@ -18,7 +30,7 @@
     .NOTES
         Covers API deleteAssets
     #>
-
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP, retreived through PSBoundParameters')]
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter()]

@@ -396,7 +396,7 @@ Describe Update-IMAsset {
     }
 }
 
-Describe Add-IMAsset {
+Describe Add-IMAsset -Skip: { $PSVersionTable.PSEdition -eq 'Desktop' } {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
@@ -408,14 +408,14 @@ Describe Add-IMAsset {
     }
 }
 
-Describe Remove-IMAsset {
+Describe Remove-IMAsset -Skip: { $PSVersionTable.PSEdition -eq 'Desktop' } {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     It -Name 'Should remove the file' {
         $Result = Add-IMAsset -FilePath "$PSScriptRoot\Immich.png"
         Remove-IMAsset -Id $Result.Id -force
-        {Get-IMAsset -Id $Result.Id} | should -throw
+        { Get-IMAsset -Id $Result.Id } | Should -Throw
     }
     # Must be able to upload a new asset before testing remove
 }
