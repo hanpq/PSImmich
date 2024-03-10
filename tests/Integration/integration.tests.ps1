@@ -29,11 +29,11 @@ Describe Connect-Immich {
     }
     Context -Name 'When providing Access Token' {
         It -name 'Should not throw' {
-            { Connect-Immich -BaseURL $env:PSImmichURI -AccessToken $env:PSImmichAPIKey } | Should -Not -Throw
+            { Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY } | Should -Not -Throw
         }
         InModuleScope PSImmich -ScriptBlock {
             BeforeAll {
-                Connect-Immich -BaseURL $env:PSImmichURI -AccessToken $env:PSImmichAPIKey
+                Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
             }
             It -name 'Should store a session variable' {
                 $script:ImmichSession | Should -Not -BeNullOrEmpty
@@ -45,7 +45,7 @@ Describe Connect-Immich {
     }
     Context -Name 'When providing Access Token and passthru is used' {
         BeforeAll {
-            $ImmichSession = Connect-Immich -BaseURL $env:PSImmichURI -AccessToken $env:PSImmichAPIKey -PassThru
+            $ImmichSession = Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY -PassThru
         }
         It -name 'Should return a session object' {
             $ImmichSession | Should -Not -BeNullOrEmpty
@@ -54,7 +54,7 @@ Describe Connect-Immich {
             $ImmichSession.GetType().Name | Should -Be 'ImmichSession'
         }
         It -name 'BaseURI should have correct value' {
-            $ImmichSession.BaseURI | Should -Be $env:PSImmichURI
+            $ImmichSession.BaseURI | Should -Be $env:PSIMMICHURI
         }
         It -name 'AuthMethod should have correct value' {
             $ImmichSession.AuthMethod | Should -Be 'AccessToken'
@@ -63,7 +63,10 @@ Describe Connect-Immich {
             $ImmichSession.AccessToken | Should -BeOfType [SecureString]
         }
         It -name 'AccessToken should be correct' {
-            $ImmichSession.AccessToken | ConvertFrom-SecureString -AsPlainText | Should -Be $env:PSImmichAPIKey
+            $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($ImmichSession.AccessToken)
+            $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+            [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+            $UnsecurePassword | Should -Be $env:PSIMMICHAPIKEY
         }
         It -name 'Credentials should be empty' {
             $ImmichSession.Credential | Should -BeNullOrEmpty
@@ -72,7 +75,7 @@ Describe Connect-Immich {
             $ImmichSession.JWT | Should -BeNullOrEmpty
         }
         It -name 'APIUri should be correct' {
-            $ImmichSession.APIUri | Should -Be "$env:PSImmichURI/api"
+            $ImmichSession.APIUri | Should -Be "$env:PSIMMICHURI/api"
         }
         It -name 'ImmichVersion should not be empty' {
             $ImmichSession.ImmichVersion | Should -Not -BeNullOrEmpty
@@ -83,13 +86,13 @@ Describe Connect-Immich {
     }
     Context -Name 'When providing Credentials' {
         It -name 'Should not throw' {
-            $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSImmichUser, (ConvertTo-SecureString -String $env:PSImmichPassword -AsPlainText -Force)
-            { Connect-Immich -BaseURL $env:PSImmichURI -Credential $Cred } | Should -Not -Throw
+            $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSIMMICHUSER, (ConvertTo-SecureString -String $env:PSIMMICHPASSWORD -AsPlainText -Force)
+            { Connect-Immich -BaseURL $env:PSIMMICHURI -Credential $Cred } | Should -Not -Throw
         }
         InModuleScope PSImmich -ScriptBlock {
             BeforeAll {
-                $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSImmichUser, (ConvertTo-SecureString -String $env:PSImmichPassword -AsPlainText -Force)
-                Connect-Immich -BaseURL $env:PSImmichURI -Credential $Cred
+                $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSIMMICHUSER, (ConvertTo-SecureString -String $env:PSIMMICHPASSWORD -AsPlainText -Force)
+                Connect-Immich -BaseURL $env:PSIMMICHURI -Credential $Cred
             }
             It -name 'Should store a session variable' {
                 $script:ImmichSession | Should -Not -BeNullOrEmpty
@@ -101,8 +104,8 @@ Describe Connect-Immich {
     }
     Context -Name 'When providing Credentials and passthru is used' {
         BeforeAll {
-            $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSImmichUser, (ConvertTo-SecureString -String $env:PSImmichPassword -AsPlainText -Force)
-            $ImmichSession = Connect-Immich -BaseURL $env:PSImmichURI -Credential $Cred -PassThru
+            $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSIMMICHUSER, (ConvertTo-SecureString -String $env:PSIMMICHPASSWORD -AsPlainText -Force)
+            $ImmichSession = Connect-Immich -BaseURL $env:PSIMMICHURI -Credential $Cred -PassThru
         }
         It -name 'Should return a session object' {
             $ImmichSession | Should -Not -BeNullOrEmpty
@@ -111,7 +114,7 @@ Describe Connect-Immich {
             $ImmichSession.GetType().Name | Should -Be 'ImmichSession'
         }
         It -name 'BaseURI should have correct value' {
-            $ImmichSession.BaseURI | Should -Be $env:PSImmichURI
+            $ImmichSession.BaseURI | Should -Be $env:PSIMMICHURI
         }
         It -name 'AuthMethod should have correct value' {
             $ImmichSession.AuthMethod | Should -Be 'Credential'
@@ -126,7 +129,7 @@ Describe Connect-Immich {
             $ImmichSession.JWT | Should -BeOfType [SecureString]
         }
         It -name 'APIUri should be correct' {
-            $ImmichSession.APIUri | Should -Be "$env:PSImmichURI/api"
+            $ImmichSession.APIUri | Should -Be "$env:PSIMMICHURI/api"
         }
         It -name 'ImmichVersion should not be empty' {
             $ImmichSession.ImmichVersion | Should -Not -BeNullOrEmpty
@@ -137,8 +140,8 @@ Describe Connect-Immich {
     }
     Context -Name 'When providing Credentials it is valid and usable' {
         BeforeAll {
-            $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSImmichUser, (ConvertTo-SecureString -String $env:PSImmichPassword -AsPlainText -Force)
-            Connect-Immich -BaseURL $env:PSImmichURI -Credential $Cred
+            $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSIMMICHUSER, (ConvertTo-SecureString -String $env:PSIMMICHPASSWORD -AsPlainText -Force)
+            Connect-Immich -BaseURL $env:PSIMMICHURI -Credential $Cred
         }
         It -name 'Credentials can be used' {
             Get-IMServerConfig
@@ -148,7 +151,7 @@ Describe Connect-Immich {
 
 Describe Get-IMSession {
     BeforeEach {
-        Connect-Immich -BaseURL $env:PSImmichURI -AccessToken $env:PSImmichAPIKey
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     Context -Name 'When no parameters are specified' {
         It -name 'Should not throw' {
@@ -162,7 +165,7 @@ Describe Get-IMSession {
 
 Describe Disconnect-Immich {
     BeforeEach {
-        Connect-Immich -BaseURL $env:PSImmichURI -AccessToken $env:PSImmichAPIKey
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     Context -Name 'When no parameters are specified' {
         It -name 'Should not throw' {
@@ -173,7 +176,7 @@ Describe Disconnect-Immich {
 
 Describe Get-IMServerConfig {
     BeforeAll {
-        Connect-Immich -BaseURL $env:PSImmichURI -AccessToken $env:PSImmichAPIKey
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     Context -Name 'When no parameters are specified' {
         It -name 'Should not throw' {
@@ -187,14 +190,14 @@ Describe Get-IMServerConfig {
             $Result.oauthButtonText | Should -Be 'Login with OAuth'
             $Result.isInitialized  | Should -BeTrue
             $Result.isOnboarded | Should -BeTrue
-            $Result.ExternalDomain | Should -Be $env:PSImmichURI
+            $Result.ExternalDomain | Should -Be $env:PSIMMICHURI
         }
     }
 }
 
 Describe Get-IMServerFeature {
     BeforeAll {
-        Connect-Immich -BaseURL $env:PSImmichURI -AccessToken $env:PSImmichAPIKey
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     Context -Name 'When no parameters are specified' {
         It -name 'Should not throw' {
@@ -219,7 +222,7 @@ Describe Get-IMServerFeature {
 
 Describe Get-IMServerInfo {
     BeforeAll {
-        Connect-Immich -BaseURL $env:PSImmichURI -AccessToken $env:PSImmichAPIKey
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     Context -Name 'When no parameters are specified' {
         It -name 'Should not throw' {
@@ -240,7 +243,7 @@ Describe Get-IMServerInfo {
 
 Describe Get-IMServerStatistic {
     BeforeAll {
-        Connect-Immich -BaseURL $env:PSImmichURI -AccessToken $env:PSImmichAPIKey
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     Context -Name 'When no parameters are specified' {
         It -name 'Should not throw' {
@@ -265,7 +268,7 @@ Describe Get-IMServerStatistic {
 
 Describe Get-IMServerVersion {
     BeforeAll {
-        Connect-Immich -BaseURL $env:PSImmichURI -AccessToken $env:PSImmichAPIKey
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     Context -Name 'When no parameters are specified' {
         It -name 'Should not throw' {
@@ -280,7 +283,7 @@ Describe Get-IMServerVersion {
 
 Describe Get-IMSupportedMediaType {
     BeforeAll {
-        Connect-Immich -BaseURL $env:PSImmichURI -AccessToken $env:PSImmichAPIKey
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     Context -Name 'When no parameters are specified' {
         It -name 'Should not throw' {
@@ -297,7 +300,7 @@ Describe Get-IMSupportedMediaType {
 
 Describe Get-IMTheme {
     BeforeAll {
-        Connect-Immich -BaseURL $env:PSImmichURI -AccessToken $env:PSImmichAPIKey
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     Context -Name 'When no parameters are specified' {
         It -name 'Should not throw' {
@@ -312,7 +315,7 @@ Describe Get-IMTheme {
 
 Describe Test-IMPing {
     BeforeAll {
-        Connect-Immich -BaseURL $env:PSImmichURI -AccessToken $env:PSImmichAPIKey
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     Context -Name 'When no parameters are specified' {
         It -name 'Should not throw' {
