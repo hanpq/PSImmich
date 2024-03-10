@@ -66,7 +66,7 @@ Describe Connect-Immich {
             $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($ImmichSession.AccessToken)
             $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
             [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
-            $UnsecurePassword | Should -Be $env:PSIMMICHAPIKEY
+            ($UnsecurePassword -join '') | Should -Be $env:PSIMMICHAPIKEY
         }
         It -name 'Credentials should be empty' {
             $ImmichSession.Credential | Should -BeNullOrEmpty
