@@ -10,7 +10,7 @@
     .PARAMETER ids
         Defines the asset ids that should be removed. Accepts pipeline input.
     .PARAMETER force
-        Defines that force should be used for the removal process.
+        Performs a hard delete bypassing the Trash
     .EXAMPLE
         Remove-IMAsset
 
