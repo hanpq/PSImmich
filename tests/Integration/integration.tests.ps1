@@ -396,7 +396,7 @@ Describe Update-IMAsset {
     }
 }
 
-Describe Add-IMAsset -Skip: { $PSVersionTable.PSEdition -eq 'Desktop' } {
+Describe Add-IMAsset -Skip:($PSVersionTable.PSEdition -eq 'Desktop') {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
@@ -408,7 +408,7 @@ Describe Add-IMAsset -Skip: { $PSVersionTable.PSEdition -eq 'Desktop' } {
     }
 }
 
-Describe Remove-IMAsset -Skip: { $PSVersionTable.PSEdition -eq 'Desktop' } {
+Describe Remove-IMAsset -Skip:($PSVersionTable.PSEdition -eq 'Desktop') {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
