@@ -73,6 +73,12 @@
 
     BEGIN
     {
+        # Do not run on Windows Powershell
+        if ($PSVersionTable.PSEdition -eq 'Desktop')
+        {
+            Write-Warning -Message 'Add-IMAsset is not currently supported on Windows Powershell, please use Powershell Core on Windows instead.'
+            break
+        }
         if (-not $ImmichSession)
         {
             Write-Debug -Message 'InvokeImmichRestMethod; No ImmichSession passed as parameter'
