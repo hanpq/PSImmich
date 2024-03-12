@@ -551,27 +551,43 @@ Describe Get-IMAlbum {
 Describe New-IMAlbum {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+        if ($env:CI)
+        {
+            $AlbumName = $env:GITHUB_JOB
+        }
+        else
+        {
+            $AlbumName = HOSTNAME.EXE
+        }
     }
     It -Name 'Album gets created' {
-        $NewAlbum = New-IMAlbum -albumName 'IntegrationTestAlbum' -assetids 'a4908e1f-697f-4d7b-9330-93b5eabe3baf' -description 'IntegrationTestAlbum'
+        $NewAlbum = New-IMAlbum -albumName $AlbumName -assetids 'a4908e1f-697f-4d7b-9330-93b5eabe3baf' -description $AlbumName
         $Result = Get-IMAlbum -albumId $NewAlbum.id
         $Result | Should -HaveCount 1
-        $Result.Description | Should -Be 'IntegrationTestAlbum'
-        $Result.albumName | Should -Be 'IntegrationTestAlbum'
+        $Result.Description | Should -Be $AlbumName
+        $Result.albumName | Should -Be $AlbumName
         $Result.Assets | Should -HaveCount 1
         Remove-IMAlbum -albumId $NewAlbum.id
     }
     AfterAll {
-        Get-IMAlbum | Where-Object { $_.AlbumName -eq 'IntegrationTestAlbum' } | Remove-IMAlbum
+        Get-IMAlbum | Where-Object { $_.AlbumName -eq $AlbumName } | Remove-IMAlbum
     }
 }
 
 Describe Remove-IMAlbum {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+        if ($env:CI)
+        {
+            $AlbumName = $env:GITHUB_JOB
+        }
+        else
+        {
+            $AlbumName = HOSTNAME.EXE
+        }
     }
     It -Name 'Album gets removed' {
-        $NewAlbum = New-IMAlbum -albumName 'IntegrationTestAlbum' -assetids 'a4908e1f-697f-4d7b-9330-93b5eabe3baf' -description 'IntegrationTestAlbum'
+        $NewAlbum = New-IMAlbum -albumName $AlbumName -assetids 'a4908e1f-697f-4d7b-9330-93b5eabe3baf' -description $AlbumName
         Remove-IMAlbum -albumId $NewAlbum.id
         { Get-IMAlbum -albumId $NewAlbum.id } | Should -Throw
     }
@@ -580,27 +596,43 @@ Describe Remove-IMAlbum {
 Describe Update-IMAlbum {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+        if ($env:CI)
+        {
+            $AlbumName = $env:GITHUB_JOB
+        }
+        else
+        {
+            $AlbumName = HOSTNAME.EXE
+        }
     }
     It -Name 'Album gets updated' {
-        $NewAlbum = New-IMAlbum -albumName 'IntegrationTestAlbum'
-        Update-IMAlbum -albumid $NewAlbum.id -Description 'IntegrationTestAlbumNew' -albumname 'IntegrationTestAlbumNew'
+        $NewAlbum = New-IMAlbum -albumName $AlbumName
+        Update-IMAlbum -albumid $NewAlbum.id -Description "$($AlbumName)New" -albumname "$($AlbumName)New"
         $Result = Get-IMAlbum -albumid $NewAlbum.id
         $Result | Should -HaveCount 1
-        $Result.Description | Should -Be 'IntegrationTestAlbumNew'
-        $Result.albumName | Should -Be 'IntegrationTestAlbumNew'
+        $Result.Description | Should -Be "$($AlbumName)New"
+        $Result.albumName | Should -Be "$($AlbumName)New"
         Remove-IMAlbum -albumId $NewAlbum.id
     }
     AfterAll {
-        Get-IMAlbum | Where-Object { $_.AlbumName -eq 'IntegrationTestAlbum' } | Remove-IMAlbum
+        Get-IMAlbum | Where-Object { $_.AlbumName -eq $AlbumName } | Remove-IMAlbum
     }
 }
 
 Describe Add-IMAlbumAsset {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+        if ($env:CI)
+        {
+            $AlbumName = $env:GITHUB_JOB
+        }
+        else
+        {
+            $AlbumName = HOSTNAME.EXE
+        }
     }
     It -Name 'Assets gets added to album' {
-        $NewAlbum = New-IMAlbum -albumName 'IntegrationTestAlbum'
+        $NewAlbum = New-IMAlbum -albumName $AlbumName
         Add-IMAlbumAsset -albumid $NewAlbum.id -assetid '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
         $Result = Get-IMAlbum -albumid $NewAlbum.id
         $Result.assets | Should -HaveCount 2
@@ -609,16 +641,24 @@ Describe Add-IMAlbumAsset {
         Remove-IMAlbum -albumId $NewAlbum.id
     }
     AfterAll {
-        Get-IMAlbum | Where-Object { $_.AlbumName -eq 'IntegrationTestAlbum' } | Remove-IMAlbum
+        Get-IMAlbum | Where-Object { $_.AlbumName -eq $AlbumName } | Remove-IMAlbum
     }
 }
 
 Describe Remove-IMAlbumAsset {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+        if ($env:CI)
+        {
+            $AlbumName = $env:GITHUB_JOB
+        }
+        else
+        {
+            $AlbumName = HOSTNAME.EXE
+        }
     }
     It -Name 'Assets gets removed from album' {
-        $NewAlbum = New-IMAlbum -albumName 'IntegrationTestAlbum'
+        $NewAlbum = New-IMAlbum -albumName $AlbumName
         Add-IMAlbumAsset -albumid $NewAlbum.id -assetid '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
         $Result = Get-IMAlbum -albumid $NewAlbum.id
         $Result.assets | Should -HaveCount 2
@@ -628,14 +668,22 @@ Describe Remove-IMAlbumAsset {
         Remove-IMAlbum -albumId $NewAlbum.id
     }
     AfterAll {
-        Get-IMAlbum | Where-Object { $_.AlbumName -eq 'IntegrationTestAlbum' } | Remove-IMAlbum
+        Get-IMAlbum | Where-Object { $_.AlbumName -eq $AlbumName } | Remove-IMAlbum
     }
 }
 
 Describe Add-IMAlbumUser {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
-        $NewAlbum = New-IMAlbum -albumName 'IntegrationTestAlbum'
+        if ($env:CI)
+        {
+            $AlbumName = $env:GITHUB_JOB
+        }
+        else
+        {
+            $AlbumName = HOSTNAME.EXE
+        }
+        $NewAlbum = New-IMAlbum -albumName $AlbumName
     }
     It -Name 'Users gets added to album' {
         Add-IMAlbumUser -albumid $NewAlbum.id -userId '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
@@ -644,14 +692,22 @@ Describe Add-IMAlbumUser {
         $Result.sharedUsers.id | Should -Contain '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
     }
     AfterAll {
-        Get-IMAlbum | Where-Object { $_.AlbumName -eq 'IntegrationTestAlbum' } | Remove-IMAlbum
+        Get-IMAlbum | Where-Object { $_.AlbumName -eq $AlbumName } | Remove-IMAlbum
     }
 }
 
 Describe Remove-IMAlbumUser {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
-        $NewAlbum = New-IMAlbum -albumName 'IntegrationTestAlbum' -sharedWithUserIds '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
+        if ($env:CI)
+        {
+            $AlbumName = $env:GITHUB_JOB
+        }
+        else
+        {
+            $AlbumName = HOSTNAME.EXE
+        }
+        $NewAlbum = New-IMAlbum -albumName $AlbumName -sharedWithUserIds '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
     }
     It -Name 'Users gets removed from album' {
         $Result = Get-IMAlbum -albumid $NewAlbum.id
@@ -661,7 +717,7 @@ Describe Remove-IMAlbumUser {
         $Result.sharedUsers | Should -HaveCount 0
     }
     AfterAll {
-        Get-IMAlbum | Where-Object { $_.AlbumName -eq 'IntegrationTestAlbum' } | Remove-IMAlbum
+        Get-IMAlbum | Where-Object { $_.AlbumName -eq $AlbumName } | Remove-IMAlbum
     }
 }
 
