@@ -107,11 +107,15 @@
             $InvokeRestMethodSplat.Uri += [URI]::EscapeUriString(($QueryParameterStringArray -join '&'))
         }
     }
-    elseif (@('Post', 'Put', 'Delete') -contains $InvokeRestMethodSplat.Method)
+    elseif (@('Post', 'Put', 'Delete', 'Patch') -contains $InvokeRestMethodSplat.Method)
     {
         # Might need to be changed, some post requests require formdata
         $InvokeRestMethodSplat.Body = $Body | ConvertTo-Json -Compress
         $InvokeRestMethodSplat.ContentType = 'application/json'
+    }
+    else
+    {
+        Write-Error -Message "Unknown method: $($InvokeRestMethodSplat.Method), unable to perform api call" -ErrorAction Stop
     }
 
 
