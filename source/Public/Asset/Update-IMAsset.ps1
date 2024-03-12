@@ -41,8 +41,8 @@
 
         [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline, ParameterSetName = 'batch')]
         [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline, ParameterSetName = 'id')]
-        [string[]]
         [Alias('id')]
+        [string[]]
         $ids,
 
         [Parameter(ParameterSetName = 'batch')]
