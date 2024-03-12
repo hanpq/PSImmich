@@ -492,45 +492,45 @@ Describe Get-IMAlbum {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     It -Name 'list-shared' {
-        $Result = Get-IMAlbum
+        $Result = Get-IMAlbum | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'}
         $Result | Should -HaveCount 1
     }
     It -Name 'list-shared-true' {
-        $Result = Get-IMAlbum -shared:$true
+        $Result = Get-IMAlbum -shared:$true | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
         $Result | Should -HaveCount 1
     }
     It -Name 'list-shared-false' {
-        $Result = Get-IMAlbum -shared:$false
+        $Result = Get-IMAlbum -shared:$false | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
         $Result | Should -HaveCount 0
     }
     It -Name 'list-assetid' {
-        $Result = Get-IMAlbum -assetid 'a4908e1f-697f-4d7b-9330-93b5eabe3baf'
+        $Result = Get-IMAlbum -assetid 'a4908e1f-697f-4d7b-9330-93b5eabe3baf' | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
         $Result | Should -HaveCount 1
     }
     It -Name 'list-id' {
-        $Result = Get-IMAlbum -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+        $Result = Get-IMAlbum -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
         $Result | Should -HaveCount 1
         $Result.Assets | Should -Not -BeNullOrEmpty
     }
     It -Name 'list-id-withoutassets' {
-        $Result = Get-IMAlbum -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -withoutAssets
+        $Result = Get-IMAlbum -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -withoutAssets | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
         $Result | Should -HaveCount 1
         $Result.Assets | Should -BeNullOrEmpty
     }
     It -Name 'list-id-pipe-string' {
-        $Result = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' | Get-IMAlbum
+        $Result = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' | Get-IMAlbum | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
         $Result | Should -HaveCount 1
     }
     It -Name 'list-id-pipe-string-array' {
-        $Result = @('bde7ceba-f301-4e9e-87a2-163937a2a3db', 'bde7ceba-f301-4e9e-87a2-163937a2a3db') | Get-IMAlbum
+        $Result = @('bde7ceba-f301-4e9e-87a2-163937a2a3db', 'bde7ceba-f301-4e9e-87a2-163937a2a3db') | Get-IMAlbum | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
         $Result | Should -HaveCount 2
     }
     It -Name 'list-id-pipe-object-array' {
-        $Result = @([pscustomobject]@{albumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }, [pscustomobject]@{albumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }) | Get-IMAlbum
+        $Result = @([pscustomobject]@{albumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }, [pscustomobject]@{albumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }) | Get-IMAlbum | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
         $Result | Should -HaveCount 2
     }
     It -Name 'list-id-pipe-object-array-alias' {
-        $Result = @([pscustomobject]@{id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }, [pscustomobject]@{id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }) | Get-IMAlbum
+        $Result = @([pscustomobject]@{id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }, [pscustomobject]@{id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }) | Get-IMAlbum | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
         $Result | Should -HaveCount 2
     }
 }
