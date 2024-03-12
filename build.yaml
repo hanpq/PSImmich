@@ -49,6 +49,9 @@ BuildWorkflow:
     - Convert_Pester_Coverage
     - Pester_if_Code_Coverage_Under_Threshold
 
+  merge:
+    - Merge_CodeCoverage_Files
+
   publish:
     - Create_ChangeLog_GitHub_PR
     - Update_GetPSDev_Docs
@@ -83,6 +86,17 @@ Pester:
       OutputEncoding:
       TestSuiteName:
   ExcludeFromCodeCoverage:
+
+####################################################
+#           Code Coverage Configuration            #
+####################################################
+
+CodeCoverage:
+  # Filename of the file that will be outputted by the task Merge_CodeCoverage_Files.
+  CodeCoverageMergedOutputFile: JaCoCo_coverage.xml
+  # File pattern used to search for files under the ./output/testResults folder
+  # by task Merge_CodeCoverage_Files.
+  CodeCoverageFilePattern: Codecov*.xml
 
 ####################################################
 #       Misc                                       #
