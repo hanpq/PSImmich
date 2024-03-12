@@ -553,7 +553,7 @@ Describe New-IMAlbum {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
         if ($env:CI)
         {
-            $AlbumName = $env:GITHUB_JOB
+            $AlbumName = $env:GITHUB_RUN_ID
         }
         else
         {
@@ -579,7 +579,7 @@ Describe Remove-IMAlbum {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
         if ($env:CI)
         {
-            $AlbumName = $env:GITHUB_JOB
+            $AlbumName = $env:GITHUB_RUN_ID
         }
         else
         {
@@ -598,7 +598,7 @@ Describe Update-IMAlbum {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
         if ($env:CI)
         {
-            $AlbumName = $env:GITHUB_JOB
+            $AlbumName = $env:GITHUB_RUN_ID
         }
         else
         {
@@ -624,7 +624,7 @@ Describe Add-IMAlbumAsset {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
         if ($env:CI)
         {
-            $AlbumName = $env:GITHUB_JOB
+            $AlbumName = $env:GITHUB_RUN_ID
         }
         else
         {
@@ -650,7 +650,7 @@ Describe Remove-IMAlbumAsset {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
         if ($env:CI)
         {
-            $AlbumName = $env:GITHUB_JOB
+            $AlbumName = $env:GITHUB_RUN_ID
         }
         else
         {
@@ -677,7 +677,7 @@ Describe Add-IMAlbumUser {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
         if ($env:CI)
         {
-            $AlbumName = $env:GITHUB_JOB
+            $AlbumName = $env:GITHUB_RUN_ID
         }
         else
         {
@@ -701,7 +701,7 @@ Describe Remove-IMAlbumUser {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
         if ($env:CI)
         {
-            $AlbumName = $env:GITHUB_JOB
+            $AlbumName = $env:GITHUB_RUN_ID
         }
         else
         {
