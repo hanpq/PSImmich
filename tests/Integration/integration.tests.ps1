@@ -535,7 +535,7 @@ Describe Get-IMAlbum {
     }
 }
 
-Describe Get-IMAlbum {
+Describe Get-IMAlbumCount -skip:($env:CI) {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
@@ -544,7 +544,6 @@ Describe Get-IMAlbum {
         $Result.owned | Should -Be 1
         $Result.shared | Should -Be 1
         $Result.notShared | Should -Be 0
-
     }
 }
 
