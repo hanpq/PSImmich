@@ -492,7 +492,7 @@ Describe Get-IMAlbum {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     It -Name 'list-shared' {
-        $Result = Get-IMAlbum | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'}
+        $Result = Get-IMAlbum | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
         $Result | Should -HaveCount 1
     }
     It -Name 'list-shared-true' {
@@ -535,7 +535,7 @@ Describe Get-IMAlbum {
     }
 }
 
-Describe Get-IMAlbumCount -skip:($env:CI) {
+Describe Get-IMAlbumCount -Skip:([boolean]($env:CI)) {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
