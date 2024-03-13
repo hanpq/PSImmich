@@ -211,6 +211,7 @@ jobs:
     if: ${{ always() }}
     needs:
       - Deploy
+      - Publish_Code_Coverage
     steps:
       - uses: geekyeggo/delete-artifact@v2
         with:
