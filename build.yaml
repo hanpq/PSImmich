@@ -77,7 +77,7 @@ Pester:
       Path:
       OutputFormat:
       CoveragePercentTarget: 10
-      OutputPath: CodeCov.xml
+      #OutputPath: CodeCov.xml
       OutputEncoding: ascii
       ExcludeTests:
     TestResult:
