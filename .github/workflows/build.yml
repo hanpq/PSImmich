@@ -174,23 +174,23 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: CodeCoverage_Linux_Core
-          path: output/testResults/
+          path: output/testResults/CodeCoverage_Linux_Core
       - uses: actions/download-artifact@v4
         with:
           name: CodeCoverage_MacOS_Core
-          path: output/testResults/
+          path: output/testResults/CodeCoverage_MacOS_Core
       - uses: actions/download-artifact@v4
         with:
           name: CodeCoverage_Windows_Core
-          path: output/testResults/
+          path: output/testResults/CodeCoverage_Windows_Core
       - uses: actions/download-artifact@v4
         with:
           name: CodeCoverage_Windows_Desktop
-          path: output/testResults/
+          path: output/testResults/CodeCoverage_Windows_Desktop
       - uses: actions/download-artifact@v4
         with:
           name: CodeCoverage_Integration
-          path: output/testResults/
+          path: output/testResults/CodeCoverage_Integration
       - name: Merge Code Coverage files
         run: |
           ./build.ps1 -ResolveDependency -tasks merge
