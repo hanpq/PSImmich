@@ -215,6 +215,7 @@ jobs:
       - Test_Linux_Core
       - Test_Windows_Core
       - Test_Windows_Desktop
+      - Test_Integration
     if: ${{ success() && (github.ref == 'refs/heads/main' || StartsWith(github.ref,'refs/tags/')) }}
     steps:
       - uses: actions/checkout@v4
