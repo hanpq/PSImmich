@@ -79,21 +79,6 @@
             Write-Warning -Message 'Add-IMAsset is not currently supported on Windows Powershell, please use Powershell Core on Windows instead.'
             break
         }
-        if (-not $ImmichSession)
-        {
-            Write-Debug -Message 'InvokeImmichRestMethod; No ImmichSession passed as parameter'
-            if ($script:ImmichSession)
-            {
-                Write-Debug -Message 'InvokeImmichRestMethod; ImmichSession found in script scope'
-                $ImmichSession = $script:ImmichSession
-            }
-            else
-            {
-                Write-Error -Message 'No Immich Session established, please call Connect-Immich'
-            }
-        }
-
-
     }
 
     PROCESS

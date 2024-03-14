@@ -21,7 +21,7 @@
     Import-Module $ProjectName -Force
 }
 
-Describe 'Session' -Tag 'Integration'{
+Describe 'Session' -Tag 'Integration' {
     Context 'Connect-Immich - When no parameters are specified' {
         It -Name 'Should throw' {
             { Connect-Immich } | Should -Throw
@@ -178,6 +178,11 @@ Describe 'Session' -Tag 'Integration'{
 Describe 'ServerInfo' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context -Name 'Get-IMServer' {
+        It -Name 'Should not throw' {
+            { Get-IMServer } | Should -Not -Throw
+        }
     }
     Context -Name 'Get-IMServerConfig - When no parameters are specified' {
         It -Name 'Should not throw' {
