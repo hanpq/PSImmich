@@ -22,7 +22,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Update-IMAlbum {
+    Describe Set-IMAsset {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

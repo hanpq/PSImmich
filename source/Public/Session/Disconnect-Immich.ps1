@@ -8,7 +8,7 @@
     .EXAMPLE
         Disconnect-Immich
 
-        Disconnect from the default portainer session
+        Disconnect from the default immich session
     .EXAMPLE
         Disconnect-Immich -Session $Session
 

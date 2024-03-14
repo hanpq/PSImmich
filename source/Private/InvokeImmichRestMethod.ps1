@@ -17,6 +17,10 @@
         Defines header attributes for the REST API call
     .PARAMETER QueryParameters
          Defines QueryParameters for the REST API call
+    .PARAMETER ContentType
+        Defines the contenttype for the request
+    .PARAMETER OutFilePath
+        Defines an output directory
     .EXAMPLE
         InvokeImmichRestMethod
     #>
@@ -28,7 +32,9 @@
         [string]$RelativePath,
         [hashtable]$Body = @{},
         [hashtable]$Headers = @{},
-        [hashtable]$QueryParameters = @{}
+        [hashtable]$QueryParameters = @{},
+        [string]$ContentType = 'application/json',
+        [System.IO.FileInfo]$OutFilePath
     )
 
     if (-not $ImmichSession)
@@ -111,7 +117,7 @@
     {
         # Might need to be changed, some post requests require formdata
         $InvokeRestMethodSplat.Body = $Body | ConvertTo-Json -Compress
-        $InvokeRestMethodSplat.ContentType = 'application/json'
+        $InvokeRestMethodSplat.ContentType = $ContentType
     }
     else
     {
@@ -120,7 +126,16 @@
 
 
     Write-Debug -Message "InvokeImmichRestMethod; Calling Invoke-RestMethod with settings`r`n$($InvokeRestMethodSplat | ConvertTo-Json)"
-    Invoke-RestMethod @InvokeRestMethodSplat -Verbose:$false | ForEach-Object { $_ }
+
+    if ($ContentType -eq 'application/octet-stream' -and $Method -eq 'Get')
+    {
+        Invoke-RestMethod @InvokeRestMethodSplat -Verbose:$false -OutFile $OutFilePath
+    }
+    else
+    {
+        Invoke-RestMethod @InvokeRestMethodSplat -Verbose:$false | ForEach-Object { $_ }
+    }
+
 }
 
 

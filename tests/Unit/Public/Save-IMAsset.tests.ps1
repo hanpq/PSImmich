@@ -22,7 +22,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Update-IMAsset {
+    Describe Save-IMAsset {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

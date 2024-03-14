@@ -4,15 +4,15 @@
     .DESCRIPTION
         Connect to a Immich instance
     .PARAMETER BaseURL
-        Defines the base URL to the portainer instance
+        Defines the base URL to the immich instance
 
-        -BaseURL 'https://portainer.contoso.com'
+        -BaseURL 'https://immich.domain.com'
     .PARAMETER AccessToken
-        Connects to portainer using a access token. This AccessToken can be generated from the Immich Web GUI.
+        Connects to immich using a access token. This AccessToken can be generated from the Immich Web GUI.
 
-        -AccessToken 'ptr_ABoR54bB1NUc4aNY0F2PhppP1tVDu2Husr3vEbPUsw5'
+        -AccessToken 'ABoR54bB1NUc4aNY0F2PhppP1tVDu2Husr3vEbPUsw5'
     .PARAMETER Credential
-        Connect to portainer using username and password. Parameter accepts a PSCredentials object
+        Connect to immich using username and password. Parameter accepts a PSCredentials object
 
         -Credential (Get-Credential)
     .PARAMETER PassThru
@@ -20,11 +20,11 @@
 
         -PassThru
     .EXAMPLE
-        Connect-Immich -BaseURL 'https://portainer.contoso.com' -AccessToken 'ptr_ABoR54bB1NUc4aNY0F2PhppP1tVDu2Husr3vEbPUsw5='
+        Connect-Immich -BaseURL 'https://immich.domain.com' -AccessToken 'ABoR54bB1NUc4aNY0F2PhppP1tVDu2Husr3vEbPUsw5'
 
         Connect using access token
     .EXAMPLE
-        Connect-Immich -BaseURL 'https://portainer.contoso.com' -Credentials (Get-Credential)
+        Connect-Immich -BaseURL 'https://immich.domain.com' -Credentials (Get-Credential)
 
         Connect using username and password
     #>

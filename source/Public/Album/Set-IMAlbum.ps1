@@ -1,8 +1,8 @@
-﻿function Update-IMAlbum
+﻿function Set-IMAlbum
 {
     <#
     .DESCRIPTION
-        Updates an Immich asset
+        Updates an Immich album
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
@@ -18,7 +18,7 @@
     .PARAMETER isActivityEnabled
         Defines weather activity feed should be enabled
     .EXAMPLE
-        Update-IMAlbum
+        Set-IMAlbum
 
         Update an Immich album
     .NOTES

@@ -1,4 +1,4 @@
-﻿function Update-IMAsset
+﻿function Set-IMAsset
 {
     <#
     .DESCRIPTION
@@ -10,23 +10,23 @@
     .PARAMETER ids
         asd
     .PARAMETER dateTimeOriginal
-    asd
+        asd
     .PARAMETER isArchived
-    asd
+        asd
     .PARAMETER isFavorite
-    asd
+        asd
     .PARAMETER latitude
-    asd
+        asd
     .PARAMETER longitude
-    asd
+        asd
     .PARAMETER removeParent
-    asd
+        asd
     .PARAMETER stackParentId
-    asd
+        asd
     .PARAMETER description
-    asd
+        asd
     .EXAMPLE
-        Update-IMAsset
+        Set-IMAsset
 
         Update an Immich asset
     .NOTES

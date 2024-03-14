@@ -1,20 +1,19 @@
-﻿function Remove-IMAlbum
+﻿function Remove-IMAPIKey
 {
     <#
     .DESCRIPTION
-        Removes an Immich album
+        Removes Immich api key
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
-    .PARAMETER albumId
-        Defines the asset ids that should be removed. Accepts pipeline input.
+    .PARAMETER id
+        Defines an api key id to remove
     .EXAMPLE
-        Remove-IMAlbum
+        Remove-IMAPIKey
 
-        Removes an Immich album
+        Remove Immich api key
     #>
-
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter()]
@@ -22,21 +21,20 @@
         $Session = $null,
 
         [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
-        [Alias('id')]
         [string[]]
-        $albumId
+        $id
     )
 
     PROCESS
     {
-        # We loop through IDs because ids can be provided as an array to the parameter in which case the process block only gets called once.
-        $albumId | ForEach-Object {
+        $id | ForEach-Object {
             $CurrentID = $PSItem
             if ($PSCmdlet.ShouldProcess($CurrentID, 'DELETE'))
             {
-                InvokeImmichRestMethod -Method Delete -RelativePath "/album/$CurrentID" -ImmichSession:$Session
+                InvokeImmichRestMethod -Method DELETE -RelativePath "/api-key/$CurrentID" -ImmichSession:$Session
             }
         }
     }
+
 }
 #endregion

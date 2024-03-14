@@ -4,7 +4,7 @@
     .DESCRIPTION
         Displays the Immich Session object.
     .PARAMETER Session
-        Optionally define a portainer session object to use. This is useful when you are connected to more than one portainer instance.
+        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
     .EXAMPLE
