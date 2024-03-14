@@ -18,7 +18,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Write-PSProgress {
+    Describe Write-PSProgress  -Tag 'Unit' {
         Context 'Default' {
             It 'Should not throw' {
                 $ProgressPreference = 'SilentlyContinue'

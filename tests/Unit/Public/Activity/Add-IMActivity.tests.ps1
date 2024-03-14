@@ -22,7 +22,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Add-IMActivity {
+    Describe Add-IMActivity  -Tag 'Unit' {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

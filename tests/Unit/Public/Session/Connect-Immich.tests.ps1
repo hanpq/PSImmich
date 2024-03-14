@@ -22,7 +22,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Connect-Immich {
+    Describe Connect-Immich  -Tag 'Unit' {
         Context -Name 'When no parameters are specified' {
             It -Name 'Should throw' {
                 { Connect-Immich } | Should -Throw

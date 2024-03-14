@@ -23,7 +23,7 @@
 }
 
 InModuleScope $ProjectName {
-    Describe ConvertFromSecureString {
+    Describe ConvertFromSecureString -Tag 'Unit' {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

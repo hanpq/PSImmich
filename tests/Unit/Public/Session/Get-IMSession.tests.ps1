@@ -20,7 +20,7 @@
 }
 
 InModuleScope $ProjectName {
-    Describe Get-IMSession {
+    Describe Get-IMSession  -Tag 'Unit' {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

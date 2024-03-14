@@ -19,7 +19,7 @@
 }
 
 InModuleScope $ProjectName {
-    Describe Disconnect-Immich {
+    Describe Disconnect-Immich  -Tag 'Unit' {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

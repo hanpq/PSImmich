@@ -21,7 +21,7 @@
     Import-Module $ProjectName -Force
 }
 
-Describe 'Session' {
+Describe 'Session' -Tag 'Integration'{
     Context 'Connect-Immich - When no parameters are specified' {
         It -Name 'Should throw' {
             { Connect-Immich } | Should -Throw
@@ -175,7 +175,7 @@ Describe 'Session' {
     }
 }
 
-Describe 'ServerInfo' {
+Describe 'ServerInfo' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
@@ -263,7 +263,7 @@ Describe 'ServerInfo' {
     }
 }
 
-Describe 'Asset' {
+Describe 'Asset' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
@@ -357,7 +357,7 @@ Describe 'Asset' {
     }
 }
 
-Describe 'Activity' {
+Describe 'Activity' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
@@ -410,7 +410,7 @@ Describe 'Activity' {
     }
 }
 
-Describe 'Album' {
+Describe 'Album' -Tag 'Integration' {
     Context Get-IMAlbum {
         It -Name 'list-shared' {
             $Result = Get-IMAlbum | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
@@ -624,7 +624,7 @@ Describe 'Album' {
     }
 }
 
-Describe 'APIKey' {
+Describe 'APIKey' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
         if ($env:CI)

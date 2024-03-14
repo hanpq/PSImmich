@@ -23,7 +23,7 @@
 }
 
 InModuleScope $ProjectName {
-    Describe InvokeImmichRestMethod {
+    Describe InvokeImmichRestMethod  -Tag 'Unit' {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

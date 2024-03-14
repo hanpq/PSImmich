@@ -21,8 +21,8 @@ BeforeDiscovery {
     Import-Module $ProjectName -Force
 }
 
-InModuleScope $ProjectName {
-    Describe Set-IMAlbum {
+InModuleScope $ProjectName  {
+    Describe Set-IMAlbum  -Tag 'Unit' {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

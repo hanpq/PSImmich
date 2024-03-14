@@ -21,8 +21,8 @@ BeforeDiscovery {
     Import-Module $ProjectName -Force
 }
 
-InModuleScope $ProjectName {
-    Describe SelectBinding {
+InModuleScope $ProjectName  {
+    Describe SelectBinding -Tag 'Unit' {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

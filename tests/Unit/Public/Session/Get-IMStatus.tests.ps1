@@ -22,7 +22,7 @@
 }
 
 InModuleScope $ProjectName {
-    Describe Get-IMStatus {
+    Describe Get-IMStatus  -Tag 'Unit' {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue
