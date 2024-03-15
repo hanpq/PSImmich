@@ -14,6 +14,7 @@
 
         Remove Immich api key
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter()]

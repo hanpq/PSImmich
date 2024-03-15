@@ -16,7 +16,8 @@
 
         Remove user from album
     #>
-
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'albumId', Justification = 'FP')]
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter()]
@@ -38,7 +39,7 @@
         $userId | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'DELETE'))
             {
-                InvokeImmichRestMethod -Method DELETE -RelativePath "/album/$albumid/user/$psitem" -ImmichSession:$Session
+                InvokeImmichRestMethod -Method DELETE -RelativePath "/album/$albumId/user/$psitem" -ImmichSession:$Session
             }
         }
     }

@@ -14,7 +14,7 @@
 
         Removes an Immich album
     #>
-
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter()]

@@ -10,6 +10,7 @@
     .EXAMPLE
         SelectBinding
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP')]
     param(
         $Binding,
         [string[]]$SelectProperty

@@ -177,7 +177,9 @@ Write-Host '[bootstrap] Nuget bootstrap' -ForegroundColor Cyan
 $powerShellGetModule = Import-Module -Name 'PowerShellGet' -MinimumVersion '2.0' -MaximumVersion '2.9' -ErrorAction 'SilentlyContinue' -PassThru
 
 # Install the package provider if it is not available.
-$nuGetProvider = Get-PackageProvider -Name 'NuGet' -ListAvailable | Select-Object -First 1
+#$nuGetProvider = Get-PackageProvider -Name 'NuGet' -ListAvailable | Select-Object -First 1
+# ListAvailable causes the process to search the web for available providers which should not be needed.
+$nuGetProvider = Get-PackageProvider -Name 'NuGet'
 
 if (-not $powerShellGetModule -and -not $nuGetProvider)
 {

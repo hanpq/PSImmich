@@ -349,7 +349,7 @@ Describe 'Asset' -Tag 'Integration' {
             $Result = Add-IMAsset -FilePath "$PSScriptRoot\Immich.png"
             Remove-IMAsset -Id $Result.Id -force
             # Seems to be 50-50 chance this test fails. It might be a timing issue, trying to delay the verification half a seconds.
-            Start-Sleep -Milliseconds 500
+            Start-Sleep -Milliseconds 1000
             { Get-IMAsset -Id $Result.Id } | Should -Throw
         }
     }
@@ -649,7 +649,7 @@ Describe 'APIKey' -Tag 'Integration' {
     }
     Context 'New-IMAPIKey' {
         It 'Should create a new api-key' {
-            $Result = New-IMAPIKey -name $KeyName
+            $Result = New-IMAPIKey -Name $KeyName
             $Result.secret | Should -Not -BeNullOrEmpty
             Get-IMAPIKey -id $Result.apiKey.id | Should -HaveCount 1
             Remove-IMAPIKey -id $Result.apiKey.id
@@ -657,8 +657,8 @@ Describe 'APIKey' -Tag 'Integration' {
     }
     Context 'Set-IMAPIKey' {
         It 'Should set a new name' {
-            $Result = New-IMAPIKey -name $KeyName
-            Set-IMAPIKey -id $Result.apiKey.id -name "$($KeyName)_New"
+            $Result = New-IMAPIKey -Name $KeyName
+            Set-IMAPIKey -id $Result.apiKey.id -Name "$($KeyName)_New"
             $Result = Get-IMAPIKey -id $Result.apiKey.id
             $Result.Name | Should -Be "$($KeyName)_New"
             Remove-IMAPIKey -id $Result.id
@@ -666,7 +666,7 @@ Describe 'APIKey' -Tag 'Integration' {
     }
     Context 'RemoveIMAPIKey' {
         It 'Should remove the api key' {
-            $Result = New-IMAPIKey -name $KeyName
+            $Result = New-IMAPIKey -Name $KeyName
             Remove-IMAPIKey -id $Result.apiKey.id
             { Get-IMAPIKey -id $Result.apiKey.id } | Should -Throw
         }

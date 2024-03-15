@@ -13,7 +13,7 @@
         Retreives Immich album count
     #>
 
-    [CmdletBinding(DefaultParameterSetName = 'list-shared')]
+    [CmdletBinding()]
     param(
         [Parameter()]
         [ImmichSession]
