@@ -396,6 +396,16 @@ Describe 'Asset' -Tag 'Integration' {
             $Result.PSObject.Properties.Name | Should -Contain 'videos'
         }
     }
+    Context 'Get-IMTimeBucket' {
+        It -Name 'Should return 3 objects' {
+            $Result = Get-IMTimeBucket -Size 'MONTH'
+            $Result | Should -HaveCount 3
+        }
+        It -Name 'Should return 1 object' {
+            $Result = Get-IMTimeBucket -TimeBucket '2024-03-01 00:00:00' -Size MONTH
+            $Result | Should -HaveCount 11
+        }
+    }
 }
 
 Describe 'Activity' -Tag 'Integration' {
