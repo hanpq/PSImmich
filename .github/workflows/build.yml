@@ -55,7 +55,7 @@ jobs:
           name: output
           path: output
   Test_Linux_Core:
-    name: Test Linux Core
+    name: Test Unit - Linux
     runs-on: ubuntu-latest
     needs: Build
     steps:
@@ -75,7 +75,7 @@ jobs:
           name: CodeCoverage_Linux_Core
           path: output/testResults/
   Test_Windows_Core:
-    name: Test Windows Core
+    name: Test Unit - Win Core
     runs-on: windows-latest
     needs: Build
     steps:
@@ -95,7 +95,7 @@ jobs:
           name: CodeCoverage_Windows_Core
           path: output/testResults/
   Test_Windows_Desktop:
-    name: Test Windows Desktop
+    name: Test Unit - Win Desktop
     runs-on: windows-latest
     needs: Build
     steps:
@@ -115,7 +115,7 @@ jobs:
           name: CodeCoverage_Windows_Desktop
           path: output/testResults/
   Test_MacOS_Core:
-    name: Test MacOS Core
+    name: Test Unit - MacOS
     runs-on: macos-latest
     needs: Build
     steps:

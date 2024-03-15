@@ -274,18 +274,18 @@ Describe 'Asset' -Tag 'Integration' {
     }
     Context -Name 'Get-IMAsset - Specifying a single ID' {
         It -Name 'Should return a object with the correct properties' {
-            $Result = Get-IMAsset -Id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $Result = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $ExpectedProperties = @('hasMetadata', 'isReadOnly', 'isOffline', 'isExternal', 'stackCount', 'checksum', 'people', 'tags', 'livePhotoVideoId', 'smartInfo', 'exifInfo', 'duration', 'isTrashed', 'isArchived', 'isFavorite', 'updatedAt', 'localDateTime', 'fileModifiedAt', 'fileCreatedAt', 'thumbhash', 'resized', 'id', 'deviceAssetId', 'ownerId', 'owner', 'deviceId', 'libraryId', 'type', 'originalPath', 'originalFileName')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
         It -Name 'Should return a single object' {
-            Get-IMAsset -Id '025665c6-d874-46a2-bbc6-37250ddcb2eb' | Should -HaveCount 1
+            Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb' | Should -HaveCount 1
         }
         It -Name 'Should accept object from pipeline' {
             [pscustomobject]@{id = '025665c6-d874-46a2-bbc6-37250ddcb2eb' } | Get-IMAsset | Should -HaveCount 1
         }
         It -Name 'Should accept id from parameter' {
-            Get-IMAsset -Id '025665c6-d874-46a2-bbc6-37250ddcb2eb' | Should -HaveCount 1
+            Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb' | Should -HaveCount 1
         }
         It -Name 'Should accept id from pipeline' {
             '025665c6-d874-46a2-bbc6-37250ddcb2eb' | Get-IMAsset | Should -HaveCount 1
@@ -350,14 +350,50 @@ Describe 'Asset' -Tag 'Integration' {
             Remove-IMAsset -Id $Result.Id -force
             # Seems to be 50-50 chance this test fails. It might be a timing issue, trying to delay the verification half a seconds.
             Start-Sleep -Milliseconds 1000
-            { Get-IMAsset -Id $Result.Id } | Should -Throw
+            { Get-IMAsset -id $Result.Id } | Should -Throw
         }
     }
     Context 'Save-IMAsset' {
-        It -Name 'Save-IMAsset' {
+        It -Name 'Should download file to disk' {
             Save-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb' -Path ((Get-PSDrive TestDrive).Root)
             "$((Get-PSDrive TestDrive).Root)\michael-daniels-ylUGx4g6eHk-unsplash.jpg" | Should -Exist
             Remove-Item 'TestDrive:\michael-daniels-ylUGx4g6eHk-unsplash.jpg' -Confirm:$false -ErrorAction SilentlyContinue
+        }
+    }
+    Context 'Start-IMAssetJob' {
+        It -Name 'Should not throw' {
+            { Start-IMAssetJob -id '025665c6-d874-46a2-bbc6-37250ddcb2eb' -JobName 'refresh-metadata' } | Should -Not -Throw
+        }
+    }
+    Context 'Get-IMAssetMemoryLane' {
+        It -Name 'Should return one object' {
+            $Result = Get-IMAssetMemoryLane -Day 10 -Month 3
+            $Result | Should -HaveCount 1
+        }
+    }
+    Context 'Get-IMRandomAsset' {
+        It -Name 'Should return one object' {
+            $Result = Get-IMRandomAsset
+            $Result | Should -HaveCount 1
+        }
+        It -Name 'Should return 3 object' {
+            $Result = Get-IMRandomAsset -Count 3
+            $Result | Should -HaveCount 3
+        }
+    }
+    Context 'Get-IMAssetSearchTerm' {
+        It -Name 'Should return "image"' {
+            $Result = Get-IMAssetSearchTerm
+            $Result | Should -Be 'image'
+        }
+    }
+    Context 'Get-IMAssetStatistic' {
+        It -Name 'Should return one object' {
+            $Result = Get-IMAssetStatistic
+            $Result | Should -HaveCount 1
+            $Result.PSObject.Properties.Name | Should -Contain 'images'
+            $Result.PSObject.Properties.Name | Should -Contain 'total'
+            $Result.PSObject.Properties.Name | Should -Contain 'videos'
         }
     }
 }
@@ -430,7 +466,7 @@ Describe 'Album' -Tag 'Integration' {
             $Result | Should -HaveCount 0
         }
         It -Name 'list-assetid' {
-            $Result = Get-IMAlbum -assetid 'a4908e1f-697f-4d7b-9330-93b5eabe3baf' | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
+            $Result = Get-IMAlbum -assetId 'a4908e1f-697f-4d7b-9330-93b5eabe3baf' | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
             $Result | Should -HaveCount 1
         }
         It -Name 'list-id' {
@@ -480,7 +516,7 @@ Describe 'Album' -Tag 'Integration' {
             }
         }
         It -Name 'Album gets created' {
-            $NewAlbum = New-IMAlbum -albumName $AlbumName -assetids 'a4908e1f-697f-4d7b-9330-93b5eabe3baf' -description $AlbumName
+            $NewAlbum = New-IMAlbum -albumName $AlbumName -assetIds 'a4908e1f-697f-4d7b-9330-93b5eabe3baf' -description $AlbumName
             $Result = Get-IMAlbum -albumId $NewAlbum.id
             $Result | Should -HaveCount 1
             $Result.Description | Should -Be $AlbumName
@@ -504,7 +540,7 @@ Describe 'Album' -Tag 'Integration' {
             }
         }
         It -Name 'Album gets removed' {
-            $NewAlbum = New-IMAlbum -albumName $AlbumName -assetids 'a4908e1f-697f-4d7b-9330-93b5eabe3baf' -description $AlbumName
+            $NewAlbum = New-IMAlbum -albumName $AlbumName -assetIds 'a4908e1f-697f-4d7b-9330-93b5eabe3baf' -description $AlbumName
             Remove-IMAlbum -albumId $NewAlbum.id
             { Get-IMAlbum -albumId $NewAlbum.id } | Should -Throw
         }
@@ -522,8 +558,8 @@ Describe 'Album' -Tag 'Integration' {
         }
         It -Name 'Album gets updated' {
             $NewAlbum = New-IMAlbum -albumName $AlbumName
-            Set-IMAlbum -albumid $NewAlbum.id -Description "$($AlbumName)New" -albumname "$($AlbumName)New"
-            $Result = Get-IMAlbum -albumid $NewAlbum.id
+            Set-IMAlbum -albumid $NewAlbum.id -description "$($AlbumName)New" -albumName "$($AlbumName)New"
+            $Result = Get-IMAlbum -albumId $NewAlbum.id
             $Result | Should -HaveCount 1
             $Result.Description | Should -Be "$($AlbumName)New"
             $Result.albumName | Should -Be "$($AlbumName)New"
@@ -546,8 +582,8 @@ Describe 'Album' -Tag 'Integration' {
         }
         It -Name 'Assets gets added to album' {
             $NewAlbum = New-IMAlbum -albumName $AlbumName
-            Add-IMAlbumAsset -albumid $NewAlbum.id -assetid '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
-            $Result = Get-IMAlbum -albumid $NewAlbum.id
+            Add-IMAlbumAsset -albumId $NewAlbum.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
+            $Result = Get-IMAlbum -albumId $NewAlbum.id
             $Result.assets | Should -HaveCount 2
             $Result.assets.id | Should -Contain '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $Result.assets.id | Should -Contain '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
@@ -570,11 +606,11 @@ Describe 'Album' -Tag 'Integration' {
         }
         It -Name 'Assets gets removed from album' {
             $NewAlbum = New-IMAlbum -albumName $AlbumName
-            Add-IMAlbumAsset -albumid $NewAlbum.id -assetid '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
-            $Result = Get-IMAlbum -albumid $NewAlbum.id
+            Add-IMAlbumAsset -albumId $NewAlbum.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
+            $Result = Get-IMAlbum -albumId $NewAlbum.id
             $Result.assets | Should -HaveCount 2
-            Remove-IMAlbumAsset -albumid $NewAlbum.id -assetid '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
-            $Result = Get-IMAlbum -albumid $NewAlbum.id
+            Remove-IMAlbumAsset -albumId $NewAlbum.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
+            $Result = Get-IMAlbum -albumId $NewAlbum.id
             $Result.assets | Should -HaveCount 0
             Remove-IMAlbum -albumId $NewAlbum.id
         }
@@ -595,8 +631,8 @@ Describe 'Album' -Tag 'Integration' {
             $NewAlbum = New-IMAlbum -albumName $AlbumName
         }
         It -Name 'Users gets added to album' {
-            Add-IMAlbumUser -albumid $NewAlbum.id -userId '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
-            $Result = Get-IMAlbum -albumid $NewAlbum.id
+            Add-IMAlbumUser -albumId $NewAlbum.id -userId '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
+            $Result = Get-IMAlbum -albumId $NewAlbum.id
             $Result.sharedUsers | Should -HaveCount 1
             $Result.sharedUsers.id | Should -Contain '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
         }
@@ -617,10 +653,10 @@ Describe 'Album' -Tag 'Integration' {
             $NewAlbum = New-IMAlbum -albumName $AlbumName -sharedWithUserIds '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
         }
         It -Name 'Users gets removed from album' {
-            $Result = Get-IMAlbum -albumid $NewAlbum.id
+            $Result = Get-IMAlbum -albumId $NewAlbum.id
             $Result.sharedUsers.id | Should -Contain '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
             Remove-IMAlbumUser -albumId $NewAlbum.id -userId '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
-            $Result = Get-IMAlbum -albumid $NewAlbum.id
+            $Result = Get-IMAlbum -albumId $NewAlbum.id
             $Result.sharedUsers | Should -HaveCount 0
         }
         AfterAll {

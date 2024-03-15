@@ -52,8 +52,9 @@
     }
 
     $InvokeRestMethodSplat = @{
-        Method = $Method
-        Uri    = "$($ImmichSession.ApiUri)$($RelativePath)"
+        Method      = $Method
+        Uri         = "$($ImmichSession.ApiUri)$($RelativePath)"
+        ContentType = $ContentType
     }
 
     if (-not $NoAuth)
@@ -71,57 +72,74 @@
         }
     }
 
-    if ($Headers.Keys.Count -gt 0)
+    if ($Headers)
     {
         $InvokeRestMethodSplat.Headers = $Headers
     }
-    if ($InvokeRestMethodSplat.Method -eq 'Get')
+    if ($Body)
     {
-        if ($Body.Keys.Count -gt 0 )
+        $NewBody = @{}
+        foreach ($Key in $Body.Keys)
         {
-            $InvokeRestMethodSplat.Body = $Body
-        }
-        if ($QueryParameters)
-        {
-            $InvokeRestMethodSplat.Uri += '?'
-            $QueryParameterStringArray = foreach ($QueryParameter in $QueryParameters.Keys)
+            switch ($Body.$Key.GetType().Name)
             {
-                switch ($QueryParameters.$QueryParameter.GetType().Name)
+                'boolean'
                 {
-                    'string'
-                    {
-                        "$($QueryParameter)=$($QueryParameters.$QueryParameter)"
-                    }
-                    'boolean'
-                    {
-                        "$($QueryParameter)=$($QueryParameters.$QueryParameter.ToString().ToLower())"
-                    }
-                    'int32'
-                    {
-                        "$($QueryParameter)=$($QueryParameters.$QueryParameter)"
-                    }
-                    'datetime'
-                    {
-                        "$($QueryParameter)=$($QueryParameters.$QueryParameter.ToString('yyyy-MM-ddTHH:mm:ss'))"
-                    }
-                    default
-                    {
-                        Write-Warning -Message "Unknown type of queryparameter $QueryParameter : $($QueryParameters.$QueryParameter.GetType().Name)"
-                    }
+                    $NewBody.$Key = $Body.$Key.ToString().ToLower()
+                    break
+                }
+                'SwitchParameter'
+                {
+                    $NewBody.$Key = ($Body.$Key -as [boolean]).ToString().ToLower()
+                    break
+                }
+                'datetime'
+                {
+                    $NewBody.$Key = $Body.$Key.ToString('yyyy-MM-ddTHH:mm:ss')
+                    break
+                }
+                default
+                {
+                    $NewBody.$Key = $Body.$Key
                 }
             }
-            $InvokeRestMethodSplat.Uri += [URI]::EscapeUriString(($QueryParameterStringArray -join '&'))
         }
+        $InvokeRestMethodSplat.Body = $NewBody | ConvertTo-Json -Compress
     }
-    elseif (@('Post', 'Put', 'Delete', 'Patch') -contains $InvokeRestMethodSplat.Method)
+    if ($QueryParameters)
     {
-        # Might need to be changed, some post requests require formdata
-        $InvokeRestMethodSplat.Body = $Body | ConvertTo-Json -Compress
-        $InvokeRestMethodSplat.ContentType = $ContentType
-    }
-    else
-    {
-        Write-Error -Message "Unknown method: $($InvokeRestMethodSplat.Method), unable to perform api call" -ErrorAction Stop
+        $InvokeRestMethodSplat.Uri += '?'
+        $QueryParameterStringArray = foreach ($QueryParameter in $QueryParameters.Keys)
+        {
+            switch ($QueryParameters.$QueryParameter.GetType().Name)
+            {
+                'string'
+                {
+                    "$($QueryParameter)=$($QueryParameters.$QueryParameter)"
+                }
+                'boolean'
+                {
+                    "$($QueryParameter)=$($QueryParameters.$QueryParameter.ToString().ToLower())"
+                }
+                'SwitchParameter'
+                {
+                    "$($QueryParameter)=$(($QueryParameters.$QueryParameter -as [boolean]).ToString().ToLower())"
+                }
+                'int32'
+                {
+                    "$($QueryParameter)=$($QueryParameters.$QueryParameter)"
+                }
+                'datetime'
+                {
+                    "$($QueryParameter)=$($QueryParameters.$QueryParameter.ToString('yyyy-MM-ddTHH:mm:ss'))"
+                }
+                default
+                {
+                    Write-Warning -Message "Unknown type of queryparameter $QueryParameter : $($QueryParameters.$QueryParameter.GetType().Name)"
+                }
+            }
+        }
+        $InvokeRestMethodSplat.Uri += [URI]::EscapeUriString(($QueryParameterStringArray -join '&'))
     }
 
 

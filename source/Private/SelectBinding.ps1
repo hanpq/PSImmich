@@ -7,13 +7,16 @@
         PSBoundParameters object should be passed
     .PARAMETER SelectProperty
         String array of the properties that should be extracted.
+    .PARAMETER NameMapping
+        Defines a hashtable where a parametername can be mapped to different name of the API parameter name.
     .EXAMPLE
         SelectBinding
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP')]
     param(
         $Binding,
-        [string[]]$SelectProperty
+        [string[]]$SelectProperty,
+        [hashtable]$NameMapping
     )
 
     $ReturnHash = @{}
@@ -21,21 +24,30 @@
     # Only process binded parameters that we are intreseted in
     foreach ($Parameter in ($Binding.Keys | Where-Object { $SelectProperty -contains $PSItem }))
     {
-        # Typecast switch to string
-        if ($Binding[$Parameter] -is [switch])
+        if ($NameMapping.Keys -contains $Parameter)
         {
-            $ReturnHash.Add($Parameter, (($Binding[$Parameter] -as [boolean]).ToString().ToLower()))
+            $APIName = $NameMapping[$Parameter]
         }
-        # Typecast boolean to string
-        elseif ($Binding[$Parameter] -is [boolean])
-        {
-            $ReturnHash.Add($Parameter, ($Binding[$Parameter].ToString().ToLower()))
-        }
-        # Else add the value unaltered
         else
         {
-            $ReturnHash.Add($Parameter, $Binding[$Parameter])
+            $APIName = $Parameter
         }
+
+        # Typecast switch to string
+        #if ($Binding[$Parameter] -is [switch])
+        #{
+        #    $ReturnHash.Add($APIName, (($Binding[$Parameter] -as [boolean]).ToString().ToLower()))
+        #}
+        # Typecast boolean to string
+        #elseif ($Binding[$Parameter] -is [boolean])
+        #{
+        #    $ReturnHash.Add($APIName, ($Binding[$Parameter].ToString().ToLower()))
+        #}
+        # Else add the value unaltered
+        #else
+        #{
+        $ReturnHash.Add($APIName, $Binding[$Parameter])
+        #}
     }
     return $ReturnHash
 

@@ -70,7 +70,7 @@
         $Parameters.OutFilePath = $OutFilePath
     }
 
-    InvokeImmichRestMethod @Parameters -Session:$Session
+    InvokeImmichRestMethod @Parameters -ImmichSession:$Session
 
 }
 #endregion
