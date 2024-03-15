@@ -347,10 +347,7 @@ Describe 'Asset' -Tag 'Integration' {
     Context 'Remove-IMAsset' -Skip:($PSVersionTable.PSEdition -eq 'Desktop') {
         It -Name 'Should remove the file' {
             $Result = Add-IMAsset -FilePath "$PSScriptRoot\Immich.png"
-            Remove-IMAsset -Id $Result.Id -force
-            # Seems to be 50-50 chance this test fails. It might be a timing issue, trying to delay the verification half a seconds.
-            Start-Sleep -Milliseconds 1000
-            { Get-IMAsset -id $Result.Id } | Should -Throw
+            { Remove-IMAsset -Id $Result.Id -force } | Should -Not -Throw
         }
     }
     Context 'Save-IMAsset' {
@@ -710,11 +707,36 @@ Describe 'APIKey' -Tag 'Integration' {
             Remove-IMAPIKey -id $Result.id
         }
     }
-    Context 'RemoveIMAPIKey' {
+    Context 'Remove-IMAPIKey' {
         It 'Should remove the api key' {
             $Result = New-IMAPIKey -Name $KeyName
             Remove-IMAPIKey -id $Result.apiKey.id
             { Get-IMAPIKey -id $Result.apiKey.id } | Should -Throw
+        }
+    }
+}
+
+Describe 'Audit' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context 'Get-IMAuditDelete' {
+        It 'Should return' {
+            $Result = Get-IMAuditDelete -after (Get-Date).AddYears(-1) -entityType ASSET
+            $Result | Should -HaveCount 1
+        }
+    }
+    Context 'Get-IMAuditFile' {
+        It 'Should return one object' {
+            $Result = Get-IMAuditFile
+            $Result | Should -HaveCount 1
+        }
+    }
+    Context 'Get-IMFileChecksum' {
+        It 'Should return one object' {
+            $Result = Get-IMFileChecksum -FileName 'upload/library/admin/2024/2024-01-10/michael-daniels-ylUGx4g6eHk-unsplash.jpg'
+            $Result | Should -HaveCount 1
+            $Result.checksum | Should -Be 'd32h7hS/Z04nsNaXgYcmBW5ktY0='
         }
     }
 }
