@@ -24,9 +24,33 @@
 
 InModuleScope $ProjectName {
     Describe InvokeImmichRestMethod  -Tag 'Unit' {
-        Context 'Default' {
-            It 'Should be true' {
-                $true | Should -BeTrue
+        BeforeAll {
+            $Session = [ImmichSession]::New('https://test.domain.com/api', (ConvertTo-SecureString -String 'string' -AsPlainText -Force))
+            Mock -CommandName 'Invoke-RestMethod' -Verifiable -MockWith {
+
+            }
+        }
+        Context 'When calling get without query or body' {
+            It 'Should not throw' {
+                { InvokeImmichRestMethod -Method get -RelativePath '/auth/login' -immichsession:$session }
+            }
+        }
+        Context 'When calling get with query' {
+            It 'Should not throw' {
+                { InvokeImmichRestMethod -Method get -immichsession:$session -RelativePath '/auth/login' -QueryParameters:@{
+                        param1 = 'string'
+                        param2 = Get-Date
+                        param3 = 1
+                    } } | Should -Not -Throw
+            }
+        }
+        Context 'When calling get with body' {
+            It 'Should not throw' {
+                { InvokeImmichRestMethod -Method get -immichsession:$session -RelativePath '/auth/login' -Body:@{
+                        param1 = 'string'
+                        param2 = Get-Date
+                        param3 = 1
+                    } } | Should -Not -Throw
             }
         }
     }
