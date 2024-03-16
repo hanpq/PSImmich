@@ -23,8 +23,10 @@
         Defines updatedBefore
     .PARAMETER userId
         Defines userId
-    .PARAMETER deviceID
+    .PARAMETER deviceId
         Defines a device id
+    .PARAMETER personId
+        Defines a personId to retreive assets for
     .EXAMPLE
         Get-IMAsset
 
@@ -43,6 +45,11 @@
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
         $deviceID,
+
+        [Parameter(Mandatory, ParameterSetName = 'personid')]
+        [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [string]
+        $personId,
 
         [Parameter(Mandatory, ParameterSetName = 'id', ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
@@ -102,6 +109,10 @@
             'deviceid'
             {
                 InvokeImmichRestMethod -Method Get -RelativePath "/asset/device/$deviceid" -ImmichSession:$Session | Get-IMAsset
+            }
+            'personId'
+            {
+                InvokeImmichRestMethod -Method Get -RelativePath "/person/$personid/assets/" -ImmichSession:$Session | Get-IMAsset
             }
         }
     }

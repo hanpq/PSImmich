@@ -59,7 +59,7 @@
 
     if ($BodyParameters)
     {
-        $Parameters.BodyParameters = $BodyParameters
+        $Parameters.Body = $BodyParameters
     }
     if ($Headers)
     {

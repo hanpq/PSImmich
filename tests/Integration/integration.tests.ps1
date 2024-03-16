@@ -806,5 +806,64 @@ Describe 'Job' -Tag 'Integration' {
             $Result.queueStatus.isActive | Should -BeTrue
         }
     }
+}
 
+Describe 'Partner' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context 'Add-IMPartner' {
+        It 'Should add a partner' {
+            $Add = Add-IMPartner -id '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
+            $Result = Get-IMPartner -Direction shared-by
+            $Result | Should -HaveCount 1
+        }
+    }
+    <# Needs to be run for the partner account
+    Context 'Set-IMPartner' {
+        It 'Should set timeline on partner' {
+            $Set = Set-IMPartner -id '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d' -EnableTimeline
+            $Result = Get-IMPartner -Direction shared-by
+            $Result | Should -HaveCount 1
+            $Result.inTimeline | Should -BeTrue
+        }
+    }
+    #>
+    Context 'Get-IMPartner' {
+        It 'Should return one person object' {
+            $Result = Get-IMPartner -Direction shared-by
+            $Result | Should -HaveCount 1
+        }
+    }
+    Context 'Remove-IMPartner' {
+        It 'Should remove partner' {
+            Remove-IMPartner -id '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
+            $Result = Get-IMPartner -Direction shared-by
+            $Result | Should -HaveCount 0
+        }
+    }
+}
+
+Describe 'Person' -Tag 'Integration' {
+    Context 'New-IMPerson' {
+        It 'Should create a new person' {
+            $New = New-IMPerson -Name 'TestPerson'
+            $Result = Get-IMPerson -id $New.id
+            $Result | Should -HaveCount 1
+            $Result.name | Should -Be 'TestPerson'
+        }
+    }
+    Context 'Get-IMPerson' {
+        It 'Should return person' {
+            { $PersonList = Get-IMPerson } | Should -Not -Throw
+        }
+    }
+    Context 'Set-IMPerson' {
+        It 'Should update person' {
+            $New = New-IMPerson -Name 'TestPerson'
+            Set-IMPerson -Id $New.id -Name 'TestPerson2'
+            $Result = Get-IMPerson -id $New.id
+            $Result.Name | Should -Be 'TestPerson2'
+        }
+    }
 }
