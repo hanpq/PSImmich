@@ -76,7 +76,7 @@
     {
         $InvokeRestMethodSplat.Headers = $Headers
     }
-    if ($Body)
+    if ($Body.Keys.Count -gt 0)
     {
         $NewBody = @{}
         foreach ($Key in $Body.Keys)
