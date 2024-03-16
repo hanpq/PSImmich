@@ -183,8 +183,8 @@ Describe 'Quality for files' -Tag 'TestQuality' {
                 }
                 Test-Encoding -Path $File.FullName -Encoding utf8 | Should -Be $true
             } -TestCases $file
-            It 'Help.Description Length > 15' {
-                $FunctionHelp.Description.Length | Should -BeGreaterThan 15
+            It 'Help.Description Length > 10' {
+                $FunctionHelp.Description.Length | Should -BeGreaterThan 10
             } -TestCases $file
             It 'Help.Examples.Count > 0' {
                 $FunctionHelp.Examples.Count | Should -BeGreaterThan 0

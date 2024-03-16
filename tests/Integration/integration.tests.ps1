@@ -381,7 +381,9 @@ Describe 'Asset' -Tag 'Integration' {
     Context 'Get-IMAssetSearchTerm' {
         It -Name 'Should return "image"' {
             $Result = Get-IMAssetSearchTerm
-            $Result | Should -Be 'image'
+            $Result | Should -Contain 'image'
+            $Result | Should -Contain 'jönköping'
+            $Result | Should -Contain 'sweden'
         }
     }
     Context 'Get-IMAssetStatistic' {
@@ -400,7 +402,7 @@ Describe 'Asset' -Tag 'Integration' {
         }
         It -Name 'Should return 1 object' {
             $Result = Get-IMTimeBucket -timeBucket '2024-03-01 00:00:00' -size MONTH
-            $Result | Should -HaveCount 11
+            $Result | Should -HaveCount 12
         }
     }
 }
@@ -771,6 +773,37 @@ Describe 'Auth' -Tag 'Integration' {
             $Result = Get-IMAuthDevice
             $Result | Should -HaveCount 1
             $Result.Current | Should -BeTrue
+        }
+    }
+}
+
+Describe 'Face' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context -Name 'Get-IMFace' {
+        It 'Should return faces' {
+            $Result = Get-IMFace -id 'd54f1eb3-076f-4c5b-a9e6-61c694559e3c'
+            $Result | Should -HaveCount 5
+        }
+    }
+}
+
+Describe 'Job' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context -Name 'Get-IMJob' {
+        It 'Should return 1 object' {
+            $Result = Get-IMJob
+            $Result | Should -HaveCount 1
+        }
+    }
+    Context -Name 'Start-IMJob' {
+        It 'Should start job' {
+            $Result = Start-IMJob -Job 'thumbnailGeneration'
+            $Result.jobCounts.active | Should -Be 1
+            $Result.queueStatus.isActive | Should -BeTrue
         }
     }
 
