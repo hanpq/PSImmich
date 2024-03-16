@@ -395,11 +395,11 @@ Describe 'Asset' -Tag 'Integration' {
     }
     Context 'Get-IMTimeBucket' {
         It -Name 'Should return 3 objects' {
-            $Result = Get-IMTimeBucket -Size 'MONTH'
+            $Result = Get-IMTimeBucket -size 'MONTH'
             $Result | Should -HaveCount 3
         }
         It -Name 'Should return 1 object' {
-            $Result = Get-IMTimeBucket -TimeBucket '2024-03-01 00:00:00' -Size MONTH
+            $Result = Get-IMTimeBucket -timeBucket '2024-03-01 00:00:00' -size MONTH
             $Result | Should -HaveCount 11
         }
     }
@@ -692,7 +692,7 @@ Describe 'APIKey' -Tag 'Integration' {
     }
     Context 'New-IMAPIKey' {
         It 'Should create a new api-key' {
-            $Result = New-IMAPIKey -Name $KeyName
+            $Result = New-IMAPIKey -name $KeyName
             $Result.secret | Should -Not -BeNullOrEmpty
             Get-IMAPIKey -id $Result.apiKey.id | Should -HaveCount 1
             Remove-IMAPIKey -id $Result.apiKey.id
@@ -700,8 +700,8 @@ Describe 'APIKey' -Tag 'Integration' {
     }
     Context 'Set-IMAPIKey' {
         It 'Should set a new name' {
-            $Result = New-IMAPIKey -Name $KeyName
-            Set-IMAPIKey -id $Result.apiKey.id -Name "$($KeyName)_New"
+            $Result = New-IMAPIKey -name $KeyName
+            Set-IMAPIKey -id $Result.apiKey.id -name "$($KeyName)_New"
             $Result = Get-IMAPIKey -id $Result.apiKey.id
             $Result.Name | Should -Be "$($KeyName)_New"
             Remove-IMAPIKey -id $Result.id
@@ -709,7 +709,7 @@ Describe 'APIKey' -Tag 'Integration' {
     }
     Context 'Remove-IMAPIKey' {
         It 'Should remove the api key' {
-            $Result = New-IMAPIKey -Name $KeyName
+            $Result = New-IMAPIKey -name $KeyName
             Remove-IMAPIKey -id $Result.apiKey.id
             { Get-IMAPIKey -id $Result.apiKey.id } | Should -Throw
         }
@@ -739,4 +739,39 @@ Describe 'Audit' -Tag 'Integration' {
             $Result.checksum | Should -Be 'd32h7hS/Z04nsNaXgYcmBW5ktY0='
         }
     }
+}
+
+Describe 'Auth' -Tag 'Integration' {
+    Context 'Test-IMAccessToken' {
+        It 'Should return true' {
+            # Using credential instead of API-key to get a current device
+            $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSIMMICHUSER, (ConvertTo-SecureString -String $env:PSIMMICHPASSWORD -AsPlainText -Force)
+            Connect-Immich -BaseURL $env:PSIMMICHURI -Credential $Cred
+            Test-IMAccessToken | Should -BeTrue
+        }
+    }
+    Context 'Get-IMAuthDevice' {
+        It 'Should return devices' {
+            $Result = Get-IMAuthDevice | Where-Object { $_.current -eq $true }
+            $Result | Should -HaveCount 1
+        }
+    }
+    Context 'Remove-IMAuthDevice' {
+        It 'Should return a single auth device' {
+            $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSIMMICHUSER, (ConvertTo-SecureString -String $env:PSIMMICHPASSWORD -AsPlainText -Force)
+            Connect-Immich -BaseURL $env:PSIMMICHURI -Credential $Cred
+            $CurrentAuthDevice = Get-IMAuthDevice | Where-Object { $_.current -eq $true }
+            { Remove-IMAuthDevice -id $CurrentAuthDevice.id } | Should -Not -Throw
+            { Get-IMAuthDevice } | Should -Throw
+        }
+        It 'Should remove all auth devices' {
+            $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSIMMICHUSER, (ConvertTo-SecureString -String $env:PSIMMICHPASSWORD -AsPlainText -Force)
+            Connect-Immich -BaseURL $env:PSIMMICHURI -Credential $Cred
+            { Remove-IMAuthDevice } | Should -Not -Throw
+            $Result = Get-IMAuthDevice
+            $Result | Should -HaveCount 1
+            $Result.Current | Should -BeTrue
+        }
+    }
+
 }

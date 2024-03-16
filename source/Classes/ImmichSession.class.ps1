@@ -4,6 +4,7 @@ class ImmichSession
     [string]$BaseUri
     [string]$AuthMethod
     [securestring]$AccessToken
+    [boolean]$AccessTokenValid
     [pscredential]$Credential
     [securestring]$JWT
     [string]$APIUri
@@ -35,6 +36,35 @@ class ImmichSession
         Write-Verbose -Message "Connected to Immich instance at $($this.BaseUri) with Credentials"
     }
 
+    ValidateToken()
+    {
+        try
+        {
+            if ($this.AuthMethod -eq 'Credential')
+            {
+                $Result = Invoke-RestMethod -Method Post -Uri "$($this.ApiUri)/auth/validateToken" -Headers @{Authorization = "Bearer $(ConvertFromSecureString -SecureString $this.JWT)" } | Select-Object -Property AuthStatus
+            }
+            else
+            {
+                $Result = Invoke-RestMethod -Method Post -Uri "$($this.ApiUri)/auth/validateToken" -Headers @{'X-API-Key' = "$(ConvertFromSecureString -SecureString $this.AccessToken)" } | Select-Object -Property AuthStatus
+            }
+        }
+        catch
+        {
+            $this.AccessTokenValid = $false
+            throw $_.Exception.message
+        }
+        if ($Result)
+        {
+            $this.AccessTokenValid = $true
+        }
+        else
+        {
+            $this.AccessTokenValid = $false
+            throw 'AccessToken is not valid, please reconnect'
+        }
+    }
+
     hidden AuthenticateCredential()
     {
         $BodyObject = @{
@@ -49,8 +79,10 @@ class ImmichSession
 
     hidden GetStatus()
     {
+        $this.ValidateToken()
         $Status = InvokeImmichRestMethod -Method:'Get' -ImmichSession $this -RelativePath '/server-info/version'
         $this.ImmichVersion = "$($Status.Major).$($Status.Minor).$($Status.Patch)"
         Remove-Variable -Name Status
     }
+
 }

@@ -47,7 +47,7 @@
         }
         else
         {
-            Write-Error -Message 'No Immich Session established, please call Connect-Immich'
+            Write-Error -Message 'No Immich Session established, please call Connect-Immich' -ErrorAction Stop
         }
     }
 
@@ -63,7 +63,7 @@
         {
             'Credential'
             {
-                $Headers.Authorization = "Bearer $($ImmichSession.JWT)"
+                $Headers.Authorization = "Bearer $(ConvertFromSecureString -SecureString $ImmichSession.JWT)"
             }
             'AccessToken'
             {
@@ -142,6 +142,10 @@
         $InvokeRestMethodSplat.Uri += [URI]::EscapeUriString(($QueryParameterStringArray -join '&'))
     }
 
+    if ($InvokeRestMethodSplat.Uri -notlike '*auth/login*')
+    {
+        $ImmichSession.ValidateToken()
+    }
 
     Write-Debug -Message "InvokeImmichRestMethod; Calling Invoke-RestMethod with settings`r`n$($InvokeRestMethodSplat | ConvertTo-Json)"
 
