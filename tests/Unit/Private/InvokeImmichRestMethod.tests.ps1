@@ -44,9 +44,9 @@ InModuleScope $ProjectName {
                     } } | Should -Not -Throw
             }
         }
-        Context 'When calling get with body' {
+        Context 'When calling post with body' {
             It 'Should not throw' {
-                { InvokeImmichRestMethod -Method get -immichsession:$session -RelativePath '/auth/login' -Body:@{
+                { InvokeImmichRestMethod -Method post -immichsession:$session -RelativePath '/auth/login' -Body:@{
                         param1 = 'string'
                         param2 = Get-Date
                         param3 = 1
