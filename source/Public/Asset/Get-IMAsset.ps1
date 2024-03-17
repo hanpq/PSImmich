@@ -27,6 +27,8 @@
         Defines a device id
     .PARAMETER personId
         Defines a personId to retreive assets for
+    .PARAMETER tagId
+        Defines a tagid to retreive assets for
     .EXAMPLE
         Get-IMAsset
 
@@ -48,6 +50,11 @@
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
         $personId,
+
+        [Parameter(Mandatory, ParameterSetName = 'tagid')]
+        [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [string]
+        $tagId,
 
         [Parameter(Mandatory, ParameterSetName = 'id', ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
@@ -111,6 +118,10 @@
             'personId'
             {
                 InvokeImmichRestMethod -Method Get -RelativePath "/person/$personid/assets/" -ImmichSession:$Session | Get-IMAsset
+            }
+            'tagid'
+            {
+                InvokeImmichRestMethod -Method Get -RelativePath "/tag/$tagid/assets" -ImmichSession:$Session | Get-IMAsset
             }
         }
     }

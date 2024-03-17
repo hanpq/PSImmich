@@ -21,6 +21,8 @@
         Defines the contenttype for the request
     .PARAMETER OutFilePath
         Defines an output directory
+    .PARAMETER RawBody
+        Provides a raw body to use instead of parsing a hashtable to json.
     .EXAMPLE
         InvokeImmichRestMethod
     #>
@@ -31,6 +33,7 @@
         [immichsession]$ImmichSession,
         [string]$RelativePath,
         [hashtable]$Body,
+        [string]$RawBody,
         [hashtable]$Headers,
         [hashtable]$QueryParameters,
         [string]$ContentType = 'application/json',
@@ -116,6 +119,11 @@
             }
         }
         $InvokeRestMethodSplat.Body = $NewBody | ConvertTo-Json -Compress
+    }
+
+    if ($RawBody)
+    {
+        $InvokeRestMethodSplat.Body = $RawBody
     }
 
     # Add query parameters to invoke rest method splat

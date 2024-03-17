@@ -951,3 +951,87 @@ Describe 'Library' -Tag 'Integration' {
         }
     }
 }
+
+Describe 'ServerConfig' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context 'Get-IMConfig' {
+        It 'Should return applied config' {
+            $Result = Get-IMConfig
+            $Result | Should -HaveCount 1
+        }
+        It 'Should return applied config raw' {
+            $Result = Get-IMConfig -ReturnRawJSON
+            { $Result | ConvertFrom-Json } | Should -Not -Throw
+        }
+        It 'Should return default config' {
+            $Result = Get-IMConfig -Default
+            $Result | Should -HaveCount 1
+        }
+        It 'Should return default config raw' {
+            $Result = Get-IMConfig -Default -ReturnRawJSON
+            { $Result | ConvertFrom-Json } | Should -Not -Throw
+        }
+        It 'Should return mapstyle config' {
+            $Result = Get-IMConfig -MapStyle -Theme dark
+            $Result | Should -HaveCount 1
+        }
+        It 'Should return storage template config' {
+            $Result = Get-IMConfig -StorageTemplate
+            $Result | Should -HaveCount 1
+        }
+        It 'Should update setting' {
+            $Result = Get-IMConfig
+            $Result.reverseGeocoding.enabled = $false
+            Set-IMConfig -RawJson ($Result | ConvertTo-Json -Depth 10)
+            $ResultNew = Get-IMConfig
+            $ResultNew.reverseGeocoding.enabled | Should -BeFalse
+            $Result.reverseGeocoding.enabled = $true
+            Set-IMConfig -RawJson ($Result | ConvertTo-Json -Depth 10)
+        }
+    }
+}
+
+Describe 'Tag' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+        Get-IMTag | Where-Object { $_.name -eq 'TestTag' } | Remove-IMTag
+    }
+    Context 'New-IMTag' {
+        It 'Should create a new tag' {
+            $Result = New-IMTag -Name 'TestTag' -Type 'OBJECT'
+            $Result | Should -HaveCount 1
+            Remove-IMTag -Id $Result.id
+        }
+    }
+    Context 'Get-IMTag' {
+        It 'Should return tag' {
+            $New = New-IMTag -Name 'TestTag' -Type 'OBJECT'
+            $Result = Get-IMTag -id $New.id
+        }
+        It 'Should return all tags' {
+            $Result = Get-IMTag
+            $Result | Measure-Object | Select-Object -ExpandProperty count | Should -BeGreaterOrEqual 1
+        }
+        AfterAll {
+            Get-IMTag | Where-Object { $_.name -eq 'TestTag' } | Remove-IMTag
+        }
+    }
+    Context 'Remove-IMTag' {
+        It 'Should remove tag' {
+            $New = New-IMTag -Name 'TestTag' -Type 'OBJECT'
+            Remove-IMTag -Id $New.id
+            { Get-IMTag -id $New.id } | Should -Throw
+        }
+    }
+    Context 'Rename-IMTag' {
+        It 'Should rename tag' {
+            $New = New-IMTag -Name 'TestTag' -Type 'OBJECT'
+            $Rename = Rename-IMTag -id $New.id -NewName 'TestTag2'
+            $Result = Get-IMTag -id $new.id
+            $Result.Name | Should -Be 'TestTag2'
+            Remove-IMTag -Id $New.id
+        }
+    }
+}
