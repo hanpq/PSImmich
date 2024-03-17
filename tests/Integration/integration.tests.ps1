@@ -845,6 +845,9 @@ Describe 'Partner' -Tag 'Integration' {
 }
 
 Describe 'Person' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
     Context 'New-IMPerson' {
         It 'Should create a new person' {
             $New = New-IMPerson -Name 'TestPerson'
@@ -864,6 +867,87 @@ Describe 'Person' -Tag 'Integration' {
             Set-IMPerson -Id $New.id -Name 'TestPerson2'
             $Result = Get-IMPerson -id $New.id
             $Result.Name | Should -Be 'TestPerson2'
+        }
+    }
+}
+
+Describe 'Library' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context 'Get-IMLibrary' {
+        It 'Should return list' {
+            $Result = Get-IMLibrary
+            $Result | Should -HaveCount 2
+        }
+        It 'Should return list+filter1' {
+            $Result = Get-IMLibrary -type 'UPLOAD'
+            $Result | Should -HaveCount 2
+        }
+        It 'Should return list+filter2' {
+            $Result = Get-IMLibrary -type 'EXTERNAL'
+            $Result | Should -HaveCount 0
+        }
+        It 'Should return list+filter3' {
+            $Result = Get-IMLibrary -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
+            $Result | Should -HaveCount 1
+        }
+        It 'Should return id' {
+            $Result = Get-IMLibrary -id 'f5ed0d2f-4bdb-4ed9-8027-e22125728516'
+            $Result | Should -HaveCount 1
+        }
+    }
+    Context 'New-IMLibrary' {
+        It 'Should create library' {
+            $New = New-IMLibrary -Name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL'
+            $Result = Get-IMLibrary -id $New.id
+            $Result | Should -HaveCount 1
+            $Result.Name | Should -Be 'TestLibrary'
+            Remove-IMLibrary -id $New.id
+        }
+    }
+    Context 'Remove-IMLibrary' {
+        It 'Should remove library' {
+            $New = New-IMLibrary -Name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL'
+            { Remove-IMLibrary -id $New.id } | Should -Not -Throw
+        }
+    }
+    Context 'Set-IMLibrary' {
+        It 'Should update library' {
+            $New = New-IMLibrary -Name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL'
+            $Updated = Set-IMLibrary -id $New.id -Name 'TestLibrary2'
+            $Result = Get-IMLibrary -id $New.id
+            $Result | Should -HaveCount 1
+            $Result.Name | Should -Be 'TestLibrary2'
+            Remove-IMLibrary -id $New.id
+        }
+    }
+    Context 'Remove-IMOfflineLibraryFiles' {
+        It 'Should not throw' {
+            $New = New-IMLibrary -Name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL'
+            { Remove-IMOfflineLibraryFile -id $New.id } | Should -Not -Throw
+            Remove-IMLibrary -id $New.id
+        }
+    }
+    Context 'Start-IMLibraryScan' {
+        It 'Should not throw' {
+            $New = New-IMLibrary -Name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL'
+            { Start-IMLibraryScan -id $New.id } | Should -Not -Throw
+            Remove-IMLibrary -id $New.id
+        }
+    }
+    Context 'Measure-IMLibrary' {
+        It 'Should not throw' {
+            $New = New-IMLibrary -Name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL'
+            { Measure-IMLibrary -id $New.id } | Should -Not -Throw
+            Remove-IMLibrary -id $New.id
+        }
+    }
+    Context 'Test-IMLibrary' {
+        It 'Should not throw' {
+            $New = New-IMLibrary -Name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL'
+            { Test-IMLibrary -id $New.id } | Should -Not -Throw
+            Remove-IMLibrary -id $New.id
         }
     }
 }

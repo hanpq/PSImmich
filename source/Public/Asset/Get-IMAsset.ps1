@@ -31,8 +31,6 @@
         Get-IMAsset
 
         Retreives Immich asset
-    .NOTES
-        Covers api getAllAssets,getAllUserAssetsByDeviceId,getAssetInfo
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'list')]

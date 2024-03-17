@@ -30,13 +30,14 @@
         [string]$Method,
         [immichsession]$ImmichSession,
         [string]$RelativePath,
-        [hashtable]$Body = @{},
-        [hashtable]$Headers = @{},
-        [hashtable]$QueryParameters = @{},
+        [hashtable]$Body,
+        [hashtable]$Headers,
+        [hashtable]$QueryParameters,
         [string]$ContentType = 'application/json',
         [System.IO.FileInfo]$OutFilePath
     )
 
+    # Use immich session from parameter first, from module scope session second and throw if none is found
     if (-not $ImmichSession)
     {
         Write-Debug -Message 'InvokeImmichRestMethod; No ImmichSession passed as parameter'
@@ -51,14 +52,21 @@
         }
     }
 
+    # Initialize invoke rest method splat
     $InvokeRestMethodSplat = @{
         Method      = $Method
         Uri         = "$($ImmichSession.ApiUri)$($RelativePath)"
         ContentType = $ContentType
     }
 
+    # Skip auth headers if noauth is specified
     if (-not $NoAuth)
     {
+        # Custom headers has not been provided so we need to initialize an empty hashtable
+        if (-not $Headers)
+        {
+            $Headers = @{}
+        }
         switch ($ImmichSession.AuthMethod)
         {
             'Credential'
@@ -72,11 +80,14 @@
         }
     }
 
+    # Add headers to invoke rest method splat
     if ($Headers)
     {
         $InvokeRestMethodSplat.Headers = $Headers
     }
-    if ($Body.Keys.Count -gt 0)
+
+    # Add body to invoke rest method splat
+    if ($Body)
     {
         $NewBody = @{}
         foreach ($Key in $Body.Keys)
@@ -106,6 +117,8 @@
         }
         $InvokeRestMethodSplat.Body = $NewBody | ConvertTo-Json -Compress
     }
+
+    # Add query parameters to invoke rest method splat
     if ($QueryParameters)
     {
         $InvokeRestMethodSplat.Uri += '?'
@@ -142,6 +155,7 @@
         $InvokeRestMethodSplat.Uri += [URI]::EscapeUriString(($QueryParameterStringArray -join '&'))
     }
 
+    # Skip token validation on auth/login calls because the token is not retreived at that point
     if ($InvokeRestMethodSplat.Uri -notlike '*auth/login*')
     {
         $ImmichSession.ValidateToken()
@@ -149,6 +163,7 @@
 
     Write-Debug -Message "InvokeImmichRestMethod; Calling Invoke-RestMethod with settings`r`n$($InvokeRestMethodSplat | ConvertTo-Json)"
 
+    # Output response to file if content type is octet-stream
     if ($ContentType -eq 'application/octet-stream' -and $Method -eq 'Get')
     {
         Invoke-RestMethod @InvokeRestMethodSplat -Verbose:$false -OutFile $OutFilePath
