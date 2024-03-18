@@ -112,6 +112,10 @@
                     $NewBody.$Key = $Body.$Key.ToString('yyyy-MM-ddTHH:mm:ss')
                     break
                 }
+                'SecureString'
+                {
+                    $NewBody.$Key = ConvertFromSecureString -SecureString $Body.$Key
+                }
                 default
                 {
                     $NewBody.$Key = $Body.$Key

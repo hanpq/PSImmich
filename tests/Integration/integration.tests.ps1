@@ -1122,3 +1122,57 @@ Describe 'Tag' -Tag 'Integration' {
         }
     }
 }
+Describe 'User' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context 'Get-IMUser' {
+        It 'Should list all users' {
+            $Result = Get-IMUser
+            $Result | should -havecount 2
+        }
+        It 'Should list specific user' {
+            $Result = Get-IMUser -id 'fb95c457-7685-428c-b850-2fd60345819c'
+            $Result | should -HaveCount 1
+            $Result.name | should -be 'Hannes Palmquist'
+        }
+        It 'Should list self' {
+            $Result = Get-IMUser -me
+            $Result | should -HaveCount 1
+            $Result.name | should -be 'Hannes Palmquist'
+        }
+    }
+    Context 'New-IMUser' {
+        It 'Should create user' {
+            $New = New-IMUser -email 'test@domain.com' -name 'TestUser' -password (ConvertTo-SecureString -String 'test' -AsPlainText -Force)
+            $Result = Get-IMUser -Id $New.id
+            $Result | should -HaveCount 1
+            $Result.email | should -be 'test@domain.com'
+            $Result.name | should -be 'TestUser'
+        }
+    }
+    Context 'Set-IMUser' {
+        It 'Should update user' {
+            $Get = Get-IMUser | where-object {$_.email -eq 'test@domain.com'}
+            $Updated = Set-IMUser -id $Get.id -name 'test user'
+            $Result = Get-IMUser -id $Get.id
+            $Result.name | should -BeExactly 'test user'
+        }
+    }
+    Context 'Add-IMMyProfilePicture' {
+        It 'Should add profile picture' {
+            {$Result = Add-IMMyProfilePicture -FilePath "$PSScriptRoot\Immich.png"} | should -not -Throw
+        }
+    }
+    Context 'Remove-IMMyProfilePicture' {
+        It 'Should remove profile picture' {
+            {$Result = Remove-IMMyProfilePicture} | should -not -throw
+        }
+    }
+    Context 'Remove-IMUser' {
+        It 'Should remove user' {
+            $Get = Get-IMUser | where-object {$_.email -eq 'test@domain.com'}
+            Remove-IMUser -id $get.id -force
+        }
+    }
+}
