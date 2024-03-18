@@ -344,6 +344,32 @@ Describe 'Asset' -Tag 'Integration' {
             Remove-IMAsset -Id $Result.Id -force
         }
     }
+    Context -Name 'Restore-IMAsset' -Skip:($PSVersionTable.PSEdition -eq 'Desktop') {
+        It -Name 'Should restore single asset' {
+            $Result = Add-IMAsset -FilePath "$PSScriptRoot\Immich.png"
+            $Result | Should -HaveCount 1
+            $Result.DeviceAssetID | Should -Be 'Immich.png'
+            Remove-IMAsset -Id $Result.Id
+            $Remove = Get-IMAsset -id $Result.id
+            $Remove.isTrashed | should -betrue
+            Restore-IMAsset -Id $Result.Id
+            $Restore = Get-IMAsset -id $Result.id
+            $Restore.isTrashed | Should -BeFalse
+            Remove-IMAsset -Id $Result.Id -Force
+        }
+        It -Name 'Should restore all asset' {
+            $Result = Add-IMAsset -FilePath "$PSScriptRoot\Immich.png"
+            $Result | Should -HaveCount 1
+            $Result.DeviceAssetID | Should -Be 'Immich.png'
+            Remove-IMAsset -Id $Result.Id
+            $Remove = Get-IMAsset -id $Result.id
+            $Remove.isTrashed | Should -BeTrue
+            Restore-IMAsset -All
+            $Restore = Get-IMAsset -id $Result.id
+            $Restore.isTrashed | Should -BeFalse
+            Remove-IMAsset -Id $Result.Id -force
+        }
+    }
     Context 'Remove-IMAsset' -Skip:($PSVersionTable.PSEdition -eq 'Desktop') {
         It -Name 'Should remove the file' {
             $Result = Add-IMAsset -FilePath "$PSScriptRoot\Immich.png"
@@ -805,6 +831,16 @@ Describe 'Job' -Tag 'Integration' {
             $Result.jobCounts.active | Should -Be 1
             $Result.queueStatus.isActive | Should -BeTrue
         }
+        It 'Should start emptyTrash job' {
+            $Result = Add-IMAsset -FilePath "$PSScriptRoot\Immich.png"
+            $Result | Should -HaveCount 1
+            $Result.DeviceAssetID | Should -Be 'Immich.png'
+            Remove-IMAsset -Id $Result.Id
+            $Remove = Get-IMAsset -id $Result.id
+            $Remove.isTrashed | should -betrue
+            $Result = Start-IMJob -Job 'emptyTrash'
+            {Get-IMAsset -id $Result.id} | should -throw
+        }
     }
 }
 
@@ -1009,6 +1045,7 @@ Describe 'Tag' -Tag 'Integration' {
         It 'Should return tag' {
             $New = New-IMTag -Name 'TestTag' -Type 'OBJECT'
             $Result = Get-IMTag -id $New.id
+            $Result | should -HaveCount 1
         }
         It 'Should return all tags' {
             $Result = Get-IMTag
@@ -1032,6 +1069,56 @@ Describe 'Tag' -Tag 'Integration' {
             $Result = Get-IMTag -id $new.id
             $Result.Name | Should -Be 'TestTag2'
             Remove-IMTag -Id $New.id
+        }
+    }
+    Context 'Add-IMAssetTag' {
+        It 'Should add tag to asset - id' {
+            $New = New-IMTag -Name 'TestTag' -Type 'OBJECT'
+            $Result = Add-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | should -betrue
+            $ResultTwo = Add-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $ResultTwo.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -befalse
+            $ResultTwo.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).error | Should -Be 'duplicate'
+            $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $Asset.tags.id | should -contain $new.id
+            Remove-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+        }
+        It 'Should add tag to asset - name' {
+            $New = New-IMTag -Name 'TestTag2' -Type 'OBJECT'
+            $Result = Add-IMAssetTag -tagName 'TestTag2' -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | should -betrue
+            $ResultTwo = Add-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $ResultTwo.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -befalse
+            $ResultTwo.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).error | Should -Be 'duplicate'
+            $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $Asset.tags.id | should -contain $new.id
+            Remove-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+        }
+        AfterAll {
+            Get-IMTag | where-object {$_.Name -eq 'TestTag' -or $_.Name -eq 'TestTag2'} | Remove-IMTag
+        }
+    }
+    Context 'Remove-IMAssetTag' {
+        It 'Should remove tag from asset - id' {
+            $New = New-IMTag -Name 'TestTag3' -Type 'OBJECT'
+            $Result = Add-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | should -betrue
+            $Remove = Remove-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $Remove.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | should -betrue
+            $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $Asset.tags.id | should -not -contain $new.id
+        }
+        It 'Should remove tag from asset - name' {
+            $New = New-IMTag -Name 'TestTag4' -Type 'OBJECT'
+            $Result = Add-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | should -betrue
+            $Remove = Remove-IMAssetTag -tagname 'TestTag4' -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $Remove.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | should -betrue
+            $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $Asset.tags.id | should -not -contain $new.id
+        }
+        AfterAll {
+            Get-IMTag | where-object {$_.Name -eq 'TestTag3' -or $_.Name -eq 'TestTag4'} | Remove-IMTag
         }
     }
 }
