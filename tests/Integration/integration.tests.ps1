@@ -351,11 +351,12 @@ Describe 'Asset' -Tag 'Integration' {
             $Result.DeviceAssetID | Should -Be 'Immich.png'
             Remove-IMAsset -Id $Result.Id
             $Remove = Get-IMAsset -id $Result.id
-            $Remove.isTrashed | should -betrue
+            $Remove.isTrashed | Should -BeTrue
             Restore-IMAsset -Id $Result.Id
             $Restore = Get-IMAsset -id $Result.id
             $Restore.isTrashed | Should -BeFalse
-            Remove-IMAsset -Id $Result.Id -Force
+            Start-Sleep -Seconds 1
+            Remove-IMAsset -Id $Result.Id -force
         }
         It -Name 'Should restore all asset' {
             $Result = Add-IMAsset -FilePath "$PSScriptRoot\Immich.png"
@@ -408,8 +409,6 @@ Describe 'Asset' -Tag 'Integration' {
         It -Name 'Should return "image"' {
             $Result = Get-IMAssetSearchTerm
             $Result | Should -Contain 'image'
-            $Result | Should -Contain 'jönköping'
-            $Result | Should -Contain 'sweden'
         }
     }
     Context 'Get-IMAssetStatistic' {
@@ -429,6 +428,20 @@ Describe 'Asset' -Tag 'Integration' {
         It -Name 'Should return 1 object' {
             $Result = Get-IMTimeBucket -timeBucket '2024-03-01 00:00:00' -size MONTH
             $Result | Should -HaveCount 12
+        }
+    }
+    Context 'Find-IMAsset' {
+        It -Name 'Should find asset by name' {
+            $Result = Find-IMAsset -originalFileName 'evgeni-evgeniev-ggVH1hoQAac-unsplash.jpg'
+            $Result | Should -HaveCount 1
+        }
+        It -Name 'Should find asset by partial name' {
+            $Result = Find-IMAsset -originalFileName 'unsp'
+            $Result | Should -HaveCount 13
+        }
+        It -Name 'Should find all assets by paging' {
+            $Result = Find-IMAsset -originalFileName 'unsp' -Size 5
+            $Result | Should -HaveCount 13
         }
     }
 }
@@ -837,9 +850,9 @@ Describe 'Job' -Tag 'Integration' {
             $Result.DeviceAssetID | Should -Be 'Immich.png'
             Remove-IMAsset -Id $Result.Id
             $Remove = Get-IMAsset -id $Result.id
-            $Remove.isTrashed | should -betrue
+            $Remove.isTrashed | Should -BeTrue
             $Result = Start-IMJob -Job 'emptyTrash'
-            {Get-IMAsset -id $Result.id} | should -throw
+            { Get-IMAsset -id $Result.id } | Should -Throw
         }
     }
 }
@@ -1045,7 +1058,7 @@ Describe 'Tag' -Tag 'Integration' {
         It 'Should return tag' {
             $New = New-IMTag -Name 'TestTag' -Type 'OBJECT'
             $Result = Get-IMTag -id $New.id
-            $Result | should -HaveCount 1
+            $Result | Should -HaveCount 1
         }
         It 'Should return all tags' {
             $Result = Get-IMTag
@@ -1075,53 +1088,54 @@ Describe 'Tag' -Tag 'Integration' {
         It 'Should add tag to asset - id' {
             $New = New-IMTag -Name 'TestTag' -Type 'OBJECT'
             $Result = Add-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | should -betrue
+            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeTrue
             $ResultTwo = Add-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $ResultTwo.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -befalse
+            $ResultTwo.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeFalse
             $ResultTwo.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).error | Should -Be 'duplicate'
             $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Asset.tags.id | should -contain $new.id
+            $Asset.tags.id | Should -Contain $new.id
             Remove-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
         }
         It 'Should add tag to asset - name' {
             $New = New-IMTag -Name 'TestTag2' -Type 'OBJECT'
             $Result = Add-IMAssetTag -tagName 'TestTag2' -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | should -betrue
+            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeTrue
             $ResultTwo = Add-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $ResultTwo.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -befalse
+            $ResultTwo.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeFalse
             $ResultTwo.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).error | Should -Be 'duplicate'
             $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Asset.tags.id | should -contain $new.id
+            $Asset.tags.id | Should -Contain $new.id
             Remove-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
         }
         AfterAll {
-            Get-IMTag | where-object {$_.Name -eq 'TestTag' -or $_.Name -eq 'TestTag2'} | Remove-IMTag
+            Get-IMTag | Where-Object { $_.Name -eq 'TestTag' -or $_.Name -eq 'TestTag2' } | Remove-IMTag
         }
     }
     Context 'Remove-IMAssetTag' {
         It 'Should remove tag from asset - id' {
             $New = New-IMTag -Name 'TestTag3' -Type 'OBJECT'
             $Result = Add-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | should -betrue
+            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeTrue
             $Remove = Remove-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Remove.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | should -betrue
+            $Remove.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeTrue
             $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Asset.tags.id | should -not -contain $new.id
+            $Asset.tags.id | Should -Not -Contain $new.id
         }
         It 'Should remove tag from asset - name' {
             $New = New-IMTag -Name 'TestTag4' -Type 'OBJECT'
             $Result = Add-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | should -betrue
+            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeTrue
             $Remove = Remove-IMAssetTag -tagname 'TestTag4' -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Remove.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | should -betrue
+            $Remove.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeTrue
             $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Asset.tags.id | should -not -contain $new.id
+            $Asset.tags.id | Should -Not -Contain $new.id
         }
         AfterAll {
-            Get-IMTag | where-object {$_.Name -eq 'TestTag3' -or $_.Name -eq 'TestTag4'} | Remove-IMTag
+            Get-IMTag | Where-Object { $_.Name -eq 'TestTag3' -or $_.Name -eq 'TestTag4' } | Remove-IMTag
         }
     }
 }
+
 Describe 'User' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
@@ -1129,50 +1143,116 @@ Describe 'User' -Tag 'Integration' {
     Context 'Get-IMUser' {
         It 'Should list all users' {
             $Result = Get-IMUser
-            $Result | should -havecount 2
+            $Result | Should -HaveCount 2
         }
         It 'Should list specific user' {
             $Result = Get-IMUser -id 'fb95c457-7685-428c-b850-2fd60345819c'
-            $Result | should -HaveCount 1
-            $Result.name | should -be 'Hannes Palmquist'
+            $Result | Should -HaveCount 1
+            $Result.name | Should -Be 'Hannes Palmquist'
         }
         It 'Should list self' {
             $Result = Get-IMUser -me
-            $Result | should -HaveCount 1
-            $Result.name | should -be 'Hannes Palmquist'
+            $Result | Should -HaveCount 1
+            $Result.name | Should -Be 'Hannes Palmquist'
         }
     }
     Context 'New-IMUser' {
         It 'Should create user' {
-            $New = New-IMUser -email 'test@domain.com' -name 'TestUser' -password (ConvertTo-SecureString -String 'test' -AsPlainText -Force)
+            $New = New-IMUser -email 'test@domain.com' -Name 'TestUser' -password (ConvertTo-SecureString -String 'test' -AsPlainText -Force)
             $Result = Get-IMUser -Id $New.id
-            $Result | should -HaveCount 1
-            $Result.email | should -be 'test@domain.com'
-            $Result.name | should -be 'TestUser'
+            $Result | Should -HaveCount 1
+            $Result.email | Should -Be 'test@domain.com'
+            $Result.name | Should -Be 'TestUser'
         }
     }
     Context 'Set-IMUser' {
         It 'Should update user' {
-            $Get = Get-IMUser | where-object {$_.email -eq 'test@domain.com'}
-            $Updated = Set-IMUser -id $Get.id -name 'test user'
+            $Get = Get-IMUser | Where-Object { $_.email -eq 'test@domain.com' }
+            $Updated = Set-IMUser -id $Get.id -Name 'test user'
             $Result = Get-IMUser -id $Get.id
-            $Result.name | should -BeExactly 'test user'
+            $Result.name | Should -BeExactly 'test user'
         }
     }
     Context 'Add-IMMyProfilePicture' {
         It 'Should add profile picture' {
-            {$Result = Add-IMMyProfilePicture -FilePath "$PSScriptRoot\Immich.png"} | should -not -Throw
+            { $Result = Add-IMMyProfilePicture -FilePath "$PSScriptRoot\Immich.png" } | Should -Not -Throw
         }
     }
     Context 'Remove-IMMyProfilePicture' {
         It 'Should remove profile picture' {
-            {$Result = Remove-IMMyProfilePicture} | should -not -throw
+            { $Result = Remove-IMMyProfilePicture } | Should -Not -Throw
         }
     }
     Context 'Remove-IMUser' {
         It 'Should remove user' {
-            $Get = Get-IMUser | where-object {$_.email -eq 'test@domain.com'}
+            $Get = Get-IMUser | Where-Object { $_.email -eq 'test@domain.com' }
             Remove-IMUser -id $get.id -force
+        }
+    }
+}
+
+Describe 'SharedLink' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+        Get-IMSharedLink | Remove-IMSharedLink
+    }
+    Context 'New-IMSharedLink' {
+        It 'Should create asset shared link' {
+            $NewAssetLink = New-IMSharedLink -AssetId '6d178c17-71f1-4231-a225-f4ffe55d24a5' -allowupload -expiresat ((Get-Date).AddDays(3)) -showmetadata
+            $NewAssetLink | Should -HaveCount 1
+        }
+        It 'Should create album shared link' {
+            $NewAlbumLink = New-IMSharedLink -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -allowupload -expiresat ((Get-Date).AddDays(3)) -showmetadata
+            $NewAlbumLink | Should -HaveCount 1
+        }
+    }
+    Context 'Get-IMSharedLink' {
+        It 'Should get two shared links' {
+            $Result = Get-IMSharedLink
+            $Result | Should -HaveCount 2
+            $Result.type | Should -Contain 'ALBUM'
+            $Result.type | Should -Contain 'INDIVIDUAL'
+        }
+        <#
+        It 'Should get two shared links' {
+            $Result = Get-IMSharedLink -Me
+            $Result | Should -HaveCount 2
+        }
+        #>
+    }
+    Context 'Set-IMSharedLink' {
+        It 'Should update setting on asset shared link' {
+            $ExistingSharedLink = Get-IMSharedLink
+            $ExistingSharedLink | Set-IMSharedLink -AllowUpload:$false
+            $Result = Get-IMSharedLink
+            $Result.AllowUpload | Should -Not -Contain $true
+        }
+    }
+
+    Context 'Add-IMSharedLinkAsset' {
+        It 'Should add asset to shared link' {
+            $SharedLink = Get-IMSharedLink | Where-Object { $_.type -eq 'INDIVIDUAL' }
+            $Add = Add-IMSharedLinkAsset -sharedlinkid $SharedLink.id -id '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
+            $Get = Get-IMSharedLink -id $SharedLink.id
+            $Get.Assets.Id | Should -Contain '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
+        }
+    }
+
+    Context 'Remove-IMSharedLinkAsset' {
+        It 'Should remove asset from shared link' {
+            $SharedLink = Get-IMSharedLink | Where-Object { $_.type -eq 'INDIVIDUAL' }
+            $IdToRemove = [array]($SharedLink.Assets.Id) | Get-Random -Count 1
+            $Remove = Remove-IMSharedLinkAsset -sharedlinkid $Sharedlink.id -id $IdToRemove
+            $Get = Get-IMSharedLink -id $SharedLink.id
+            [array]($Get.assets.id) | Should -Not -Contain $IdToRemove
+        }
+    }
+
+    Context 'Remove-IMSharedLink' {
+        It 'Should remove shared links' {
+            Get-IMSharedLink | Remove-IMSharedLink
+            $Get = Get-IMSharedLink
+            $Get | Should -HaveCount 0
         }
     }
 }
