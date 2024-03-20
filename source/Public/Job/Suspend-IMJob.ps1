@@ -8,11 +8,11 @@
 
         -Session $Session
     .PARAMETER Job
-        asd
+        Defines the job type to pause
     .PARAMETER Force
-        asd
+        Defines force
     .EXAMPLE
-        Suspend-IMJob
+        Suspend-IMJob -job 'thumbnailGeneration'
 
         Suspend immich job
     #>

@@ -8,11 +8,11 @@
 
         -Session $Session
     .PARAMETER id
-        Defines an api key id to remove
+        Defines an api key to remove
     .EXAMPLE
-        Remove-IMAPIKey
+        Remove-IMAPIKey -id <apikey id>
 
-        Remove Immich api key
+        Remove api key
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
     [CmdletBinding(SupportsShouldProcess)]

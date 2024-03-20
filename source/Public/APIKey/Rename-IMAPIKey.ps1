@@ -1,4 +1,4 @@
-﻿function Set-IMAPIKey
+﻿function Rename-IMAPIKey
 {
     <#
     .DESCRIPTION
@@ -8,11 +8,11 @@
 
         -Session $Session
     .PARAMETER id
-        Defines the id of the API key
+        Defines the id of the API key to update
     .PARAMETER name
-        Defines the name of the new album
+        Defines a new name for the apikey
     .EXAMPLE
-        Set-IMAPIKey
+        Rename-IMAPIKey
 
         Sets name of an apikey
     #>

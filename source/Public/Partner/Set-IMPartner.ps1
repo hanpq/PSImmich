@@ -12,7 +12,7 @@
     .PARAMETER EnableTimeline
         Defines that the partners assets should be displayed within the main timeline
     .EXAMPLE
-        Set-IMPartner
+        Set-IMPartner -id <userid> -EnableTimeline
 
         Set immich partner
     #>

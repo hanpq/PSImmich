@@ -22,7 +22,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Set-IMAPIKey  -Tag 'Unit' {
+    Describe Set-IMTag {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

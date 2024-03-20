@@ -1,4 +1,4 @@
-﻿function Start-IMLibraryScan
+﻿function Sync-IMLibrary
 {
     <#
     .DESCRIPTION
@@ -10,11 +10,11 @@
     .PARAMETER id
         Defines a specific library id to be cleaned up
     .PARAMETER refreshAllFiles
-        asd
+        Defines if all assets should be scanned. Default false
     .PARAMETER refreshModifiedFiles
-        asd
+        Defines that only new/modified assets should be scanned. Default true
     .EXAMPLE
-        Start-IMLibraryScan
+        Sync-IMLibrary -id <libraryid>
 
         Start library scan job
     #>

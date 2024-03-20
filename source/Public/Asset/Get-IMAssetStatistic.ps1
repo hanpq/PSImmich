@@ -8,11 +8,11 @@
 
         -Session $Session
     .PARAMETER isArchived
-        asd
+        Archived filter
     .PARAMETER isFavorite
-        asd
+        Favorite filter
     .PARAMETER isTrashed
-        asd
+        Trashed filter
     .EXAMPLE
         Get-IMAssetStatistic
 

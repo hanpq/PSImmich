@@ -7,30 +7,36 @@
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
-    .PARAMETER ids
-        asd
+    .PARAMETER id
+        Defines the asset to update
     .PARAMETER dateTimeOriginal
-        asd
+        Defines the assets taken date
     .PARAMETER isArchived
-        asd
+        Defines if the asset should archived
     .PARAMETER isFavorite
-        asd
+        Defines if the asset should be set as favorite
     .PARAMETER latitude
-        asd
+        Set location latitude
     .PARAMETER longitude
-        asd
+        Set location longitude
     .PARAMETER removeParent
-        asd
+        Defines if stack parent should be removed
     .PARAMETER stackParentId
-        asd
+        Defines a parent asset
     .PARAMETER description
-        asd
+        Defines a description
+    .PARAMETER AddToAlbum
+        Defines if the asset should be added to an album
+    .PARAMETER RemoveFromAlbum
+        Defines if the asset should be removed from an album
+    .PARAMETER AddTag
+        Defines if a tag should be added to the asset
+    .PARAMETER RemoveTag
+        Defines if a tag should be removed from the asset
     .EXAMPLE
-        Set-IMAsset
+        Set-IMAsset -id <assetid> -AddTag <tagid>
 
-        Update an Immich asset
-    .NOTES
-        Covers updateAssets, updateAsset
+        Adds a tag to an asset
     #>
 
     [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'batch')]
@@ -42,9 +48,9 @@
         [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline, ParameterSetName = 'batch')]
         [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline, ParameterSetName = 'id')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [Alias('id')]
+        [Alias('ids')]
         [string[]]
-        $ids,
+        $id,
 
         [Parameter(ParameterSetName = 'batch')]
         [Parameter(ParameterSetName = 'id')]
@@ -82,8 +88,25 @@
 
         [Parameter(ParameterSetName = 'id')]
         [string]
-        $description
-    )
+        $description,
+
+        [Parameter()]
+        [string]
+        $AddToAlbum,
+
+        [Parameter()]
+        [string]
+        $RemoveFromAlbum,
+
+        [Parameter()]
+        [string]
+        $AddTag,
+
+        [Parameter()]
+        [string]
+        $RemoveTag
+
+)
 
     BEGIN
     {
@@ -110,17 +133,33 @@
         {
             'batch'
             {
-                $ids | ForEach-Object {
+                $id | ForEach-Object {
                     $BodyParameters.ids += $psitem
                 }
             }
             'id'
             {
-                foreach ($id in $ids)
+                foreach ($object in $id)
                 {
                     if ($PSCmdlet.ShouldProcess(($BodyParameters.ids -join ','), 'PUT'))
                     {
-                        InvokeImmichRestMethod -Method Put -RelativePath "/asset/$id" -ImmichSession:$Session -Body:$BodyParameters
+                        InvokeImmichRestMethod -Method Put -RelativePath "/asset/$object" -ImmichSession:$Session -Body:$BodyParameters
+                        if ($PSBoundParameters.ContainsKey('AddToAlbum'))
+                        {
+                            $null = InvokeImmichRestMethod -Method PUT -RelativePath "/album/$AddToAlbum/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$object }
+                        }
+                        if ($PSBoundParameters.ContainsKey('RemoveFromAlbum'))
+                        {
+                            $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/album/$RemoveFromAlbum/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$object }
+                        }
+                        if ($PSBoundParameters.ContainsKey('AddTag'))
+                        {
+                            $null = InvokeImmichRestMethod -Method PUT -RelativePath "/tag/$AddTag/assets" -ImmichSession:$Session -Body:@{assetIds = [string[]]$object }
+                        }
+                        if ($PSBoundParameters.ContainsKey('RemoveTag'))
+                        {
+                            $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/tag/$AddTag/assets" -ImmichSession:$Session -Body:@{assetIds = [string[]]$object }
+                        }
                     }
                 }
             }
@@ -136,6 +175,22 @@
                 if ($PSCmdlet.ShouldProcess(($BodyParameters.ids -join ','), 'PUT'))
                 {
                     InvokeImmichRestMethod -Method Put -RelativePath '/asset' -ImmichSession:$Session -Body:$BodyParameters
+                    if ($PSBoundParameters.ContainsKey('AddToAlbum'))
+                    {
+                        $null = InvokeImmichRestMethod -Method PUT -RelativePath "/album/$AddToAlbum/assets" -ImmichSession:$Session -Body:@{ids = [string[]]($BodyParameters.ids) }
+                    }
+                    if ($PSBoundParameters.ContainsKey('RemoveFromAlbum'))
+                    {
+                        $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/album/$RemoveFromAlbum/assets" -ImmichSession:$Session -Body:@{ids = [string[]]($BodyParameters.ids) }
+                    }
+                    if ($PSBoundParameters.ContainsKey('AddTag'))
+                    {
+                        $null = InvokeImmichRestMethod -Method PUT -RelativePath "/tag/$AddTag/assets" -ImmichSession:$Session -Body:@{assetIds = [string[]]($BodyParameters.ids) }
+                    }
+                    if ($PSBoundParameters.ContainsKey('RemoveTag'))
+                    {
+                        $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/tag/$RemoveTag/assets" -ImmichSession:$Session -Body:@{assetIds = [string[]]($BodyParameters.ids) }
+                    }
                 }
             }
         }

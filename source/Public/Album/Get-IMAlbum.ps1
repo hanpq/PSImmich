@@ -8,17 +8,17 @@
 
         -Session $Session
     .PARAMETER albumId
-        Defines an albumId to query
+        Defines the album to get
     .PARAMETER assetId
         Only returns albums that contain the asset
     .PARAMETER shared
         Defines weather to return shared albums or not.
     .PARAMETER withoutAssets
-        Defines weather to return assets as part of the object
+        Defines weather to return assets as part of the object or not
     .EXAMPLE
-        Get-IMAlbum
+        Get-IMAlbum -albumid <albumid>
 
-        Retreives Immich asset
+        Retreives Immich album
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'list-shared')]

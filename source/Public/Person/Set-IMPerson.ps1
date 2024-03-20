@@ -8,17 +8,17 @@
 
         -Session $Session
     .PARAMETER id
-        asd
+        Defines the person to update
     .PARAMETER BirthDate
-        asd
+        Defines birth date
     .PARAMETER FaceAssetId
-        asd
+        Defines an face asset id
     .PARAMETER IsHidden
-        asd
+        Defines if the person should be hidden
     .PARAMETER Name
-        asd
+        Defines the name of the person
     .EXAMPLE
-        Set-IMPerson
+        Set-IMPerson -id <personid> -Name 'John Smith'
 
         Update an Immich asset
     #>

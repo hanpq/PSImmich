@@ -22,7 +22,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Add-IMAlbumAsset  -Tag 'Unit' {
+    Describe Rename-IMAlbum {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

@@ -8,11 +8,11 @@
 
         -Session $Session
     .PARAMETER albumId
-        Defines albumId to add assets to
+        Defines album to add the user to
     .PARAMETER userId
-        Defines the assetIds to add to the album
+        Defines the user to add to the album
     .EXAMPLE
-        Add-IMAlbumUser
+        Add-IMAlbumUser -albumid <albumid> -userid <userid>
 
         Add user to album
     #>

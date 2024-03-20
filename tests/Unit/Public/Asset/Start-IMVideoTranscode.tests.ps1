@@ -22,7 +22,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Remove-IMAssetTag {
+    Describe Start-IMVideoTranscode {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

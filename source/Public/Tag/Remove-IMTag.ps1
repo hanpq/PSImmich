@@ -10,7 +10,7 @@
     .PARAMETER id
         Defines a specific tag id to be retreived
     .EXAMPLE
-        Remove-IMTag
+        Remove-IMTag -id <tagid>
 
         Remove Immich tag
     #>

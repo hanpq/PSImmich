@@ -8,11 +8,11 @@
 
         -Session $Session
     .PARAMETER after
-        asd
+        Defines after date filter
     .PARAMETER entityType
-        asd
+        Defines an entity type, ASSET or ALBUM
     .PARAMETER userId
-        asd
+        Defines a user filter
     .EXAMPLE
         Get-IMAuditDelete
 

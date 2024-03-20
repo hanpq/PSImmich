@@ -8,13 +8,17 @@
 
         -Session $Session
     .PARAMETER id
-        Defines an asset id to tag
+        Defines an asset id to restore
     .PARAMETER All
         Defines that all assets in trash should be restored.
     .EXAMPLE
-        Restore-IMAsset
+        Restore-IMAsset -id <assetid>
 
         Restore asset from trash
+    .EXAMPLE
+        Restore-IMAsset -All
+
+        Restores all assets from trash
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP')]
     [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'id')]

@@ -12,11 +12,9 @@
     .PARAMETER force
         Performs a hard delete bypassing the Trash
     .EXAMPLE
-        Remove-IMAsset
+        Remove-IMAsset -ids <assetid>
 
         Removes an Immich asset
-    .NOTES
-        Covers API deleteAssets
     #>
 
     [CmdletBinding(SupportsShouldProcess)]

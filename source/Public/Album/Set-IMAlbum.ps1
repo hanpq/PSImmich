@@ -7,8 +7,8 @@
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
-    .PARAMETER ids
-        Defines ids to update
+    .PARAMETER id
+        Defines albums to update
     .PARAMETER albumName
         Defines a new album name
     .PARAMETER albumThumbnailAssetId
@@ -17,12 +17,18 @@
         Defines a new description for the album
     .PARAMETER isActivityEnabled
         Defines weather activity feed should be enabled
+    .PARAMETER AddAssets
+        Defines assets to add to the album
+    .PARAMETER RemoveAssets
+        Defines assets to be removed from the album
     .EXAMPLE
-        Set-IMAlbum
+        Set-IMAlbum -id <albumid> -description 'Trip to New York'
 
-        Update an Immich album
-    .NOTES
-        Covers updateAssets, updateAsset
+        Update the description of an Immich album
+    .EXAMPLE
+        Set-IMAlbum -id <albumid> -AddAssets <assetid>,<assetid>
+
+        Adds to assets to the album
     #>
 
     [CmdletBinding(SupportsShouldProcess)]
@@ -33,9 +39,17 @@
 
         [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [Alias('id', 'albumId')]
+        [Alias('ids', 'albumId')]
         [string[]]
-        $ids,
+        $id,
+
+        [Parameter()]
+        [string[]]
+        $AddAssets,
+
+        [Parameter()]
+        [string[]]
+        $RemoveAssets,
 
         [Parameter()]
         [string]
@@ -63,10 +77,19 @@
 
     PROCESS
     {
-        $ids | ForEach-Object {
+        $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Update'))
             {
                 InvokeImmichRestMethod -Method PATCH -RelativePath "/album/$PSItem" -ImmichSession:$Session -Body:$BodyParameters
+
+                if ($PSBoundParameters.ContainsKey('AddAssets'))
+                {
+                    $null = InvokeImmichRestMethod -Method PUT -RelativePath "/album/$PSItem/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$AddAssets }
+                }
+                if ($PSBoundParameters.ContainsKey('RemoveAssets'))
+                {
+                    $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/album/$PSItem/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$RemoveAssets }
+                }
             }
         }
     }

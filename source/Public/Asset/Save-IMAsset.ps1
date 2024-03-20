@@ -14,11 +14,11 @@
     .PARAMETER isWeb
         Defines if archvied assets should be returned or not. Do not specify if either should be returned.
     .PARAMETER Path
-        Defines filepath for outputfile
+        Defines the directory for the output file
     .EXAMPLE
-        Save-IMAsset
+        Save-IMAsset -id <assetid> -Path C:\download
 
-        Save Immich asset
+        Save asset
     #>
 
     [CmdletBinding()]

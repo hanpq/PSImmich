@@ -22,7 +22,7 @@
     .PARAMETER Password
         Defines a password for the shared link
     .EXAMPLE
-        Set-IMSharedLink
+        Set-IMSharedLink -id <sharedlinkid> -AllowDownload
 
         Set Immich shared link
     #>

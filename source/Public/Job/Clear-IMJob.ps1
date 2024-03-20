@@ -8,11 +8,11 @@
 
         -Session $Session
     .PARAMETER Job
-        asd
+        Defines the job type
     .PARAMETER Force
-        asd
+        Defines force
     .PARAMETER FailedOnly
-        asd
+        Defines that only failed jobs should be cleared
     .EXAMPLE
         Clear-IMJob
 

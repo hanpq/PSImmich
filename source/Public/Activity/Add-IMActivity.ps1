@@ -8,17 +8,17 @@
 
         -Session $Session
     .PARAMETER albumId
-        Defines a album id to be retreived
+        Defines which album to add the activity to.
     .PARAMETER assetId
-        Defines a specific assetid to retreive activities for.
+        Defines a specific assetid to add activities for.
     .PARAMETER comment
-        Defines the comment to post.
+        Defines the comment to add.
     .PARAMETER type
-        Defines the type of activities to retreive, valid values are comment or like.
+        Defines the type of activity to add, valid values are comment or like.
     .EXAMPLE
-        Add-IMActivity
+        Add-IMActivity -AlbumId <albumid> -AssetId <assetid> -Comment 'Great picture!' -Type comment
 
-        Adds a new activity to an album
+        Adds a new comment to an asset in the specified album
     #>
 
     [CmdletBinding()]

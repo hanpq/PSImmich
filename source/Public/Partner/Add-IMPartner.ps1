@@ -10,7 +10,7 @@
     .PARAMETER id
         Define the id of the partner to add
     .EXAMPLE
-        Add-IMPartner
+        Add-IMPartner -id <userid>
 
         Add immich partner
     #>

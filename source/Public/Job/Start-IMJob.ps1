@@ -8,13 +8,13 @@
 
         -Session $Session
     .PARAMETER Job
-        asd
+        Defines the job type
     .PARAMETER Force
-        asd
+        Define force
     .EXAMPLE
-        Start-IMJob
+        Start-IMJob -job 'thumbnailGeneration'
 
-        Start immich job
+        Start thumbnail generation job
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'FP')]

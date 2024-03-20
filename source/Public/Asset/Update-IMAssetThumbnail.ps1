@@ -1,20 +1,18 @@
-﻿function Start-IMAssetJob
+﻿function Update-IMAssetThumbnail
 {
     <#
     .DESCRIPTION
-        Start Immich asset job
+        Update IM asset thumbnails
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
     .PARAMETER id
-        Defines the asset id that the job should target. Accepts pipeline input.
-    .PARAMETER JobName
-        Defines the job to be started
+        Defines the asset ids that thumbnails should be refreshed for. Accepts pipeline input.
     .EXAMPLE
-        Start-IMAssetJob
+        Update-IMAssetThumbnail -id <assetid>
 
-        Start Immich asset job
+        Update IM asset thumbnails
     #>
 
     [CmdletBinding(SupportsShouldProcess)]
@@ -26,20 +24,15 @@
         [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string[]]
-        $id,
-
-        [Parameter(Mandatory)]
-        [ValidateSet('regenerate-thumbnail', 'refresh-metadata', 'transcode-video')]
-        [string]
-        $JobName
+        $id
     )
 
     BEGIN
     {
         $BodyParameters = @{
             assetIds = @()
+            name     = 'regenerate-thumbnail'
         }
-        $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'JobName' -NameMapping @{JobName = 'name' })
     }
 
     PROCESS
@@ -51,7 +44,7 @@
 
     END
     {
-        if ($PSCmdlet.ShouldProcess(($BodyParameters.assetIds -join ','), 'RUN JOB'))
+        if ($PSCmdlet.ShouldProcess(($BodyParameters.assetIds -join ','), 'Update thumbnail'))
         {
             InvokeImmichRestMethod -Method POST -RelativePath '/asset/jobs' -ImmichSession:$Session -Body:$BodyParameters
         }

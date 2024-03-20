@@ -1,34 +1,32 @@
-﻿function Add-IMAsset
+﻿function Import-IMAsset
 {
     <#
     .DESCRIPTION
-        Adds an Immich asset
+        Imports an Immich asset
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
     .PARAMETER FilePath
-        Defines the asset ids that should be removed. Accepts pipeline input.
+        Defines the path to the file to upload. Accepts pipeline input.
     .PARAMETER Duration
-        asd
+        Defines the duration if its a video asset
     .PARAMETER isArchived
-        asd
+        Defines if the new asset should be archived.
     .PARAMETER isFavorite
-        asd
+        Defines if the new asset should be a favorite
     .PARAMETER isOffline
-        asd
+        Defines if the new asset should be offline
     .PARAMETER isReadOnly
-        asd
+        Defines if the new asset should be read only
     .PARAMETER isVisible
-        asd
+        Defines if the new asset should be visible
     .PARAMETER libraryId
-        asd
+        Defines which library to upload the asset to
     .EXAMPLE
-        Add-IMAsset
+        Import-IMAsset -FilePath C:\file.jpg
 
-        Removes an Immich asset
-    .NOTES
-        Covers API deleteAssets
+        Uploads image to Immich
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP, retreived through PSBoundParameters')]
     [CmdletBinding(SupportsShouldProcess)]
@@ -76,7 +74,7 @@
         # Do not run on Windows Powershell
         if ($PSVersionTable.PSEdition -eq 'Desktop')
         {
-            Write-Warning -Message 'Add-IMAsset is not currently supported on Windows Powershell, please use Powershell Core on Windows instead.'
+            Write-Warning -Message 'Import-IMAsset is not currently supported on Windows Powershell, please use Powershell Core on Windows instead.'
             break
         }
     }

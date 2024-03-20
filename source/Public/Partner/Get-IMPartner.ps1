@@ -10,7 +10,7 @@
     .PARAMETER direction
         Defines the direction of the partnership
     .EXAMPLE
-        Get-IMPartner
+        Get-IMPartner -direction 'shared-with'
 
         Get immich partner
     #>

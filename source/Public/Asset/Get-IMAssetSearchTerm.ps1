@@ -2,7 +2,7 @@
 {
     <#
     .DESCRIPTION
-        Retreives random assets
+        Retreives search terms
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
@@ -10,7 +10,7 @@
     .EXAMPLE
         Get-IMAssetSearchTerm
 
-        Retreives random assets
+        Retreives search terms
     #>
 
     [CmdletBinding()]

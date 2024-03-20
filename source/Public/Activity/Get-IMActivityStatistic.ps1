@@ -8,13 +8,13 @@
 
         -Session $Session
     .PARAMETER albumId
-        Defines a album id to be retreived
+        Defines an album to retreive activity statistics for.
     .PARAMETER assetId
-        Defines a specific assetid to retreive activities for.
+        Defines a specific asset to retreive activities for.
     .EXAMPLE
-        Get-IMActivityStatistic
+        Get-IMActivityStatistic -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
 
-        Retreives album activity
+        Retreives activity statistics for the album
     #>
 
     [CmdletBinding()]

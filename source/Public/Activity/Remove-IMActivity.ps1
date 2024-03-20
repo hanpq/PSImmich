@@ -2,17 +2,17 @@
 {
     <#
     .DESCRIPTION
-        Removes a activity
+        Removes an activity
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
     .PARAMETER Id
-        Defines the activity id to be remove
+        Defines the activity to remove
     .EXAMPLE
-        Remove-IMActivity
+        Remove-IMActivity -id 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
 
-        Removes a activity
+        Removes the activity
     #>
 
     [CmdletBinding(SupportsShouldProcess)]
@@ -29,7 +29,8 @@
 
     PROCESS
     {
-        if ($PSCmdlet.ShouldProcess($id, 'DELETE')) {
+        if ($PSCmdlet.ShouldProcess($id, 'DELETE'))
+        {
             InvokeImmichRestMethod -Method DELETE -RelativePath "/activity/$id" -ImmichSession:$Session
         }
     }

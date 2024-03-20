@@ -11,8 +11,6 @@
         Get-IMCuratedObject
 
         Retreives Immich curated objects
-    .NOTES
-        Covers API getCuratedObjects
     #>
 
     [CmdletBinding()]

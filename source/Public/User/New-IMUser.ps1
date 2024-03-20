@@ -22,9 +22,10 @@
     .PARAMETER StorageLabel
         Defines the users storage label
     .EXAMPLE
-        New-IMUser
+        $Password = Read-Host -Prompt 'Password' -AsSecureString
+        New-IMUser -Email 'testuser@domain.com' -Name 'Test User' -Password $Password
 
-        New Immich user
+        Creates new Immich user
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions','', Justification='FP')]
     [CmdletBinding()]

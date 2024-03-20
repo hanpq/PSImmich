@@ -326,19 +326,59 @@ Describe 'Asset' -Tag 'Integration' {
         }
         #>
     }
-    Context -Name 'Set-IMAsset - Specifying a single ID' {
+    Context -Name 'Set-IMAsset' {
+        BeforeAll {
+            if ($env:CI)
+            {
+                $AlbumName = $env:GITHUB_RUN_ID
+            }
+            else
+            {
+                $AlbumName = HOSTNAME.EXE
+            }
+            $NewAlbum = New-IMAlbum -albumName $AlbumName
+            $NewTag = New-IMTag -Name 'TestTag' -Type 'OBJECT'
+
+        }
+        AfterAll {
+            Remove-IMAlbum -albumId $NewAlbum.id
+            Remove-IMTag -id $NewTag.id
+
+        }
+        It -Name 'Assets gets added to album' {
+            Set-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037' -AddToAlbum $NewAlbum.id
+            $Result = Get-IMAlbum -albumId $NewAlbum.id
+            $Result.assets | Should -HaveCount 2
+            $Result.assets.id | Should -Contain '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $Result.assets.id | Should -Contain '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
+        }
+        It -Name 'Assets gets removed from album' {
+            Set-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037' -RemoveFromAlbum $NewAlbum.id
+            $Result = Get-IMAlbum -albumId $NewAlbum.id
+            $Result.assets | Should -HaveCount 0
+        }
         It -Name 'Should update asset' {
             Set-IMAsset -Id '025665c6-d874-46a2-bbc6-37250ddcb2eb' -isFavorite:$true
             Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb' | Select-Object -ExpandProperty isFavorite | Should -BeTrue
             Set-IMAsset -Id '025665c6-d874-46a2-bbc6-37250ddcb2eb' -isFavorite:$false
         }
+        It 'Should add tag to asset' {
+            $Result = Set-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb' -AddTag $NewTag.id
+            $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $Asset.tags.id | Should -Contain $newtag.id
+        }
+        It 'Should remove tag from asset' {
+            $Result = Set-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb' -RemoveTag $NewTag.id
+            $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+            $Asset.tags.id | Should -not -Contain $newtag.id
+        }
     }
-    # Add-IMAsset is excluded from testing on Windows Powershell because the
+    # Import-IMAsset is excluded from testing on Windows Powershell because the
     # current rutine to post formdata is not nativly supported. Until a seperate
     # routine is defined, this test is excluded.
     Context -Name 'Add-IMAsset' -Skip:($PSVersionTable.PSEdition -eq 'Desktop') {
         It -Name 'Should upload the file' {
-            $Result = Add-IMAsset -FilePath "$PSScriptRoot\Immich.png"
+            $Result = Import-IMAsset -FilePath "$PSScriptRoot\Immich.png"
             $Result | Should -HaveCount 1
             $Result.DeviceAssetID | Should -Be 'Immich.png'
             Remove-IMAsset -Id $Result.Id -force
@@ -346,7 +386,7 @@ Describe 'Asset' -Tag 'Integration' {
     }
     Context -Name 'Restore-IMAsset' -Skip:($PSVersionTable.PSEdition -eq 'Desktop') {
         It -Name 'Should restore single asset' {
-            $Result = Add-IMAsset -FilePath "$PSScriptRoot\Immich.png"
+            $Result = Import-IMAsset -FilePath "$PSScriptRoot\Immich.png"
             $Result | Should -HaveCount 1
             $Result.DeviceAssetID | Should -Be 'Immich.png'
             Remove-IMAsset -Id $Result.Id
@@ -359,7 +399,7 @@ Describe 'Asset' -Tag 'Integration' {
             Remove-IMAsset -Id $Result.Id -force
         }
         It -Name 'Should restore all asset' {
-            $Result = Add-IMAsset -FilePath "$PSScriptRoot\Immich.png"
+            $Result = Import-IMAsset -FilePath "$PSScriptRoot\Immich.png"
             $Result | Should -HaveCount 1
             $Result.DeviceAssetID | Should -Be 'Immich.png'
             Remove-IMAsset -Id $Result.Id
@@ -373,7 +413,7 @@ Describe 'Asset' -Tag 'Integration' {
     }
     Context 'Remove-IMAsset' -Skip:($PSVersionTable.PSEdition -eq 'Desktop') {
         It -Name 'Should remove the file' {
-            $Result = Add-IMAsset -FilePath "$PSScriptRoot\Immich.png"
+            $Result = Import-IMAsset -FilePath "$PSScriptRoot\Immich.png"
             { Remove-IMAsset -Id $Result.Id -force } | Should -Not -Throw
         }
     }
@@ -384,9 +424,14 @@ Describe 'Asset' -Tag 'Integration' {
             Remove-Item 'TestDrive:\michael-daniels-ylUGx4g6eHk-unsplash.jpg' -Confirm:$false -ErrorAction SilentlyContinue
         }
     }
-    Context 'Start-IMAssetJob' {
+    Context 'Update-IMAssetMetadata' {
         It -Name 'Should not throw' {
-            { Start-IMAssetJob -id '025665c6-d874-46a2-bbc6-37250ddcb2eb' -JobName 'refresh-metadata' } | Should -Not -Throw
+            { Update-IMAssetMetadata -id '025665c6-d874-46a2-bbc6-37250ddcb2eb' } | Should -Not -Throw
+        }
+    }
+    Context 'Update-IMAssetThumbnail' {
+        It -Name 'Should not throw' {
+            { Update-IMAssetThumbnail -id '025665c6-d874-46a2-bbc6-37250ddcb2eb' } | Should -Not -Throw
         }
     }
     Context 'Get-IMAssetMemoryLane' {
@@ -397,11 +442,11 @@ Describe 'Asset' -Tag 'Integration' {
     }
     Context 'Get-IMRandomAsset' {
         It -Name 'Should return one object' {
-            $Result = Get-IMRandomAsset
+            $Result = Get-IMAsset -Random
             $Result | Should -HaveCount 1
         }
         It -Name 'Should return 3 object' {
-            $Result = Get-IMRandomAsset -Count 3
+            $Result = Get-IMAsset -Random -Count 3
             $Result | Should -HaveCount 3
         }
     }
@@ -500,7 +545,10 @@ Describe 'Activity' -Tag 'Integration' {
 }
 
 Describe 'Album' -Tag 'Integration' {
-    Context Get-IMAlbum {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context 'Get-IMAlbum' {
         It -Name 'list-shared' {
             $Result = Get-IMAlbum | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
             $Result | Should -HaveCount 1
@@ -552,7 +600,7 @@ Describe 'Album' -Tag 'Integration' {
             $Result.notShared | Should -Be 0
         }
     }
-    Context New-IMAlbum {
+    Context 'New-IMAlbum' {
         BeforeAll {
             if ($env:CI)
             {
@@ -603,67 +651,34 @@ Describe 'Album' -Tag 'Integration' {
             {
                 $AlbumName = HOSTNAME.EXE
             }
-        }
-        It -Name 'Album gets updated' {
             $NewAlbum = New-IMAlbum -albumName $AlbumName
-            Set-IMAlbum -albumid $NewAlbum.id -description "$($AlbumName)New" -albumName "$($AlbumName)New"
-            $Result = Get-IMAlbum -albumId $NewAlbum.id
-            $Result | Should -HaveCount 1
-            $Result.Description | Should -Be "$($AlbumName)New"
-            $Result.albumName | Should -Be "$($AlbumName)New"
-            Remove-IMAlbum -albumId $NewAlbum.id
         }
         AfterAll {
-            Get-IMAlbum | Where-Object { $_.AlbumName -eq $AlbumName } | Remove-IMAlbum
-        }
-    }
-    Context Add-IMAlbumAsset {
-        BeforeAll {
-            if ($env:CI)
-            {
-                $AlbumName = $env:GITHUB_RUN_ID
-            }
-            else
-            {
-                $AlbumName = HOSTNAME.EXE
-            }
+            Remove-IMAlbum -albumId $NewAlbum.id
         }
         It -Name 'Assets gets added to album' {
-            $NewAlbum = New-IMAlbum -albumName $AlbumName
-            Add-IMAlbumAsset -albumId $NewAlbum.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
+            Set-IMAlbum -id $NewAlbum.id -AddAssets '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
             $Result = Get-IMAlbum -albumId $NewAlbum.id
             $Result.assets | Should -HaveCount 2
             $Result.assets.id | Should -Contain '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $Result.assets.id | Should -Contain '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
-            Remove-IMAlbum -albumId $NewAlbum.id
-        }
-        AfterAll {
-            Get-IMAlbum | Where-Object { $_.AlbumName -eq $AlbumName } | Remove-IMAlbum
-        }
-    }
-    Context Remove-IMAlbumAsset {
-        BeforeAll {
-            if ($env:CI)
-            {
-                $AlbumName = $env:GITHUB_RUN_ID
-            }
-            else
-            {
-                $AlbumName = HOSTNAME.EXE
-            }
         }
         It -Name 'Assets gets removed from album' {
-            $NewAlbum = New-IMAlbum -albumName $AlbumName
-            Add-IMAlbumAsset -albumId $NewAlbum.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
-            $Result = Get-IMAlbum -albumId $NewAlbum.id
-            $Result.assets | Should -HaveCount 2
-            Remove-IMAlbumAsset -albumId $NewAlbum.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
+            Set-IMAlbum -id $NewAlbum.id -RemoveAssets '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
             $Result = Get-IMAlbum -albumId $NewAlbum.id
             $Result.assets | Should -HaveCount 0
-            Remove-IMAlbum -albumId $NewAlbum.id
         }
-        AfterAll {
-            Get-IMAlbum | Where-Object { $_.AlbumName -eq $AlbumName } | Remove-IMAlbum
+        It -Name 'Album gets updated' {
+            Set-IMAlbum -albumid $NewAlbum.id -description "$($AlbumName)New"
+            $Result = Get-IMAlbum -albumId $NewAlbum.id
+            $Result | Should -HaveCount 1
+            $Result.Description | Should -Be "$($AlbumName)New"
+        }
+        It -Name 'Album gets a new name' {
+            Rename-IMAlbum -albumid $NewAlbum.id -NewName "$($AlbumName)New"
+            $Result = Get-IMAlbum -albumId $NewAlbum.id
+            $Result | Should -HaveCount 1
+            $Result.albumName | Should -Be "$($AlbumName)New"
         }
     }
     Context 'Add-IMAlbumUser' {
@@ -688,7 +703,7 @@ Describe 'Album' -Tag 'Integration' {
             Get-IMAlbum | Where-Object { $_.AlbumName -eq $AlbumName } | Remove-IMAlbum
         }
     }
-    Context Remove-IMAlbumUser {
+    Context 'Remove-IMAlbumUser' {
         BeforeAll {
             if ($env:CI)
             {
@@ -742,7 +757,7 @@ Describe 'APIKey' -Tag 'Integration' {
     Context 'Set-IMAPIKey' {
         It 'Should set a new name' {
             $Result = New-IMAPIKey -name $KeyName
-            Set-IMAPIKey -id $Result.apiKey.id -name "$($KeyName)_New"
+            Rename-IMAPIKey -id $Result.apiKey.id -name "$($KeyName)_New"
             $Result = Get-IMAPIKey -id $Result.apiKey.id
             $Result.Name | Should -Be "$($KeyName)_New"
             Remove-IMAPIKey -id $Result.id
@@ -845,7 +860,7 @@ Describe 'Job' -Tag 'Integration' {
             $Result.queueStatus.isActive | Should -BeTrue
         }
         It 'Should start emptyTrash job' {
-            $Result = Add-IMAsset -FilePath "$PSScriptRoot\Immich.png"
+            $Result = Import-IMAsset -FilePath "$PSScriptRoot\Immich.png"
             $Result | Should -HaveCount 1
             $Result.DeviceAssetID | Should -Be 'Immich.png'
             Remove-IMAsset -Id $Result.Id
@@ -945,10 +960,14 @@ Describe 'Library' -Tag 'Integration' {
             $Result = Get-IMLibrary -id 'f5ed0d2f-4bdb-4ed9-8027-e22125728516'
             $Result | Should -HaveCount 1
         }
+        It 'Should return statistics' {
+            $Result = Get-IMLibrary -id 'f5ed0d2f-4bdb-4ed9-8027-e22125728516' -IncludeStatistics
+            $Result.PSObject.Properties.Name | Should -Contain 'Statistics'
+        }
     }
     Context 'New-IMLibrary' {
         It 'Should create library' {
-            $New = New-IMLibrary -Name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL'
+            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
             $Result = Get-IMLibrary -id $New.id
             $Result | Should -HaveCount 1
             $Result.Name | Should -Be 'TestLibrary'
@@ -957,13 +976,13 @@ Describe 'Library' -Tag 'Integration' {
     }
     Context 'Remove-IMLibrary' {
         It 'Should remove library' {
-            $New = New-IMLibrary -Name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL'
+            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
             { Remove-IMLibrary -id $New.id } | Should -Not -Throw
         }
     }
     Context 'Set-IMLibrary' {
         It 'Should update library' {
-            $New = New-IMLibrary -Name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL'
+            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
             $Updated = Set-IMLibrary -id $New.id -Name 'TestLibrary2'
             $Result = Get-IMLibrary -id $New.id
             $Result | Should -HaveCount 1
@@ -973,28 +992,21 @@ Describe 'Library' -Tag 'Integration' {
     }
     Context 'Remove-IMOfflineLibraryFiles' {
         It 'Should not throw' {
-            $New = New-IMLibrary -Name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL'
+            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
             { Remove-IMOfflineLibraryFile -id $New.id } | Should -Not -Throw
             Remove-IMLibrary -id $New.id
         }
     }
-    Context 'Start-IMLibraryScan' {
+    Context 'Sync-IMLibrary' {
         It 'Should not throw' {
-            $New = New-IMLibrary -Name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL'
-            { Start-IMLibraryScan -id $New.id } | Should -Not -Throw
-            Remove-IMLibrary -id $New.id
-        }
-    }
-    Context 'Measure-IMLibrary' {
-        It 'Should not throw' {
-            $New = New-IMLibrary -Name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL'
-            { Measure-IMLibrary -id $New.id } | Should -Not -Throw
+            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
+            { Sync-IMLibrary -id $New.id } | Should -Not -Throw
             Remove-IMLibrary -id $New.id
         }
     }
     Context 'Test-IMLibrary' {
         It 'Should not throw' {
-            $New = New-IMLibrary -Name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL'
+            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
             { Test-IMLibrary -id $New.id } | Should -Not -Throw
             Remove-IMLibrary -id $New.id
         }
@@ -1084,54 +1096,22 @@ Describe 'Tag' -Tag 'Integration' {
             Remove-IMTag -Id $New.id
         }
     }
-    Context 'Add-IMAssetTag' {
-        It 'Should add tag to asset - id' {
-            $New = New-IMTag -Name 'TestTag' -Type 'OBJECT'
-            $Result = Add-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeTrue
-            $ResultTwo = Add-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $ResultTwo.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeFalse
-            $ResultTwo.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).error | Should -Be 'duplicate'
-            $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Asset.tags.id | Should -Contain $new.id
-            Remove-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-        }
-        It 'Should add tag to asset - name' {
-            $New = New-IMTag -Name 'TestTag2' -Type 'OBJECT'
-            $Result = Add-IMAssetTag -tagName 'TestTag2' -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeTrue
-            $ResultTwo = Add-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $ResultTwo.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeFalse
-            $ResultTwo.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).error | Should -Be 'duplicate'
-            $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Asset.tags.id | Should -Contain $new.id
-            Remove-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+    Context 'Set-IMTag' {
+        BeforeAll {
+            $NewTag = New-IMTag -Name 'TestTag' -Type 'OBJECT'
         }
         AfterAll {
-            Get-IMTag | Where-Object { $_.Name -eq 'TestTag' -or $_.Name -eq 'TestTag2' } | Remove-IMTag
+            Remove-IMTag -id $NewTag.id
         }
-    }
-    Context 'Remove-IMAssetTag' {
-        It 'Should remove tag from asset - id' {
-            $New = New-IMTag -Name 'TestTag3' -Type 'OBJECT'
-            $Result = Add-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeTrue
-            $Remove = Remove-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Remove.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeTrue
+        It 'Should add tag to asset' {
+            $Result = Set-IMTag -Id $NewTag.id -AddAssets '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Asset.tags.id | Should -Not -Contain $new.id
+            $Asset.tags.id | Should -Contain $newtag.id
         }
-        It 'Should remove tag from asset - name' {
-            $New = New-IMTag -Name 'TestTag4' -Type 'OBJECT'
-            $Result = Add-IMAssetTag -tagid $New.id -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Result.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeTrue
-            $Remove = Remove-IMAssetTag -tagname 'TestTag4' -assetId '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Remove.Where({ $_.assetId -eq '025665c6-d874-46a2-bbc6-37250ddcb2eb' }).success | Should -BeTrue
+        It 'Should remove tag from asset' {
+            $Result = Set-IMTag -id $NewTag.id -RemoveAssets '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $Asset.tags.id | Should -Not -Contain $new.id
-        }
-        AfterAll {
-            Get-IMTag | Where-Object { $_.Name -eq 'TestTag3' -or $_.Name -eq 'TestTag4' } | Remove-IMTag
+            $Asset.tags.id | Should -not -Contain $newtag.id
         }
     }
 }

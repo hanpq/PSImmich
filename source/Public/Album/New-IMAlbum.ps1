@@ -2,7 +2,7 @@
 {
     <#
     .DESCRIPTION
-        Adds a new an album
+        Adds a new album
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
@@ -16,7 +16,7 @@
     .PARAMETER sharedWithUserIds
         Defines a list of user id to share the album to
     .EXAMPLE
-        New-IMAlbum
+        New-IMAlbum -albumName 'Las Vegas'
 
         Adds a new an album
     #>

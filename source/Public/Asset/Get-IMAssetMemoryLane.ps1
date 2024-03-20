@@ -8,13 +8,13 @@
 
         -Session $Session
     .PARAMETER DayOfMonth
-        asd
+        Defines which day of month to query
     .PARAMETER Month
-        asd
+        Defines which month
     .EXAMPLE
-        Get-IMAssetMemoryLane
+        Get-IMAssetMemoryLane -DayOfMonth 1 -Month 4
 
-        Retreives asset map markers
+        Retreives assets for 1 of April for every year
     #>
 
     [CmdletBinding()]

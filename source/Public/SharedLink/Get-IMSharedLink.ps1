@@ -10,9 +10,9 @@
     .PARAMETER id
         Defines a specific shared link id to be retreived
     .PARAMETER password
-        asd
+        ...
     .PARAMETER token
-        asd
+        ...
     .PARAMETER Me
         Defines that the currently connected users information is retreived.
     .EXAMPLE

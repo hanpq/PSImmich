@@ -8,27 +8,27 @@
 
         -Session $Session
     .PARAMETER albumId
-        asd
+        Albumid filter
     .PARAMETER isArchived
-        asd
+        Archived filter
     .PARAMETER isFavorite
-        asd
+        Favorite filter
     .PARAMETER isTrashed
-        asd
+        Trashed filter
     .PARAMETER order
-        asd
+        Defines sort order
     .PARAMETER personId
-        asd
+        PersonId filter
     .PARAMETER size
-        asd
+        Defines size, DAY or MONTH
     .PARAMETER timeBucket
-        asd
+        Timebucket
     .PARAMETER userId
-        asd
+        UserId filter
     .PARAMETER withPartners
-        asd
+        With partners filter
     .PARAMETER withStacked
-        asd
+        With stacked filter
     .EXAMPLE
         Get-IMTimeBucket
 

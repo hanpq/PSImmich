@@ -28,7 +28,7 @@
     .PARAMETER StorageLabel
         Defines the users storage label
     .EXAMPLE
-        Set-IMUser
+        Set-IMUser -id <userid> -Name 'John Smith'
 
         Set Immich user
     #>

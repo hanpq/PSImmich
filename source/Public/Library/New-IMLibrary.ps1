@@ -8,21 +8,21 @@
 
         -Session $Session
     .PARAMETER name
-        asd
+        Defines the name of the library
     .PARAMETER exclusionPatterns
-        asd
+        Defines an exclusion pattern
     .PARAMETER importPaths
-        asd
+        Defines the import paths
     .PARAMETER isVisible
-        asd
+        Defines if the library should be visible
     .PARAMETER isWatched
-        asd
+        Defines if the library should be watched by immich
     .PARAMETER ownerId
-        asd
+        Defines the owner of library
     .PARAMETER type
-        asd
+        Defines the type of library ASSET, EXTERNAL
     .EXAMPLE
-        New-IMLibrary
+        New-IMLibrary -Name 'NAS' -ImportPaths '/mnt/media/pictures'
 
         Adds a new library
     #>

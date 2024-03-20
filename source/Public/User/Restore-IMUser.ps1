@@ -10,7 +10,7 @@
     .PARAMETER id
         Defines the user id to update
     .EXAMPLE
-        Restore-IMUser
+        Restore-IMUser -id <userid>
 
         Restore Immich user
     #>

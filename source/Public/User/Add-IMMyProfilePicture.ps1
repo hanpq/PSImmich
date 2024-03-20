@@ -10,11 +10,9 @@
     .PARAMETER FilePath
         Defines the asset ids that should be removed. Accepts pipeline input.
     .EXAMPLE
-        Add-IMMyProfilePicture
+        Add-IMMyProfilePicture -FilePath C:\avatar.jpg
 
-        Removes an Immich asset
-    .NOTES
-        Covers API deleteAssets
+        Add profile picture to current user
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP, retreived through PSBoundParameters')]
     [CmdletBinding()]

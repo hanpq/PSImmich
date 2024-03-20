@@ -8,9 +8,9 @@
 
         -Session $Session
     .PARAMETER albumId
-        Defines a album id to be retreived
+        Defines the album to retreive activities for.
     .PARAMETER assetId
-        Defines a specific assetid to retreive activities for.
+        Defines a asset to retreive activities for.
     .PARAMETER level
         Defines the level of activities to retreive, valid values are album or asset.
     .PARAMETER type
@@ -18,9 +18,13 @@
     .PARAMETER userId
         Defines a specific user to retreive activities for.
     .EXAMPLE
-        Get-IMActivity
+        Get-IMActivity -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
 
-        Retreives album activity
+        Retreives all activities for an album
+    .EXAMPLE
+        Get-IMActivity -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -assetId 'a4908e1f-697f-4d7b-9330-93b5eabe3baf'
+
+        Retreives all activities for an album and a specific asset
     #>
 
     [CmdletBinding()]

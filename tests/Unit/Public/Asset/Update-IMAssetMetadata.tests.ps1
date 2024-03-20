@@ -22,7 +22,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Measure-IMLibrary {
+    Describe Update-IMAssetMetadata {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

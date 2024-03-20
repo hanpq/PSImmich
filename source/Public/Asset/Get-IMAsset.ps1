@@ -29,10 +29,14 @@
         Defines a personId to retreive assets for
     .PARAMETER tagId
         Defines a tagid to retreive assets for
+    .PARAMETER Random
+        Defines that random assets should be retreived. Unless -count is also specified one random asset is returned.
+    .PARAMETER Count
+        Defines how many random assets should be returned. Required -Random
     .EXAMPLE
-        Get-IMAsset
+        Get-IMAsset -isFavorite:$true
 
-        Retreives Immich asset
+        Retreives all favorites
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'list')]
@@ -40,6 +44,14 @@
         [Parameter()]
         [ImmichSession]
         $Session = $null,
+
+        [Parameter(Mandatory, ParameterSetName = 'random')]
+        [switch]
+        $Random,
+
+        [Parameter(ParameterSetName = 'random')]
+        [int]
+        $Count,
 
         [Parameter(Mandatory, ParameterSetName = 'deviceid')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
@@ -92,10 +104,23 @@
 
     BEGIN
     {
-        if (@('list', 'id') -contains $PSCmdlet.ParameterSetName)
+        switch ($PSCmdlet.ParameterSetName)
         {
-            $QueryParameters = @{}
-            $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'isFavorite', 'isArchived', 'skip', 'take', 'updatedAfter', 'updatedBefore', 'userId', 'key')
+            'list'
+            {
+                $QueryParameters = @{}
+                $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'isFavorite', 'isArchived', 'skip', 'take', 'updatedAfter', 'updatedBefore', 'userId', 'key')
+            }
+            'id'
+            {
+                $QueryParameters = @{}
+                $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'isFavorite', 'isArchived', 'skip', 'take', 'updatedAfter', 'updatedBefore', 'userId', 'key')
+            }
+            'random'
+            {
+                $QueryParameters = @{}
+                $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'count' -NameMapping @{Count = 'count' })
+            }
         }
     }
 
@@ -122,6 +147,10 @@
             'tagid'
             {
                 InvokeImmichRestMethod -Method Get -RelativePath "/tag/$tagid/assets" -ImmichSession:$Session | Get-IMAsset
+            }
+            'random'
+            {
+                InvokeImmichRestMethod -Method Get -RelativePath '/asset/random' -ImmichSession:$Session -QueryParameters $QueryParameters
             }
         }
     }

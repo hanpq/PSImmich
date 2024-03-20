@@ -8,9 +8,9 @@
 
         -Session $Session
     .PARAMETER Job
-        asd
+        Defines the job type
     .PARAMETER Force
-        asd
+        Defines force
     .EXAMPLE
         Resume-IMJob
 

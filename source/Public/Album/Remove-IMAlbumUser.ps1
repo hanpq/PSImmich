@@ -8,11 +8,11 @@
 
         -Session $Session
     .PARAMETER albumId
-        Defines albumId to remove assets from
+        Defines album to remove users from
     .PARAMETER userId
-        Defines the userId to remove from the album
+        Defines the user to remove from the album
     .EXAMPLE
-        Remove-IMAlbumUser
+        Remove-IMAlbumUser -albumid <albumid> -userid <userid>
 
         Remove user from album
     #>

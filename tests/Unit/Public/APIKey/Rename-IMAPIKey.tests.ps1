@@ -22,7 +22,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Remove-IMAlbumAsset  -Tag 'Unit' {
+    Describe Rename-IMAPIKey {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

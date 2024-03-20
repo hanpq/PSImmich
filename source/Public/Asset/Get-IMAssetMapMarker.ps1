@@ -8,15 +8,15 @@
 
         -Session $Session
     .PARAMETER CreatedAfter
-        asd
+        Created after filter
     .PARAMETER CreatedBefore
-        asd
+        Created before filter
     .PARAMETER IsArchived
-        asd
+        Archived filter
     .PARAMETER IsFavorite
-        asd
+        Favorite filter
     .PARAMETER WithPartners
-        asd
+        With partners filter
     .EXAMPLE
         Get-IMAssetMapMarker
 

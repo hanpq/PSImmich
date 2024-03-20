@@ -8,17 +8,17 @@
 
         -Session $Session
     .PARAMETER id
-        Defines ids to update
+        Defines library to update
     .PARAMETER exclusionPatterns
-        asd
+        Defines exclusion patterns
     .PARAMETER importPaths
-        asd
+        Defines import paths
     .PARAMETER isVisible
-        asd
+        Defines if the library should be visible
     .PARAMETER name
-        asd
+        Defines the name of the library
     .EXAMPLE
-        Set-IMLibrary
+        Set-IMLibrary -id <libraryid> -Name 'NewName'
 
         Update an Immich library
     #>

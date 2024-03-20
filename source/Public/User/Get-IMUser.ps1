@@ -10,11 +10,11 @@
     .PARAMETER id
         Defines a specific user id to be retreived
     .PARAMETER isAll
-        asd
+        ...
     .PARAMETER Me
         Defines that the currently connected users information is retreived.
     .EXAMPLE
-        Get-IMUser
+        Get-IMUser -id <userid>
 
         Retreives Immich user
     #>

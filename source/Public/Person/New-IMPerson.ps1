@@ -14,7 +14,7 @@
     .PARAMETER name
         Defines the name of the person
     .EXAMPLE
-        New-IMPerson
+        New-IMPerson -Name 'John Smith'
 
         Adds a new Immich person
     #>

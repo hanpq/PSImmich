@@ -2,7 +2,7 @@
 {
     <#
     .DESCRIPTION
-        Retreives Immich asset
+        Retreives album count
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
@@ -10,7 +10,7 @@
     .EXAMPLE
         Get-IMAlbumCount
 
-        Retreives Immich album count
+        Retreives album count
     #>
 
     [CmdletBinding()]

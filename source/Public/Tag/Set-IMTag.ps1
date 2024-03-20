@@ -1,4 +1,4 @@
-﻿function Add-IMAssetTag
+﻿function Set-IMTag
 {
     <#
     .DESCRIPTION
@@ -13,10 +13,14 @@
         Defines a tag id to assign to assets
     .PARAMETER tagName
         Defines a tag name to assign to assets. Note that the Immich API does support filtering on tagName so all tags will be retreived and then filtered. This means that if there is a very large amount of tags this method might be slow.
+    .PARAMETER AddAssets
+        Defines the assets to tag
+    .PARAMETER RemoveAssets
+        Defines the assets to untag
     .EXAMPLE
-        Add-IMAssetTag
+        Set-IMTag -AddAssets <assetid>
 
-        Add Immich asset tag
+        Add tag to asset
     #>
 
     [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'tagId')]
@@ -25,31 +29,34 @@
         [ImmichSession]
         $Session = $null,
 
-        [Parameter(Mandatory, ParameterSetName = 'tagid')]
+        [Parameter(Mandatory, ParameterSetName = 'tagid', ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [string]
-        $tagId,
+        [string[]]
+        $Id,
 
         [Parameter(Mandatory, ParameterSetName = 'tagName')]
         [string]
         $tagName,
 
-        [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
+        [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [Alias('assetId')]
         [string[]]
-        $id
+        $AddAssets,
+
+        [Parameter()]
+        [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [string[]]
+        $RemoveAssets
     )
 
     BEGIN
     {
-        $AssetIDs = [System.Collections.Generic.List[string]]::New()
         if ($PSCmdlet.ParameterSetName -eq 'tagName')
         {
             $TagObject = Get-IMTag | Where-Object { $_.name -eq $tagName }
             if ($TagObject)
             {
-                $tagId = $TagObject.id
+                $id = $TagObject.id
             }
             else
             {
@@ -61,18 +68,15 @@
     PROCESS
     {
         $id | ForEach-Object {
-            $AssetIDs.Add($PSItem)
-        }
-    }
-
-    END
-    {
-        if ($PSCmdlet.ShouldProcess(($AssetIDs -join ','), 'Add'))
-        {
-            $BodyParameters = @{
-                assetIds = ($AssetIDs -as [string[]])
+            if ($PSCmdlet.ShouldProcess($id, 'Add assets'))
+            {
+                if ($PSBoundParameters.Keys -contains 'AddAssets') {
+                    InvokeImmichRestMethod -Method PUT -RelativePath "/tag/$PSitem/assets" -ImmichSession:$Session -Body:@{assetIds = ($AddAssets -as [string[]])}
+                }
+                if ($PSBoundParameters.Keys -contains 'RemoveAssets') {
+                    InvokeImmichRestMethod -Method DELETE -RelativePath "/tag/$PSitem/assets" -ImmichSession:$Session -Body:@{assetIds = ($RemoveAssets -as [string[]])}
+                }
             }
-            InvokeImmichRestMethod -Method PUT -RelativePath "/tag/$tagid/assets" -ImmichSession:$Session -Body:$BodyParameters
         }
     }
 }

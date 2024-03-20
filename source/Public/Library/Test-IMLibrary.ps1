@@ -8,13 +8,13 @@
 
         -Session $Session
     .PARAMETER id
-        Defines ids to update
+        Defines libraries to validate
     .PARAMETER exclusionPatterns
-        asd
+        Defines exlusion patterns
     .PARAMETER importPaths
-        asd
+        Defines import paths
     .EXAMPLE
-        Test-IMLibrary
+        Test-IMLibrary -id <libraryid>
 
        Validate library
     #>

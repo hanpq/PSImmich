@@ -11,8 +11,6 @@
         Get-IMCuratedLocation
 
         Retreives Immich curated locations
-    .NOTES
-        Covers API getCuratedLocations
     #>
 
     [CmdletBinding()]

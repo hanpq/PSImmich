@@ -10,7 +10,7 @@
     .PARAMETER id
         Defines a specific library id to be cleaned up
     .EXAMPLE
-        Remove-IMOfflineLibraryFile
+        Remove-IMOfflineLibraryFile -id <libraryid>
 
         Purge offline files in library
     #>

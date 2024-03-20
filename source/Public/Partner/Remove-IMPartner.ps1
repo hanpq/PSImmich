@@ -10,7 +10,7 @@
     .PARAMETER id
         Defines the partner id
     .EXAMPLE
-        Remove-IMPartner
+        Remove-IMPartner -id <userid>
 
         Remove immich partner
     #>

@@ -22,7 +22,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Start-IMAssetJob {
+    Describe Import-IMAsset {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

@@ -2,17 +2,17 @@
 {
     <#
     .DESCRIPTION
-        Retreives Immich api key
+        Retreives api keys
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
     .PARAMETER id
-        Defines an api key id to query
+        Defines an api key id to get
     .EXAMPLE
         Get-IMAPIKey
 
-        Retreives Immich api key
+        Retreives all api keys
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
     [CmdletBinding(DefaultParameterSetName = 'list')]

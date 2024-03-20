@@ -8,11 +8,11 @@
 
         -Session $Session
     .PARAMETER albumId
-        Defines the asset ids that should be removed. Accepts pipeline input.
+        Defines the album that should be removed. Accepts pipeline input.
     .EXAMPLE
-        Remove-IMAlbum
+        Remove-IMAlbum -albumid <albumid>
 
-        Removes an Immich album
+        Removes an album
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
     [CmdletBinding(SupportsShouldProcess)]

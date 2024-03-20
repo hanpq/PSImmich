@@ -12,7 +12,7 @@
     .PARAMETER NewName
         Defines a new name for the tag
     .EXAMPLE
-        Rename-IMTag
+        Rename-IMTag -id <tagid> -NewName 'Cats'
 
         Remove Immich tag
     #>

@@ -113,7 +113,6 @@ Below is a reference of the available command. For documentation about each comm
 - Get-IMAssetStatistic
 - Get-IMCuratedLocation
 - Get-IMCuratedObject
-- Get-IMRandomAsset
 - Get-IMTimeBucket
 - Remove-IMAsset
 - Restore-IMAsset

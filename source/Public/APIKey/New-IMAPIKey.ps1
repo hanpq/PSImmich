@@ -8,9 +8,9 @@
 
         -Session $Session
     .PARAMETER name
-        Defines the name of the new album
+        Defines the name of the new api key
     .EXAMPLE
-        New-IMAPIKey
+        New-IMAPIKey -name 'Automation'
 
         Adds a new an api key
     #>

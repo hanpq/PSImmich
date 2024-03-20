@@ -1,4 +1,4 @@
-﻿BeforeDiscovery {
+BeforeDiscovery {
     $RootItem = Get-Item $PSScriptRoot
     while ($RootItem.GetDirectories().Name -notcontains 'source')
     {
@@ -22,7 +22,7 @@
 }
 
 InModuleScope $ProjectName {
-    Describe Get-IMStatus  -Tag 'Unit' {
+    Describe Update-IMAssetThumbnail {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

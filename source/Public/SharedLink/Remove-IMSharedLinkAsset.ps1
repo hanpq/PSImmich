@@ -12,7 +12,7 @@
     .PARAMETER SharedLinkId
         Defines a shared link to add assets to
     .EXAMPLE
-        Remove-IMSharedLinkAsset
+        Remove-IMSharedLinkAsset -id <assetid> -sharedlinkid <sharedlinkid>
 
         Remove Immich shared link asset
     #>

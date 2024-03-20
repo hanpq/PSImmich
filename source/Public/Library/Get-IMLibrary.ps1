@@ -13,6 +13,8 @@
         Defines which type of library to retreive
     .PARAMETER ownerId
         Retreive libraries for a user
+    .PARAMETER IncludeStatistics
+        Includes statistics for the library in the return object
     .EXAMPLE
         Get-IMLibrary
 
@@ -29,6 +31,10 @@
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string[]]
         $id,
+
+        [Parameter(ParameterSetName = 'id')]
+        [switch]
+        $IncludeStatistics,
 
         [Parameter(ParameterSetName = 'list')]
         [ValidateSet('UPLOAD', 'EXTERNAL')]
@@ -57,7 +63,13 @@
         {
             $id | ForEach-Object {
                 $CurrentID = $PSItem
-                InvokeImmichRestMethod -Method Get -RelativePath "/library/$CurrentID" -ImmichSession:$Session
+                $Result = InvokeImmichRestMethod -Method Get -RelativePath "/library/$CurrentID" -ImmichSession:$Session
+                if ($IncludeStatistics)
+                {
+                    $Stats = InvokeImmichRestMethod -Method GET -RelativePath "/library/$CurrentID/statistics" -ImmichSession:$Session
+                    $Result | Add-Member -MemberType NoteProperty -Name 'Statistics' -Value $Stats
+                }
+                $Result
             }
         }
     }

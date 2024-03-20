@@ -10,7 +10,7 @@
     .PARAMETER id
         Defines the library ids that should be removed. Accepts pipeline input.
     .EXAMPLE
-        Remove-IMLibrary
+        Remove-IMLibrary -id <libraryid>
 
         Removes an Immich library
     #>

@@ -8,93 +8,93 @@
 
         -Session $Session
     .PARAMETER checksum
-        asd
+        Checksum filter
     .PARAMETER city
-        asd
+        City filter
     .PARAMETER country
-        asd
+        Country filter
     .PARAMETER createdAfter
-        asd
+        CreatedAfter filter
     .PARAMETER createdBefore
-        asd
+        CreatedBefore filter
     .PARAMETER deviceAssetId
-        asd
+        Device Asset Id filter
     .PARAMETER deviceId
-        asd
+        Device Id filter
     .PARAMETER encodedVideoPath
-        asd
+        Encoded Video path filter
     .PARAMETER id
-        asd
+        Id filter
     .PARAMETER isArchived
-        asd
+        Archvied filter
     .PARAMETER isEncoded
-        asd
+        Encoded filter
     .PARAMETER isExternal
-        asd
+        External filter
     .PARAMETER isFavorite
-        asd
+        Favorite filter
     .PARAMETER isMotion
-        asd
+        Motion filter
     .PARAMETER isNotInAlbum
-        asd
+        Not in Album filter
     .PARAMETER isOffline
-        asd
+        Offline filter
     .PARAMETER isReadOnly
-        asd
+        Read only filter
     .PARAMETER isVisible
-        asd
+        Visible filter
     .PARAMETER lensModel
-        asd
+        Lens model filter
     .PARAMETER libraryId
-        asd
+        Library id filter
     .PARAMETER make
-        asd
+        Make filter
     .PARAMETER model
-        asd
+        Model filter
     .PARAMETER order
-        asd
+        Defines sort order
     .PARAMETER originalFileName
-        asd
+        Original file name filter
     .PARAMETER originalPath
-        asd
+        Original path filter
     .PARAMETER personIds
-        asd
+        Person id filter
     .PARAMETER resizePath
-        asd
+        Resize path filter
     .PARAMETER size
-        asd
+        Size of rest call page
     .PARAMETER state
-        asd
+        State filter
     .PARAMETER takenAfter
-        asd
+        Taken after filter
     .PARAMETER takenBefore
-        asd
+        Taken before filter
     .PARAMETER trashedAfter
-        asd
+        Trashed after filter
     .PARAMETER trashedBefore
-        asd
+        Trashed before filter
     .PARAMETER type
-        asd
+        Type filter
     .PARAMETER updatedAfter
-        asd
+        Updated after filter
     .PARAMETER updatedBefore
-        asd
+        Updated before filter
     .PARAMETER webpPath
-        asd
+        Webp path filter
     .PARAMETER withArchived
-        asd
+        Archived filter
     .PARAMETER withDeleted
-        asd
+        Deleted filter
     .PARAMETER withExif
-        asd
+        Exif filter
     .PARAMETER withPeople
-        asd
+        With people filter
     .PARAMETER withStacked
-        asd
+        Stacked filter
     .EXAMPLE
-        Find-IMAsset
+        Find-IMAsset -createdAfter (Get-Date).AddDays(-30)
 
-        Find assets
+        Retreives all assets created in the last 30 days
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'list-shared')]

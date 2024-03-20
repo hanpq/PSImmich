@@ -12,7 +12,7 @@
     .PARAMETER type
         Defines the type of tag to create. Valid values, OBJECT, FACE, CUSTOM
     .EXAMPLE
-        New-IMTag
+        New-IMTag -name 'Dogs' -type OBJECT
 
         Creates a new Immich tag
     #>

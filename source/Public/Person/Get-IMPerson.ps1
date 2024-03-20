@@ -8,7 +8,7 @@
 
         -Session $Session
     .PARAMETER id
-        Defines a specific person id to be retreived
+        Defines a specific person to be retreived
     .PARAMETER withHidden
         Defines if hidden should be returned or not. Do not specify if either should be returned.
     .EXAMPLE

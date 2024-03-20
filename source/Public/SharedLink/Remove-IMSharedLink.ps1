@@ -10,7 +10,7 @@
     .PARAMETER id
         Defines a specific shared link id to be removed
     .EXAMPLE
-        Remove-IMSharedLink
+        Remove-IMSharedLink -id <sharedlinkid>
 
         Remove Immich shared link
     #>
