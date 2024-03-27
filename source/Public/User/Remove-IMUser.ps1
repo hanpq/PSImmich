@@ -10,7 +10,7 @@
     .PARAMETER id
         Defines the user id to update
     .PARAMETER force
-        Defines that the user should be hard removed
+        Defines that the user should be removed immediatly. By default the user remains in trash for 7 days before assets are removed.
     .EXAMPLE
         Remove-IMUser -id <userid> -force
 

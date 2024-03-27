@@ -21,6 +21,8 @@
         Defines assets to add to the album
     .PARAMETER RemoveAssets
         Defines assets to be removed from the album
+    .PARAMETER Order
+        Defines the sort order for the album
     .EXAMPLE
         Set-IMAlbum -id <albumid> -description 'Trip to New York'
 
@@ -66,13 +68,18 @@
 
         [Parameter()]
         [boolean]
-        $isActivityEnabled
+        $isActivityEnabled,
+
+        [Parameter()]
+        [string]
+        [ValidateSet('asc', 'desc')]
+        $Order
     )
 
     BEGIN
     {
         $BodyParameters = @{}
-        $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'albumName', 'albumThumbnailAssetId', 'description', 'isActivityEnabled')
+        $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'AlbumName', 'albumThumbnailAssetId', 'description', 'isActivityEnabled', 'Order' -namemapping @{AlbumName = 'albumName'; albumThumbnailAssetId = 'albumThumbnailAssetId'; isActivityEnabled = 'isActivityEnabled'; Order = 'order' })
     }
 
     PROCESS
