@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Updated Get-IMTimeBucket to the new API location under timeline
 - Updated test suite for Get-IMServerFeature now returning the email attribute
 
 ### Removed
 
+- Removed Get-IMSearchTerms due to API deprecation
 - Removed Get-IMCuratedLocation due to API deprecation
 - Removed Get-IMCuratedObject due to API deprecation
 

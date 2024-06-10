@@ -103,11 +103,11 @@
         {
             'list'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/asset/time-buckets' -ImmichSession:$Session -QueryParameters $QueryParameters
+                InvokeImmichRestMethod -Method Get -RelativePath '/timeline/buckets' -ImmichSession:$Session -QueryParameters $QueryParameters
             }
             'timebucket'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/asset/time-bucket' -ImmichSession:$Session -QueryParameters $QueryParameters
+                InvokeImmichRestMethod -Method Get -RelativePath '/timeline/bucket' -ImmichSession:$Session -QueryParameters $QueryParameters
             }
         }
     }

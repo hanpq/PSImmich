@@ -268,6 +268,8 @@ Describe 'ServerInfo' -Tag 'Integration' {
     }
 }
 
+
+
 Describe 'Asset' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
@@ -435,16 +437,6 @@ Describe 'Asset' -Tag 'Integration' {
             $Result.PSObject.Properties.Name | Should -Contain 'images'
             $Result.PSObject.Properties.Name | Should -Contain 'total'
             $Result.PSObject.Properties.Name | Should -Contain 'videos'
-        }
-    }
-    Context 'Get-IMTimeBucket' {
-        It -Name 'Should return 3 objects' {
-            $Result = Get-IMTimeBucket -size 'MONTH'
-            $Result | Should -HaveCount 3
-        }
-        It -Name 'Should return 1 object' {
-            $Result = Get-IMTimeBucket -timeBucket '2024-03-01 00:00:00' -size MONTH
-            $Result | Should -HaveCount 12
         }
     }
     Context 'Find-IMAsset' {
@@ -1084,6 +1076,22 @@ Describe 'Tag' -Tag 'Integration' {
             $Result = Set-IMTag -id $NewTag.id -RemoveAssets '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $Asset.tags.id | Should -not -Contain $newtag.id
+        }
+    }
+}
+
+Describe 'Timeline' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context 'Get-IMTimeBucket' {
+        It -Name 'Should return 3 objects' {
+            $Result = Get-IMTimeBucket -size 'MONTH'
+            $Result | Should -HaveCount 3
+        }
+        It -Name 'Should return 1 object' {
+            $Result = Get-IMTimeBucket -timeBucket '2024-03-01 00:00:00' -size MONTH
+            $Result | Should -HaveCount 12
         }
     }
 }
