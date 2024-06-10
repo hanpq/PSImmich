@@ -109,7 +109,6 @@ Below is a reference of the available command. For documentation about each comm
 - Get-IMAsset
 - Get-IMAssetMapMarker
 - Get-IMAssetMemoryLane
-- Get-IMAssetSearchTerm
 - Get-IMAssetStatistic
 - Get-IMTimeBucket
 - Remove-IMAsset

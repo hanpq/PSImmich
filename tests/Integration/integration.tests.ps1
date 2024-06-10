@@ -428,12 +428,6 @@ Describe 'Asset' -Tag 'Integration' {
             $Result | Should -HaveCount 3
         }
     }
-    Context 'Get-IMAssetSearchTerm' {
-        It -Name 'Should return "image"' {
-            $Result = Get-IMAssetSearchTerm
-            $Result | Should -Contain 'image'
-        }
-    }
     Context 'Get-IMAssetStatistic' {
         It -Name 'Should return one object' {
             $Result = Get-IMAssetStatistic
