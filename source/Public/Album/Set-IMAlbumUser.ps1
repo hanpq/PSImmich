@@ -1,8 +1,8 @@
-﻿function Add-IMAlbumUser
+﻿function Set-IMAlbumUser
 {
     <#
     .DESCRIPTION
-        Add user to album
+        Set user role
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
@@ -14,9 +14,9 @@
     .PARAMETER role
         Defines the user role
     .EXAMPLE
-        Add-IMAlbumUser -albumid <albumid> -userid <userid> -role editor
+        Set-IMAlbumUser -albumid <albumid> -userid <userid> -role editor
 
-        Add user to album
+        Changes the role of the user in the specified album
     #>
 
     [CmdletBinding(SupportsShouldProcess)]
@@ -36,33 +36,24 @@
         [string[]]
         $userId,
 
-        [Parameter()]
+        [Parameter(Mandatory)]
         [ValidateSet('editor','viewer')]
         [string]
-        $Role = 'viewer'
+        $Role
     )
 
     BEGIN
     {
         $BodyParameters = @{
-            albumUsers = [object[]]@()
+            role = $Role
         }
     }
 
     PROCESS
     {
         $userId | ForEach-Object {
-            $UserObject = [pscustomobject]@{
-                userId = $PSItem
-                role = $Role
-            }
-            $BodyParameters.albumUsers += $UserObject
+            InvokeImmichRestMethod -Method PUT -RelativePath "/album/$albumid/user/$PSItem" -ImmichSession:$Session -Body:$BodyParameters
         }
-    }
-
-    END
-    {
-        InvokeImmichRestMethod -Method PUT -RelativePath "/album/$albumid/users" -ImmichSession:$Session -Body:$BodyParameters
     }
 }
 #endregion

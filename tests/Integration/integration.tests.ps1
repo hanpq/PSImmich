@@ -657,16 +657,43 @@ Describe 'Album' -Tag 'Integration' {
             }
             $NewAlbum = New-IMAlbum -albumName $AlbumName
         }
-        It -Name 'Users gets added to album' {
+        It -Name 'Users gets added to album as viewer' {
             Add-IMAlbumUser -albumId $NewAlbum.id -userId '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
             $Result = Get-IMAlbum -albumId $NewAlbum.id
-            $Result.sharedUsers | Should -HaveCount 1
-            $Result.sharedUsers.id | Should -Contain '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
+            $Result.albumUsers.user | Should -HaveCount 1
+            $Result.albumUsers.user.id | Should -Contain '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
         }
         AfterAll {
             Get-IMAlbum | Where-Object { $_.AlbumName -eq $AlbumName } | Remove-IMAlbum
         }
     }
+
+    Context 'Set-IMAlbumUser' {
+        BeforeAll {
+            if ($env:CI)
+            {
+                $AlbumName = $env:GITHUB_RUN_ID
+            }
+            else
+            {
+                $AlbumName = HOSTNAME.EXE
+            }
+            $NewAlbum = New-IMAlbum -albumName $AlbumName
+        }
+        It -Name 'Users gets added to album as viewer and changed to editor' {
+            Add-IMAlbumUser -albumId $NewAlbum.id -userId '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d' -Role viewer
+            $Result = Get-IMAlbum -albumId $NewAlbum.id
+            $Result.albumUsers[0].role | Should -be 'viewer'
+            Set-IMAlbumUser -albumid $NewAlbum.id -userId '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d' -Role editor
+            $Result = Get-IMAlbum -albumId $NewAlbum.id
+            $Result.albumUsers[0].role | Should -be 'editor'
+        }
+        AfterAll {
+            Get-IMAlbum | Where-Object { $_.AlbumName -eq $AlbumName } | Remove-IMAlbum
+        }
+    }
+
+
     Context 'Remove-IMAlbumUser' {
         BeforeAll {
             if ($env:CI)
@@ -744,19 +771,6 @@ Describe 'Audit' -Tag 'Integration' {
         It 'Should return' {
             $Result = Get-IMAuditDelete -after (Get-Date).AddYears(-1) -entityType ASSET
             $Result | Should -HaveCount 1
-        }
-    }
-    Context 'Get-IMAuditFile' {
-        It 'Should return one object' {
-            $Result = Get-IMAuditFile
-            $Result | Should -HaveCount 1
-        }
-    }
-    Context 'Get-IMFileChecksum' {
-        It 'Should return one object' {
-            $Result = Get-IMFileChecksum -FileName 'upload/library/admin/2024/2024-01-10/michael-daniels-ylUGx4g6eHk-unsplash.jpg'
-            $Result | Should -HaveCount 1
-            $Result.checksum | Should -Be 'd32h7hS/Z04nsNaXgYcmBW5ktY0='
         }
     }
 }
@@ -895,6 +909,25 @@ Describe 'Person' -Tag 'Integration' {
             Set-IMPerson -Id $New.id -Name 'TestPerson2'
             $Result = Get-IMPerson -id $New.id
             $Result.Name | Should -Be 'TestPerson2'
+        }
+    }
+}
+
+Describe 'FileReport' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context 'Get-IMAuditFile' {
+        It 'Should return one object' {
+            $Result = Get-IMAuditFile
+            $Result | Should -HaveCount 1
+        }
+    }
+    Context 'Get-IMFileChecksum' {
+        It 'Should return one object' {
+            $Result = Get-IMFileChecksum -FileName 'upload/library/admin/2024/2024-01-10/michael-daniels-ylUGx4g6eHk-unsplash.jpg'
+            $Result | Should -HaveCount 1
+            $Result.checksum | Should -Be 'd32h7hS/Z04nsNaXgYcmBW5ktY0='
         }
     }
 }
