@@ -200,7 +200,7 @@ Describe 'ServerInfo' -Tag 'Integration' {
         }
         It -Name 'Should return these properties' {
             $Result = Get-IMServerFeature
-            $ExpectedProperties = @('smartSearch', 'passwordLogin', 'configFile', 'facialRecognition', 'map', 'reverseGeocoding', 'sidecar', 'search', 'trash', 'oauth', 'oauthAutoLaunch')
+            $ExpectedProperties = @('smartSearch', 'passwordLogin', 'configFile', 'facialRecognition', 'map', 'reverseGeocoding', 'sidecar', 'search', 'trash', 'oauth', 'oauthAutoLaunch','email')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
@@ -303,28 +303,6 @@ Describe 'Asset' -Tag 'Integration' {
         It -Name 'Should return array' {
             Get-IMAsset | Measure-Object | Select-Object -ExpandProperty count | Should -BeGreaterThan 1
         }
-    }
-    Context -Name 'Get-IMCuratedLocation - Specifying a single ID' {
-        It -Name 'Should return a object with the correct properties' {
-            $Result = Get-IMCuratedLocation
-            $ExpectedProperties = @('id', 'city', 'resizePath', 'deviceAssetId', 'deviceId')
-            Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
-        }
-        It -Name 'Should return a single object' {
-            Get-IMCuratedLocation | Should -HaveCount 1
-        }
-    }
-    Context -Name 'Get-IMCuratedObject - Specifying a single ID' {
-        <#
-        It -Name 'Should return a object with the correct properties' {
-            $Result = Get-IMCuratedObject
-            $ExpectedProperties = @('id', 'city', 'resizePath', 'deviceAssetId', 'deviceId')
-            Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
-        }
-        It -Name 'Should return a single object' {
-            Get-IMCuratedObject | Should -HaveCount 1
-        }
-        #>
     }
     Context -Name 'Set-IMAsset' {
         BeforeAll {

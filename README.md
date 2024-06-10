@@ -111,8 +111,6 @@ Below is a reference of the available command. For documentation about each comm
 - Get-IMAssetMemoryLane
 - Get-IMAssetSearchTerm
 - Get-IMAssetStatistic
-- Get-IMCuratedLocation
-- Get-IMCuratedObject
 - Get-IMTimeBucket
 - Remove-IMAsset
 - Restore-IMAsset

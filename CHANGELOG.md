@@ -5,6 +5,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Updated test suite for Get-IMServerFeature now returning the email attribute
+
+### Removed
+
+- Removed Get-IMCuratedLocation due to API deprecation
+- Removed Get-IMCuratedObject due to API deprecation
+
 ## [1.1.0] - 2024-03-27
 
 ### Added
