@@ -11,10 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- New cmdlet Get-IMAssetThumbnail
 - New cmdlet Set-IMAlbumUser to allow changing the user role for an album.
 
 ### Fixed
 
+- Updated Get-AuthDevice to the new API location under session and renamed to Get-AuthSession.
 - Updated Get-IMAuditFile to the new API location under report
 - Updated Get-IMFileChecksum to the new API location under report
 - Updated Add-IMAlbumUser to use the new albumUsers property instead of the deprecated sharedUserIds.

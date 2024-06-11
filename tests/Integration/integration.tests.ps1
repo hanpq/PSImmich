@@ -784,12 +784,6 @@ Describe 'Auth' -Tag 'Integration' {
             Test-IMAccessToken | Should -BeTrue
         }
     }
-    Context 'Get-IMAuthDevice' {
-        It 'Should return devices' {
-            $Result = Get-IMAuthDevice | Where-Object { $_.current -eq $true }
-            $Result | Should -HaveCount 1
-        }
-    }
     Context 'Remove-IMAuthDevice' {
         It 'Should return a single auth device' {
             $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSIMMICHUSER, (ConvertTo-SecureString -String $env:PSIMMICHPASSWORD -AsPlainText -Force)
@@ -808,6 +802,16 @@ Describe 'Auth' -Tag 'Integration' {
         }
     }
 }
+
+Describe 'AuthSession' -Tag 'Integration' {
+    Context 'Get-IMAuthSession' {
+        It 'Should return sessions' {
+            $Result = Get-IMAuthSession | Where-Object { $_.current -eq $true }
+            $Result | Should -HaveCount 1
+        }
+    }
+}
+
 
 Describe 'Face' -Tag 'Integration' {
     BeforeAll {
