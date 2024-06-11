@@ -1,8 +1,8 @@
-﻿function Get-IMAuthDevice
+﻿function Get-IMAuthSession
 {
     <#
     .DESCRIPTION
-        Get authorized devices
+        Get authenticated sessions
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
@@ -11,6 +11,8 @@
         Get-IMAuthDevice
 
         Get authorized devices
+    .NOTES
+        Due to Get-IMSession already being used by the PSImmich module, cmdlets within the session namespace is prefixed with "Auth".
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
     [CmdletBinding(DefaultParameterSetName = 'list')]
@@ -20,6 +22,6 @@
         $Session = $null
     )
 
-    InvokeImmichRestMethod -Method GET -RelativePath '/auth/devices' -ImmichSession:$Session
+    InvokeImmichRestMethod -Method GET -RelativePath '/sessions' -ImmichSession:$Session
 }
 #endregion
