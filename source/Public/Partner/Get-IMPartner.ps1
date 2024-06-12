@@ -33,7 +33,7 @@
         $QueryParameters = @{
             direction = $Direction
         }
-        InvokeImmichRestMethod -Method GET -RelativePath '/partner' -ImmichSession:$Session -QueryParameters:$QueryParameters
+        InvokeImmichRestMethod -Method GET -RelativePath '/partners' -ImmichSession:$Session -QueryParameters:$QueryParameters
     }
 }
 #endregion

@@ -40,6 +40,6 @@
 
     $Body = @{}
     $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'BirthDate', 'IsHidden', 'Name' -namemapping @{BirthDate = 'birthDate'; IsHidden = 'isHidden'; Name = 'name' })
-    InvokeImmichRestMethod -Method Post -RelativePath '/person' -ImmichSession:$Session -Body:$Body
+    InvokeImmichRestMethod -Method Post -RelativePath '/people' -ImmichSession:$Session -Body:$Body
 }
 #endregion

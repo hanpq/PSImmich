@@ -42,7 +42,7 @@
 
     PROCESS
     {
-        InvokeImmichRestMethod -Method Get -RelativePath '/activity/statistics' -ImmichSession:$Session -QueryParameters $QueryParameters
+        InvokeImmichRestMethod -Method Get -RelativePath '/activities/statistics' -ImmichSession:$Session -QueryParameters $QueryParameters
     }
 
 }

@@ -1,8 +1,8 @@
-﻿function Get-IMAssetMapMarker
+﻿function Get-IMMapMarker
 {
     <#
     .DESCRIPTION
-        Retreives asset map markers
+        Retreives map markers
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
@@ -17,10 +17,12 @@
         Favorite filter
     .PARAMETER WithPartners
         With partners filter
+    .PARAMETER WithSharedAlbums
+        With shared albums filter
     .EXAMPLE
-        Get-IMAssetMapMarker
+        Get-IMMapMarker
 
-        Retreives asset map markers
+        Retreives map markers
     #>
 
     [CmdletBinding()]
@@ -47,24 +49,29 @@
 
         [Parameter()]
         [boolean]
-        $WithPartners
+        $WithPartners,
+
+        [Parameter()]
+        [boolean]
+        $WithSharedAlbums
     )
 
     BEGIN
     {
         $QueryParameters = @{}
-        $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'CreatedAfter', 'CreatedBefore', 'IsArchived', 'IsFavorite', 'WithPartners' -NameMapping @{
-                CreatedAfter  = 'fileCreatedAfter'
-                CreatedBefore = 'fileCreatedBefore'
-                IsArchived    = 'isArchived'
-                IsFavorite    = 'isFavorite'
-                WithPartners  = 'withPartners'
+        $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'CreatedAfter', 'CreatedBefore', 'IsArchived', 'IsFavorite', 'WithPartners', 'WithSharedAlbums' -NameMapping @{
+                CreatedAfter     = 'fileCreatedAfter'
+                CreatedBefore    = 'fileCreatedBefore'
+                IsArchived       = 'isArchived'
+                IsFavorite       = 'isFavorite'
+                WithPartners     = 'withPartners'
+                WithSharedAlbums = 'withSharedAlbums'
             })
     }
 
     PROCESS
     {
-        InvokeImmichRestMethod -Method Get -RelativePath '/asset/map-marker' -ImmichSession:$Session -QueryParameters $QueryParameters
+        InvokeImmichRestMethod -Method Get -RelativePath '/map/markers' -ImmichSession:$Session -QueryParameters $QueryParameters
     }
 }
 #endregion

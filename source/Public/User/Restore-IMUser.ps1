@@ -31,7 +31,7 @@
     PROCESS
     {
         $id | ForEach-Object {
-            InvokeImmichRestMethod -Method POST -RelativePath "/user/$PSItem/restore" -ImmichSession:$Session
+            InvokeImmichRestMethod -Method POST -RelativePath "/admin/users/$PSItem/restore" -ImmichSession:$Session
         }
     }
 

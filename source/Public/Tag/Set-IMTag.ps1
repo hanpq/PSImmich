@@ -71,10 +71,10 @@
             if ($PSCmdlet.ShouldProcess($id, 'Add assets'))
             {
                 if ($PSBoundParameters.Keys -contains 'AddAssets') {
-                    InvokeImmichRestMethod -Method PUT -RelativePath "/tag/$PSitem/assets" -ImmichSession:$Session -Body:@{assetIds = ($AddAssets -as [string[]])}
+                    InvokeImmichRestMethod -Method PUT -RelativePath "/tags/$PSitem/assets" -ImmichSession:$Session -Body:@{assetIds = ($AddAssets -as [string[]])}
                 }
                 if ($PSBoundParameters.Keys -contains 'RemoveAssets') {
-                    InvokeImmichRestMethod -Method DELETE -RelativePath "/tag/$PSitem/assets" -ImmichSession:$Session -Body:@{assetIds = ($RemoveAssets -as [string[]])}
+                    InvokeImmichRestMethod -Method DELETE -RelativePath "/tags/$PSitem/assets" -ImmichSession:$Session -Body:@{assetIds = ($RemoveAssets -as [string[]])}
                 }
             }
         }

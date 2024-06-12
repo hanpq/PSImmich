@@ -9,8 +9,6 @@
         -Session $Session
     .PARAMETER id
         Defines a specific library id to be retreived
-    .PARAMETER type
-        Defines which type of library to retreive
     .PARAMETER ownerId
         Retreive libraries for a user
     .PARAMETER IncludeStatistics
@@ -37,25 +35,10 @@
         $IncludeStatistics,
 
         [Parameter(ParameterSetName = 'list')]
-        [ValidateSet('UPLOAD', 'EXTERNAL')]
-        [string]
-        $type,
-
-        [Parameter(ParameterSetName = 'list')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
         $ownerId
-
     )
-
-    BEGIN
-    {
-        if ($PSCmdlet.ParameterSetName -eq 'list')
-        {
-            $QueryParameters = @{}
-            $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'type')
-        }
-    }
 
     PROCESS
     {
@@ -63,10 +46,10 @@
         {
             $id | ForEach-Object {
                 $CurrentID = $PSItem
-                $Result = InvokeImmichRestMethod -Method Get -RelativePath "/library/$CurrentID" -ImmichSession:$Session
+                $Result = InvokeImmichRestMethod -Method Get -RelativePath "/libraries/$CurrentID" -ImmichSession:$Session
                 if ($IncludeStatistics)
                 {
-                    $Stats = InvokeImmichRestMethod -Method GET -RelativePath "/library/$CurrentID/statistics" -ImmichSession:$Session
+                    $Stats = InvokeImmichRestMethod -Method GET -RelativePath "/libraries/$CurrentID/statistics" -ImmichSession:$Session
                     $Result | Add-Member -MemberType NoteProperty -Name 'Statistics' -Value $Stats
                 }
                 $Result
@@ -80,11 +63,11 @@
         {
             if ($ownerId)
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/library' -ImmichSession:$Session -QueryParameters $QueryParameters | Where-Object { $_.ownerid -eq $ownerid }
+                InvokeImmichRestMethod -Method Get -RelativePath '/libraries' -ImmichSession:$Session | Where-Object { $_.ownerid -eq $ownerid }
             }
             else
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/library' -ImmichSession:$Session -QueryParameters $QueryParameters
+                InvokeImmichRestMethod -Method Get -RelativePath '/libraries' -ImmichSession:$Session
             }
         }
     }

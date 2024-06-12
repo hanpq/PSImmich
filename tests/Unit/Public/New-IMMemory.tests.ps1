@@ -22,7 +22,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Get-IMServerInfo  -Tag 'Unit' {
+    Describe New-IMMemory {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

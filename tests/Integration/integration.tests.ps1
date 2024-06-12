@@ -190,7 +190,7 @@ Describe 'ServerInfo' -Tag 'Integration' {
         }
         It -Name 'Should return these properties' {
             $Result = Get-IMServerConfig
-            $ExpectedProperties = @('LoginPageMessage', 'trashDays', 'userDeleteDelay', 'oauthButtonText', 'isInitialized', 'isOnboarded', 'ExternalDomain')
+            $ExpectedProperties = @('loginPageMessage','trashDays','userDeleteDelay','oauthButtonText','isInitialized','isOnboarded','externalDomain')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
@@ -200,17 +200,7 @@ Describe 'ServerInfo' -Tag 'Integration' {
         }
         It -Name 'Should return these properties' {
             $Result = Get-IMServerFeature
-            $ExpectedProperties = @('smartSearch', 'passwordLogin', 'configFile', 'facialRecognition', 'map', 'reverseGeocoding', 'sidecar', 'search', 'trash', 'oauth', 'oauthAutoLaunch','email')
-            Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
-        }
-    }
-    Context -Name 'Get-IMServerInfo - When no parameters are specified' {
-        It -Name 'Should not throw' {
-            { Get-IMServerInfo } | Should -Not -Throw
-        }
-        It -Name 'Should return these properties' {
-            $Result = Get-IMServerInfo
-            $ExpectedProperties = @('diskSize', 'diskUse', 'diskAvailable', 'diskSizeRaw', 'diskUseRaw', 'diskAvailableRaw', 'diskUsagePercentage')
+            $ExpectedProperties = @('duplicateDetection','smartSearch', 'passwordLogin', 'configFile', 'facialRecognition', 'map', 'reverseGeocoding', 'sidecar', 'search', 'trash', 'oauth', 'oauthAutoLaunch','email')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
@@ -277,7 +267,7 @@ Describe 'Asset' -Tag 'Integration' {
     Context -Name 'Get-IMAsset - Specifying a single ID' {
         It -Name 'Should return a object with the correct properties' {
             $Result = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $ExpectedProperties = @('hasMetadata', 'isReadOnly', 'isOffline', 'isExternal', 'stackCount', 'checksum', 'people', 'tags', 'livePhotoVideoId', 'smartInfo', 'exifInfo', 'duration', 'isTrashed', 'isArchived', 'isFavorite', 'updatedAt', 'localDateTime', 'fileModifiedAt', 'fileCreatedAt', 'thumbhash', 'resized', 'id', 'deviceAssetId', 'ownerId', 'owner', 'deviceId', 'libraryId', 'type', 'originalPath', 'originalFileName')
+            $ExpectedProperties = @('unassignedFaces','duplicateId','hasMetadata', 'isOffline', 'stackCount', 'checksum', 'people', 'tags', 'livePhotoVideoId', 'smartInfo', 'exifInfo', 'duration', 'isTrashed', 'isArchived', 'isFavorite', 'updatedAt', 'localDateTime', 'fileModifiedAt', 'fileCreatedAt', 'thumbhash', 'resized', 'id', 'deviceAssetId', 'ownerId', 'owner', 'deviceId', 'libraryId', 'type', 'originalPath', 'originalFileName')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
         It -Name 'Should return a single object' {
@@ -317,7 +307,14 @@ Describe 'Asset' -Tag 'Integration' {
                 $AlbumName = HOSTNAME.EXE
             }
             $NewAlbum = New-IMAlbum -albumName $AlbumName
-            $NewTag = New-IMTag -Name 'TestTag' -Type 'OBJECT'
+            if (-not (Get-IMTag | where name -eq 'TestTag')) {
+                $NewTag = New-IMTag -Name 'TestTag' -Type 'OBJECT'
+            }
+            else
+            {
+                Get-IMTag | where name -eq 'TestTag' | Remove-IMTag
+                $NewTag = New-IMTag -Name 'TestTag' -Type 'OBJECT'
+            }
 
         }
         AfterAll {
@@ -356,7 +353,7 @@ Describe 'Asset' -Tag 'Integration' {
     # Import-IMAsset is excluded from testing on Windows Powershell because the
     # current rutine to post formdata is not nativly supported. Until a seperate
     # routine is defined, this test is excluded.
-    Context -Name 'Add-IMAsset' -Skip:($PSVersionTable.PSEdition -eq 'Desktop') {
+    Context -Name 'Import-IMAsset' -Skip:($PSVersionTable.PSEdition -eq 'Desktop') {
         It -Name 'Should upload the file' {
             $Result = Import-IMAsset -FilePath "$PSScriptRoot\Immich.png"
             $Result | Should -HaveCount 1
@@ -704,14 +701,14 @@ Describe 'Album' -Tag 'Integration' {
             {
                 $AlbumName = HOSTNAME.EXE
             }
-            $NewAlbum = New-IMAlbum -albumName $AlbumName -sharedWithUserIds '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
+            $NewAlbum = New-IMAlbum -albumName $AlbumName -albumUsers @{userId = '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d';role='editor'}
         }
         It -Name 'Users gets removed from album' {
             $Result = Get-IMAlbum -albumId $NewAlbum.id
-            $Result.sharedUsers.id | Should -Contain '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
+            $Result.albumUsers.user.id | Should -Contain '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
             Remove-IMAlbumUser -albumId $NewAlbum.id -userId '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
             $Result = Get-IMAlbum -albumId $NewAlbum.id
-            $Result.sharedUsers | Should -HaveCount 0
+            $Result.albumUsers.user | Should -Not -contain '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
         }
         AfterAll {
             Get-IMAlbum | Where-Object { $_.AlbumName -eq $AlbumName } | Remove-IMAlbum
@@ -784,23 +781,6 @@ Describe 'Auth' -Tag 'Integration' {
             Test-IMAccessToken | Should -BeTrue
         }
     }
-    Context 'Remove-IMAuthDevice' {
-        It 'Should return a single auth device' {
-            $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSIMMICHUSER, (ConvertTo-SecureString -String $env:PSIMMICHPASSWORD -AsPlainText -Force)
-            Connect-Immich -BaseURL $env:PSIMMICHURI -Credential $Cred
-            $CurrentAuthDevice = Get-IMAuthDevice | Where-Object { $_.current -eq $true }
-            { Remove-IMAuthDevice -id $CurrentAuthDevice.id } | Should -Not -Throw
-            { Get-IMAuthDevice } | Should -Throw
-        }
-        It 'Should remove all auth devices' {
-            $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSIMMICHUSER, (ConvertTo-SecureString -String $env:PSIMMICHPASSWORD -AsPlainText -Force)
-            Connect-Immich -BaseURL $env:PSIMMICHURI -Credential $Cred
-            { Remove-IMAuthDevice } | Should -Not -Throw
-            $Result = Get-IMAuthDevice
-            $Result | Should -HaveCount 1
-            $Result.Current | Should -BeTrue
-        }
-    }
 }
 
 Describe 'AuthSession' -Tag 'Integration' {
@@ -808,6 +788,23 @@ Describe 'AuthSession' -Tag 'Integration' {
         It 'Should return sessions' {
             $Result = Get-IMAuthSession | Where-Object { $_.current -eq $true }
             $Result | Should -HaveCount 1
+        }
+    }
+    Context 'Remove-IMAuthSession' {
+        It 'Should return a single auth session' {
+            $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSIMMICHUSER, (ConvertTo-SecureString -String $env:PSIMMICHPASSWORD -AsPlainText -Force)
+            Connect-Immich -BaseURL $env:PSIMMICHURI -Credential $Cred
+            $CurrentAuthDevice = Get-IMAuthSession | Where-Object { $_.current -eq $true }
+            { Remove-IMAuthSession -id $CurrentAuthDevice.id } | Should -Not -Throw
+            { Get-IMAuthSession } | Should -Throw
+        }
+        It 'Should remove all auth sessions' {
+            $Cred = New-Object -TypeName pscredential -ArgumentList $env:PSIMMICHUSER, (ConvertTo-SecureString -String $env:PSIMMICHPASSWORD -AsPlainText -Force)
+            Connect-Immich -BaseURL $env:PSIMMICHURI -Credential $Cred
+            { Remove-IMAuthSession } | Should -Not -Throw
+            $Result = Get-IMAuthSession
+            $Result | Should -HaveCount 1
+            $Result.Current | Should -BeTrue
         }
     }
 }
@@ -940,50 +937,48 @@ Describe 'Library' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
-    Context 'Get-IMLibrary' {
-        It 'Should return list' {
-            $Result = Get-IMLibrary
-            $Result | Should -HaveCount 2
-        }
-        It 'Should return list+filter1' {
-            $Result = Get-IMLibrary -type 'UPLOAD'
-            $Result | Should -HaveCount 2
-        }
-        It 'Should return list+filter2' {
-            $Result = Get-IMLibrary -type 'EXTERNAL'
-            $Result | Should -HaveCount 0
-        }
-        It 'Should return list+filter3' {
-            $Result = Get-IMLibrary -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
-            $Result | Should -HaveCount 1
-        }
-        It 'Should return id' {
-            $Result = Get-IMLibrary -id 'f5ed0d2f-4bdb-4ed9-8027-e22125728516'
-            $Result | Should -HaveCount 1
-        }
-        It 'Should return statistics' {
-            $Result = Get-IMLibrary -id 'f5ed0d2f-4bdb-4ed9-8027-e22125728516' -IncludeStatistics
-            $Result.PSObject.Properties.Name | Should -Contain 'Statistics'
-        }
-    }
     Context 'New-IMLibrary' {
         It 'Should create library' {
-            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
+            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
             $Result = Get-IMLibrary -id $New.id
             $Result | Should -HaveCount 1
             $Result.Name | Should -Be 'TestLibrary'
             Remove-IMLibrary -id $New.id
         }
     }
+    Context 'Get-IMLibrary' {
+        BeforeAll {
+            $NewLibrary = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
+        }
+        AfterAll {
+            Remove-IMLibrary -id $NewLibrary.id
+        }
+        It 'Should return list' {
+            $Result = Get-IMLibrary
+            $Result | Should -HaveCount 1
+        }
+        It 'Should return list + owner filder' {
+            $Result = Get-IMLibrary -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
+            $Result | Should -HaveCount 1
+        }
+        It 'Should return id' {
+            $Result = Get-IMLibrary -id $NewLibrary.Id
+            $Result | Should -HaveCount 1
+        }
+        It 'Should return statistics' {
+            $Result = Get-IMLibrary -id $NewLibrary.Id -IncludeStatistics
+            $Result.PSObject.Properties.Name | Should -Contain 'Statistics'
+        }
+    }
     Context 'Remove-IMLibrary' {
         It 'Should remove library' {
-            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
+            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
             { Remove-IMLibrary -id $New.id } | Should -Not -Throw
         }
     }
     Context 'Set-IMLibrary' {
         It 'Should update library' {
-            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
+            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
             $Updated = Set-IMLibrary -id $New.id -Name 'TestLibrary2'
             $Result = Get-IMLibrary -id $New.id
             $Result | Should -HaveCount 1
@@ -993,21 +988,21 @@ Describe 'Library' -Tag 'Integration' {
     }
     Context 'Remove-IMOfflineLibraryFiles' {
         It 'Should not throw' {
-            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
+            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
             { Remove-IMOfflineLibraryFile -id $New.id } | Should -Not -Throw
             Remove-IMLibrary -id $New.id
         }
     }
     Context 'Sync-IMLibrary' {
         It 'Should not throw' {
-            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
+            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
             { Sync-IMLibrary -id $New.id } | Should -Not -Throw
             Remove-IMLibrary -id $New.id
         }
     }
     Context 'Test-IMLibrary' {
         It 'Should not throw' {
-            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -type 'EXTERNAL' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
+            $New = New-IMLibrary -name 'TestLibrary' -exclusionPatterns '*/*' -ImportPath '/mnt/media/pictures' -ownerId 'fb95c457-7685-428c-b850-2fd60345819c'
             { Test-IMLibrary -id $New.id } | Should -Not -Throw
             Remove-IMLibrary -id $New.id
         }
@@ -1034,10 +1029,6 @@ Describe 'ServerConfig' -Tag 'Integration' {
         It 'Should return default config raw' {
             $Result = Get-IMConfig -Default -ReturnRawJSON
             { $Result | ConvertFrom-Json } | Should -Not -Throw
-        }
-        It 'Should return mapstyle config' {
-            $Result = Get-IMConfig -MapStyle -Theme dark
-            $Result | Should -HaveCount 1
         }
         It 'Should return storage template config' {
             $Result = Get-IMConfig -StorageTemplate

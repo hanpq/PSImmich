@@ -48,7 +48,7 @@
     PROCESS
     {
         $id | ForEach-Object {
-            InvokeImmichRestMethod -Method POST -RelativePath "/library/$PSItem/validate" -ImmichSession:$Session -Body:$BodyParameters
+            InvokeImmichRestMethod -Method POST -RelativePath "/libraries/$PSItem/validate" -ImmichSession:$Session -Body:$BodyParameters
         }
     }
 }

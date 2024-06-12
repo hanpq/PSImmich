@@ -62,7 +62,7 @@
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Update'))
             {
-                InvokeImmichRestMethod -Method PUT -RelativePath "/library/$PSItem" -ImmichSession:$Session -Body:$BodyParameters
+                InvokeImmichRestMethod -Method PUT -RelativePath "/libraries/$PSItem" -ImmichSession:$Session -Body:$BodyParameters
             }
         }
     }

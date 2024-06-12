@@ -60,17 +60,17 @@
         {
             'list'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/shared-link' -ImmichSession:$Session -QueryParameters $QueryParameters
+                InvokeImmichRestMethod -Method Get -RelativePath '/shared-links' -ImmichSession:$Session -QueryParameters $QueryParameters
             }
             'id'
             {
                 $id | ForEach-Object {
-                    InvokeImmichRestMethod -Method Get -RelativePath "/shared-link/$PSItem" -ImmichSession:$Session
+                    InvokeImmichRestMethod -Method Get -RelativePath "/shared-links/$PSItem" -ImmichSession:$Session
                 }
             }
             'me'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/shared-link/me' -ImmichSession:$Session
+                InvokeImmichRestMethod -Method Get -RelativePath '/shared-links/me' -ImmichSession:$Session
             }
         }
     }

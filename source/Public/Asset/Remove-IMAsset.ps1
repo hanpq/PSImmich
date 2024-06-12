@@ -53,7 +53,7 @@
     {
         if ($PSCmdlet.ShouldProcess(($BodyParameters.ids -join ','), 'DELETE'))
         {
-            InvokeImmichRestMethod -Method Delete -RelativePath '/asset' -ImmichSession:$Session -Body:$BodyParameters
+            InvokeImmichRestMethod -Method Delete -RelativePath '/assets' -ImmichSession:$Session -Body:$BodyParameters
         }
     }
 

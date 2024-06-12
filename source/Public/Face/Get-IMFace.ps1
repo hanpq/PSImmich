@@ -36,7 +36,7 @@
             $QueryParameters = @{
                 id = $CurrentID
             }
-            InvokeImmichRestMethod -Method GET -RelativePath '/face' -ImmichSession:$Session -QueryParameters:$QueryParameters
+            InvokeImmichRestMethod -Method GET -RelativePath '/faces' -ImmichSession:$Session -QueryParameters:$QueryParameters
         }
     }
 }

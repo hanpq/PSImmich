@@ -38,7 +38,7 @@
         $Body = @{}
         $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'EnableTimeline' -NameMapping @{EnableTimeline = 'inTimeline' })
 
-        InvokeImmichRestMethod -Method PUT -RelativePath "/partner/$id" -ImmichSession:$Session -Body:$Body
+        InvokeImmichRestMethod -Method PUT -RelativePath "/partners/$id" -ImmichSession:$Session -Body:$Body
     }
 }
 #endregion

@@ -32,7 +32,7 @@
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'DELETE'))
             {
-                InvokeImmichRestMethod -Method DELETE -RelativePath "/shared-link/$PSItem" -ImmichSession:$Session
+                InvokeImmichRestMethod -Method DELETE -RelativePath "/shared-links/$PSItem" -ImmichSession:$Session
             }
         }
     }

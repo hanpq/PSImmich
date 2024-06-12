@@ -20,7 +20,7 @@
         $Session = $null
     )
 
-    InvokeImmichRestMethod -Method Get -RelativePath '/album/count' -ImmichSession:$Session
+    InvokeImmichRestMethod -Method Get -RelativePath '/albums/count' -ImmichSession:$Session
 
 }
 #endregion

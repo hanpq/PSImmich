@@ -74,7 +74,7 @@
         # Do not run on Windows Powershell
         if ($PSVersionTable.PSEdition -eq 'Desktop')
         {
-            Write-Warning -Message 'Import-IMAsset is not currently supported on Windows Powershell, please use Powershell Core on Windows instead.'
+            Write-Warning -Message 'Import-IMAsset is not currently supported on Windows Powershell, please use Powershell Core instead.'
             break
         }
     }
@@ -83,7 +83,7 @@
     {
         $FilePath | ForEach-Object {
             $FileInfo = Get-Item -Path $PSItem.FullName
-            $Uri = "$($ImmichSession.ApiUri)/asset/upload"
+            $Uri = "$($ImmichSession.ApiUri)/assets"
             $Header = @{
                 'Accept'    = 'application/json'
                 'x-api-key' = ConvertFromSecureString -SecureString $ImmichSession.AccessToken

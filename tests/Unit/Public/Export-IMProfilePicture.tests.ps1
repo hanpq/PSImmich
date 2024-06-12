@@ -22,7 +22,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Remove-IMAuthDevice {
+    Describe Export-IMProfilePicture {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

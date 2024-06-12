@@ -13,14 +13,8 @@
         Defines an exclusion pattern
     .PARAMETER importPaths
         Defines the import paths
-    .PARAMETER isVisible
-        Defines if the library should be visible
-    .PARAMETER isWatched
-        Defines if the library should be watched by immich
     .PARAMETER ownerId
         Defines the owner of library
-    .PARAMETER type
-        Defines the type of library ASSET, EXTERNAL
     .EXAMPLE
         New-IMLibrary -Name 'NAS' -ImportPaths '/mnt/media/pictures'
 
@@ -46,23 +40,9 @@
         $importPaths,
 
         [Parameter()]
-        [boolean]
-        $isVisible = $true,
-
-        [Parameter()]
-        [boolean]
-        $isWatched = $false,
-
-        [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $ownerId,
-
-        [Parameter(Mandatory)]
-        [ValidateSet('UPLOAD', 'EXTERNAL')]
-        [string]
-        $type
-
+        $ownerId
     )
 
     BEGIN
@@ -70,13 +50,11 @@
         $BodyParameters = @{}
         $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'name', 'exclusionPatterns', 'importPaths', 'isVisible', 'isWatched', 'ownerId', 'type')
 
-        # Force provided value to upper case to satisfy API
-        $BodyParameters.type = $BodyParameters.type.ToUpper()
     }
 
     PROCESS
     {
-        InvokeImmichRestMethod -Method Post -RelativePath '/library' -ImmichSession:$Session -Body $BodyParameters
+        InvokeImmichRestMethod -Method Post -RelativePath '/libraries' -ImmichSession:$Session -Body $BodyParameters
     }
 
 }

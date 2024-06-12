@@ -71,46 +71,13 @@
         [Parameter(Mandatory, ParameterSetName = 'id', ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $id,
-
-        [Parameter(ParameterSetName = 'list')]
-        [boolean]
-        $isFavorite,
-
-        [Parameter(ParameterSetName = 'list')]
-        [boolean]
-        $isArchived,
-
-        [Parameter(ParameterSetName = 'list')]
-        [int]
-        $skip,
-
-        [Parameter(ParameterSetName = 'list')]
-        [int]
-        $take,
-
-        [Parameter(ParameterSetName = 'list')]
-        [datetime]
-        $updatedAfter,
-
-        [Parameter(ParameterSetName = 'list')]
-        [datetime]
-        $updatedBefore,
-
-        [Parameter(ParameterSetName = 'list')]
-        [string]
-        $userId
+        $id
     )
 
     BEGIN
     {
         switch ($PSCmdlet.ParameterSetName)
         {
-            'list'
-            {
-                $QueryParameters = @{}
-                $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'isFavorite', 'isArchived', 'skip', 'take', 'updatedAfter', 'updatedBefore', 'userId', 'key')
-            }
             'id'
             {
                 $QueryParameters = @{}
@@ -128,32 +95,32 @@
     {
         switch ($PSCmdlet.ParameterSetName)
         {
-            'list'
-            {
-                InvokeImmichRestMethod -Method Get -RelativePath '/asset' -ImmichSession:$Session -QueryParameters $QueryParameters
-            }
             'id'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/asset/$id" -ImmichSession:$Session -QueryParameters $QueryParameters
+                InvokeImmichRestMethod -Method Get -RelativePath "/assets/$id" -ImmichSession:$Session -QueryParameters $QueryParameters
             }
             'deviceid'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/asset/device/$deviceid" -ImmichSession:$Session | Get-IMAsset
+                InvokeImmichRestMethod -Method Get -RelativePath "/assets/device/$deviceid" -ImmichSession:$Session | Get-IMAsset
             }
             'personId'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/person/$personid/assets/" -ImmichSession:$Session | Get-IMAsset
+                InvokeImmichRestMethod -Method Get -RelativePath "/people/$personid/assets" -ImmichSession:$Session | Get-IMAsset
             }
             'tagid'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/tag/$tagid/assets" -ImmichSession:$Session | Get-IMAsset
+                InvokeImmichRestMethod -Method Get -RelativePath "/tags/$tagid/assets" -ImmichSession:$Session | Get-IMAsset
             }
             'random'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/asset/random' -ImmichSession:$Session -QueryParameters $QueryParameters
+                InvokeImmichRestMethod -Method Get -RelativePath '/assets/random' -ImmichSession:$Session -QueryParameters $QueryParameters
+            }
+            'list'
+            {
+                Find-IMAsset
+                Write-Warning -Message 'Previous versions of Immich allowed enumeration of all assets using the Assets endpoint. This is deprecated and Find- should now be used. To enumerate all assets you can call Find-IMAsset.'
             }
         }
     }
-
 }
 #endregion

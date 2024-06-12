@@ -110,7 +110,7 @@
 
     END
     {
-        InvokeImmichRestMethod -Method POST -RelativePath '/shared-link' -ImmichSession:$Session -Body $Body
+        InvokeImmichRestMethod -Method POST -RelativePath '/shared-links' -ImmichSession:$Session -Body $Body
     }
 }
 #endregion

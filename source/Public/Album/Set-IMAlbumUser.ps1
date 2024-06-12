@@ -52,7 +52,7 @@
     PROCESS
     {
         $userId | ForEach-Object {
-            InvokeImmichRestMethod -Method PUT -RelativePath "/album/$albumid/user/$PSItem" -ImmichSession:$Session -Body:$BodyParameters
+            InvokeImmichRestMethod -Method PUT -RelativePath "/albums/$albumid/user/$PSItem" -ImmichSession:$Session -Body:$BodyParameters
         }
     }
 }

@@ -34,7 +34,7 @@
 
     PROCESS
     {
-        InvokeImmichRestMethod -Method POST -RelativePath '/report/checksum' -ImmichSession:$Session -Body:$BodyParameters
+        InvokeImmichRestMethod -Method POST -RelativePath '/reports/checksum' -ImmichSession:$Session -Body:$BodyParameters
     }
 
 }

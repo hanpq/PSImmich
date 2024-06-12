@@ -28,7 +28,7 @@
     )
     if ($PSCmdlet.ShouldProcess($id, 'DELETE'))
     {
-        InvokeImmichRestMethod -Method DELETE -RelativePath "/partner/$id" -ImmichSession:$Session
+        InvokeImmichRestMethod -Method DELETE -RelativePath "/partners/$id" -ImmichSession:$Session
     }
 }
 #endregion

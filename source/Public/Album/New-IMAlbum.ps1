@@ -13,12 +13,16 @@
         Defines a list of assets to add to the album
     .PARAMETER description
         Defines a description for the album
-    .PARAMETER sharedWithUserIds
+    .PARAMETER albumUsers
         Defines a list of user id to share the album to
     .EXAMPLE
         New-IMAlbum -albumName 'Las Vegas'
 
         Adds a new an album
+    .EXAMPLE
+        New-IMAlbum -AlbumName 'Las Vegas' -AlbumUsers @{userId='<userid>';role='editor'}
+
+        Adds a new shared album that is shared to a user
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Do not agree, new initiates an entity not previously known to the system, that should not cause issues.')]
     [CmdletBinding()]
@@ -41,20 +45,19 @@
         $description,
 
         [Parameter()]
-        [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [string[]]
-        $sharedWithUserIds
+        [hashtable[]]
+        $albumUsers
     )
 
     BEGIN
     {
         $BodyParameters = @{}
-        $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'albumName', 'assetIds', 'description', 'sharedWithUserIds')
+        $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'albumName', 'assetIds', 'description', 'albumUsers')
     }
 
     PROCESS
     {
-        InvokeImmichRestMethod -Method Post -RelativePath '/album' -ImmichSession:$Session -Body $BodyParameters
+        InvokeImmichRestMethod -Method Post -RelativePath '/albums' -ImmichSession:$Session -Body $BodyParameters
     }
 
 }

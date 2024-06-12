@@ -1,24 +1,25 @@
-﻿function Get-IMServerInfo
+﻿function Find-IMCity
 {
     <#
     .DESCRIPTION
-        Retreives Immich server info
+        Find cities
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
     .EXAMPLE
-        Get-IMServerInfo
+        Find-IMCity
 
-        Retreives Immich server info
+        Retreives all cities
     #>
 
     [CmdletBinding()]
     param(
-        [Parameter()][ImmichSession]$Session = $null
+        [Parameter()]
+        [ImmichSession]$Session = $null
     )
 
-    InvokeImmichRestMethod -Method Get -RelativePath '/server-info' -ImmichSession:$Session
+    InvokeImmichRestMethod -Method GET -RelativePath '/search/cities' -ImmichSession:$Session -Body $Body
 
 }
 #endregion

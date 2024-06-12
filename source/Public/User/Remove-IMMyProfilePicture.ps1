@@ -21,7 +21,7 @@
     )
 
     if ($PSCmdlet.ShouldProcess('Remove profile picture')) {
-        InvokeImmichRestMethod -Method DELETE -RelativePath '/user/profile-image' -ImmichSession:$Session
+        InvokeImmichRestMethod -Method DELETE -RelativePath '/users/profile-image' -ImmichSession:$Session
     }
 
 }

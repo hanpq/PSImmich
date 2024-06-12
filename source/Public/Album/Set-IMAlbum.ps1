@@ -87,15 +87,15 @@
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Update'))
             {
-                InvokeImmichRestMethod -Method PATCH -RelativePath "/album/$PSItem" -ImmichSession:$Session -Body:$BodyParameters
+                InvokeImmichRestMethod -Method PATCH -RelativePath "/albums/$PSItem" -ImmichSession:$Session -Body:$BodyParameters
 
                 if ($PSBoundParameters.ContainsKey('AddAssets'))
                 {
-                    $null = InvokeImmichRestMethod -Method PUT -RelativePath "/album/$PSItem/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$AddAssets }
+                    $null = InvokeImmichRestMethod -Method PUT -RelativePath "/albums/$PSItem/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$AddAssets }
                 }
                 if ($PSBoundParameters.ContainsKey('RemoveAssets'))
                 {
-                    $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/album/$PSItem/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$RemoveAssets }
+                    $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/albums/$PSItem/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$RemoveAssets }
                 }
             }
         }

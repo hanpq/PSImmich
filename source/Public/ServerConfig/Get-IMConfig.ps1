@@ -13,10 +13,6 @@
         This is useful if you want to alter the current config and pass it on to Set-IMConfig
     .PARAMETER StorageTemplate
         Specifies that storage template configuration should be returned.
-    .PARAMETER MapStyle
-        Specifies that map style configuration should be returned.
-    .PARAMETER Theme
-        Specifies which theme (dark or light) should be returned.
     .EXAMPLE
         Get-IMConfig
 
@@ -41,17 +37,8 @@
 
         [Parameter(ParameterSetName = 'storage')]
         [switch]
-        $StorageTemplate,
+        $StorageTemplate
 
-        [Parameter(ParameterSetName = 'mapstyle')]
-        [switch]
-        $MapStyle,
-
-        [Parameter(ParameterSetName = 'mapstyle')]
-        [ValidateSet('light', 'dark')]
-        [ValidateScript({ $PSItem -ceq 'light' -or $PSItem -ceq 'dark' })]
-        [string]
-        $Theme
     )
 
     switch ($PSCmdlet.ParameterSetName)
@@ -80,11 +67,6 @@
             {
                 $Result
             }
-            break
-        }
-        'mapstyle'
-        {
-            InvokeImmichRestMethod -Method Get -RelativePath '/system-config/map/style.json' -ImmichSession:$Session -QueryParameters:@{theme = $Theme }
             break
         }
         'storage'

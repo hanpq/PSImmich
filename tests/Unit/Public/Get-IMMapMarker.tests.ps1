@@ -22,7 +22,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Get-IMAssetMapMarker {
+    Describe Get-IMMapMarker {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

@@ -11,21 +11,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added new cmdlet Send-IMTestMessage
+- Added new cmdlet Get-IMMemory
+- Added new cmdlet New-IMMemory
+- Added new cmdlet Remove-IMMemory
+- Added new cmdlet Set-IMMemory
+- New cmdlet Get-IMServerStorage
+- New cmdlet Get-IMProfilePicture
 - New cmdlet Get-IMAssetThumbnail
 - New cmdlet Set-IMAlbumUser to allow changing the user role for an album.
+- Set-IMAsset now has a parameter for AddToFace to incorporate the /face/{id} API
+- New cmdlet Marge-IMPerson to incorporate the /person/{id}/merge API
+- Get-IMPerson now has a new switch IncludeStatistics to incorporate the /person/{id}/statistics API. The switch is not currently available with the list parameter set. However one could use the following to produce the same result Get-IMPerson | Get-IMPerson -IncludeStatistics
+- New cmdlet Export-IMPersonThumbnail
 
 ### Fixed
 
-- Updated Get-AuthDevice to the new API location under session and renamed to Get-AuthSession.
+- Updated Get-IMAssetMapMarker to the new API location under map and renamed to Get-IMMapMarker
+- Updated Get-IMAssetMapStyle to the new API location under map and renamed to GetIMAssetMarker
+- Updated Get-IMAuthDevice to the new API location under session and renamed to Get-IMAuthSession.
+- Updated Remove-IMAuthDevice to the new API location under session and renamed to Remove-IMAuthSession
 - Updated Get-IMAuditFile to the new API location under report
 - Updated Get-IMFileChecksum to the new API location under report
 - Updated Add-IMAlbumUser to use the new albumUsers property instead of the deprecated sharedUserIds.
 - Updated Add-IMAlbumUser to allow configuring the user role.
 - Updated Get-IMTimeBucket to the new API location under timeline
 - Updated test suite for Get-IMServerFeature now returning the email attribute
+- Updated Get-IMServer to also include the result from Get-IMServerStorage
 
 ### Removed
 
+- Get-IMAsset will no longer enumerate assets as a search (with optional filters), this API endpoint has been removed from Immich. Instead Find-IMAsset should be used.
 - Removed Get-IMSearchTerms due to API deprecation
 - Removed Get-IMCuratedLocation due to API deprecation
 - Removed Get-IMCuratedObject due to API deprecation

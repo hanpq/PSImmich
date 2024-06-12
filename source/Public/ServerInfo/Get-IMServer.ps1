@@ -22,8 +22,8 @@
     $Results = [array]@()
     $Results += Get-IMServerConfig -Session:$Session | Add-Member -MemberType NoteProperty -Name 'ObjectType' -Value 'Config' -PassThru
     $Results += Get-IMServerFeature -Session:$Session | Add-Member -MemberType NoteProperty -Name 'ObjectType' -Value 'Feature' -PassThru
-    $Results += Get-IMServerInfo -Session:$Session | Add-Member -MemberType NoteProperty -Name 'ObjectType' -Value 'Info' -PassThru
     $Results += Get-IMServerStatistic -Session:$Session | Add-Member -MemberType NoteProperty -Name 'ObjectType' -Value 'Stats' -PassThru
+    $Results += Get-IMServerStorage -Session:$Session | Add-Member -MemberType NoteProperty -Name 'ObjectType' -Value 'Storage' -PassThru
     $Results += Get-IMServerVersion -Session:$Session | Add-Member -MemberType NoteProperty -Name 'ObjectType' -Value 'Version' -PassThru
     $Results += Get-IMSupportedMediaType -Session:$Session | Add-Member -MemberType NoteProperty -Name 'ObjectType' -Value 'Media' -PassThru
     $Results += Get-IMTheme -Session:$Session | Add-Member -MemberType NoteProperty -Name 'ObjectType' -Value 'Theme' -PassThru

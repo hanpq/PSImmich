@@ -11,6 +11,8 @@
         Defines a specific person to be retreived
     .PARAMETER withHidden
         Defines if hidden should be returned or not. Do not specify if either should be returned.
+    .PARAMETER IncludeStatistics
+        Defines if statistics should be returned for the person
     .EXAMPLE
         Get-IMPerson
 
@@ -30,7 +32,11 @@
 
         [Parameter(ParameterSetName = 'list')]
         [switch]
-        $withHidden
+        $withHidden,
+
+        [Parameter(ParameterSetName = 'id')]
+        [switch]
+        $IncludeStatistics
     )
 
     BEGIN
@@ -48,11 +54,17 @@
         {
             'list'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/person' -ImmichSession:$Session -QueryParameters $QueryParameters
+                InvokeImmichRestMethod -Method Get -RelativePath '/people' -ImmichSession:$Session -QueryParameters $QueryParameters
             }
             'id'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/person/$id" -ImmichSession:$Session -QueryParameters $QueryParameters
+                $Person = InvokeImmichRestMethod -Method Get -RelativePath "/people/$id" -ImmichSession:$Session -QueryParameters $QueryParameters
+                if ($IncludeStatistics)
+                {
+                    $PersonStats = InvokeImmichRestMethod -Method Get -RelativePath "/people/$id/statistics" -ImmichSession:$Session
+                    $Person | Add-Member -MemberType NoteProperty -Name AssetCount -Value $PersonStats.assets
+                }
+                $Person
             }
         }
     }

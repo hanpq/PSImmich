@@ -9,8 +9,8 @@
         -Session $Session
     .PARAMETER email
         Defines a specific user id to be retreived
-    .PARAMETER MemoriesEnabled
-        Should Memories enabled. Enabled by default
+    .PARAMETER Notify
+        Should the user be notified. Enabled by default
     .PARAMETER Name
         Defines the name of the user
     .PARAMETER Password
@@ -40,7 +40,7 @@
 
         [Parameter()]
         [boolean]
-        $MemoriesEnabled = $true,
+        $Notify = $true,
 
         [Parameter(Mandatory)]
         [string]
@@ -64,9 +64,9 @@
     )
 
     $Body = @{}
-    $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'Email', 'MemoriesEnabled', 'Name', 'Password', 'QuotaSizeInBytes', 'ShouldChangePassword', 'StorageLabel' -NameMapping @{
+    $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'Email', 'Notify', 'Name', 'Password', 'QuotaSizeInBytes', 'ShouldChangePassword', 'StorageLabel' -NameMapping @{
             Email                = 'email'
-            MemoriesEnabled      = 'memoriesEnabled'
+            Notify               = 'notify'
             Name                 = 'name'
             Password             = 'password'
             QuotaSizeInBytes     = 'quotaSizeInBytes'
@@ -74,7 +74,7 @@
             StorageLabel         = 'storageLabel'
         })
 
-    InvokeImmichRestMethod -Method POST -RelativePath '/user' -ImmichSession:$Session -Body $Body
+    InvokeImmichRestMethod -Method POST -RelativePath '/admin/users' -ImmichSession:$Session -Body $Body
 
 }
 #endregion

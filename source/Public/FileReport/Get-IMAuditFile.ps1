@@ -20,7 +20,7 @@
         $Session = $null
     )
 
-    InvokeImmichRestMethod -Method Get -RelativePath '/report' -ImmichSession:$Session
+    InvokeImmichRestMethod -Method Get -RelativePath '/reports' -ImmichSession:$Session
 
 }
 #endregion

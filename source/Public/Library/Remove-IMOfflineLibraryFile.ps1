@@ -33,7 +33,7 @@
             $CurrentID = $PSItem
             if ($PSCmdlet.ShouldProcess($CurrentID, 'purge offline files'))
             {
-                InvokeImmichRestMethod -Method POST -RelativePath "/library/$CurrentID/removeOffline" -ImmichSession:$Session
+                InvokeImmichRestMethod -Method POST -RelativePath "/libraries/$CurrentID/removeOffline" -ImmichSession:$Session
             }
         }
 

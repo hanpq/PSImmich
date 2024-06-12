@@ -67,7 +67,7 @@
 
     PROCESS
     {
-        InvokeImmichRestMethod -Method Get -RelativePath '/activity' -ImmichSession:$Session -QueryParameters $QueryParameters
+        InvokeImmichRestMethod -Method Get -RelativePath '/activities' -ImmichSession:$Session -QueryParameters $QueryParameters
     }
 
 }

@@ -46,7 +46,7 @@
 
     PROCESS
     {
-        InvokeImmichRestMethod -Method Get -RelativePath '/asset/statistics' -ImmichSession:$Session -QueryParameters $QueryParameters
+        InvokeImmichRestMethod -Method Get -RelativePath '/assets/statistics' -ImmichSession:$Session -QueryParameters $QueryParameters
     }
 }
 #endregion

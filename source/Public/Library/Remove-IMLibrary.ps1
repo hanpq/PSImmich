@@ -35,7 +35,7 @@
             $CurrentID = $PSItem
             if ($PSCmdlet.ShouldProcess($CurrentID, 'DELETE'))
             {
-                InvokeImmichRestMethod -Method Delete -RelativePath "/library/$CurrentID" -ImmichSession:$Session
+                InvokeImmichRestMethod -Method Delete -RelativePath "/libraries/$CurrentID" -ImmichSession:$Session
             }
         }
     }

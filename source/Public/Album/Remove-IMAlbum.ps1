@@ -35,7 +35,7 @@
             $CurrentID = $PSItem
             if ($PSCmdlet.ShouldProcess($CurrentID, 'DELETE'))
             {
-                InvokeImmichRestMethod -Method Delete -RelativePath "/album/$CurrentID" -ImmichSession:$Session
+                InvokeImmichRestMethod -Method Delete -RelativePath "/albums/$CurrentID" -ImmichSession:$Session
             }
         }
     }

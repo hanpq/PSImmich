@@ -34,7 +34,7 @@
 
     PROCESS
     {
-        InvokeImmichRestMethod -Method POST -RelativePath '/api-key' -ImmichSession:$Session -Body $BodyParameters
+        InvokeImmichRestMethod -Method POST -RelativePath '/api-keys' -ImmichSession:$Session -Body $BodyParameters
     }
 
 }

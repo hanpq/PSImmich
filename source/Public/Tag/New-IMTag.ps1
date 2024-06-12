@@ -35,7 +35,7 @@
 
     $BodyParameters = @{}
     $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'name', 'type')
-    InvokeImmichRestMethod -Method Post -RelativePath '/tag' -ImmichSession:$Session -Body:$BodyParameters
+    InvokeImmichRestMethod -Method Post -RelativePath '/tags' -ImmichSession:$Session -Body:$BodyParameters
 
 }
 #endregion

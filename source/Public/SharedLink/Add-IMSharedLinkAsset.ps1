@@ -51,7 +51,7 @@
         $Body = @{
             assetIds = $AssetIDs
         }
-        InvokeImmichRestMethod -Method PUT -RelativePath "/shared-link/$SharedLinkId/assets" -ImmichSession:$Session -Body $Body
+        InvokeImmichRestMethod -Method PUT -RelativePath "/shared-links/$SharedLinkId/assets" -ImmichSession:$Session -Body $Body
     }
 }
 #endregion

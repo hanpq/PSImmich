@@ -42,7 +42,7 @@
 
     PROCESS
     {
-        InvokeImmichRestMethod -Method PUT -RelativePath "/api-key/$id" -ImmichSession:$Session -Body $BodyParameters
+        InvokeImmichRestMethod -Method PUT -RelativePath "/api-keys/$id" -ImmichSession:$Session -Body $BodyParameters
     }
 
 }

@@ -75,15 +75,15 @@
         {
             'list-shared'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/album' -ImmichSession:$Session -QueryParameters $QueryParameters
+                InvokeImmichRestMethod -Method Get -RelativePath '/albums' -ImmichSession:$Session -QueryParameters $QueryParameters
             }
             'id'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/album/$albumId" -ImmichSession:$Session -QueryParameters $QueryParameters
+                InvokeImmichRestMethod -Method Get -RelativePath "/albums/$albumId" -ImmichSession:$Session -QueryParameters $QueryParameters
             }
             'list-asset'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/album' -ImmichSession:$Session -QueryParameters $QueryParameters
+                InvokeImmichRestMethod -Method Get -RelativePath '/albums' -ImmichSession:$Session -QueryParameters $QueryParameters
             }
         }
     }

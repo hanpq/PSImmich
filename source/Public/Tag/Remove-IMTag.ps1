@@ -33,7 +33,7 @@
             $CurrentID = $PSItem
             if ($PSCmdlet.ShouldProcess($CurrentID, 'Remove'))
             {
-                InvokeImmichRestMethod -Method DELETE -RelativePath "/tag/$CurrentID" -ImmichSession:$Session
+                InvokeImmichRestMethod -Method DELETE -RelativePath "/tags/$CurrentID" -ImmichSession:$Session
             }
         }
     }

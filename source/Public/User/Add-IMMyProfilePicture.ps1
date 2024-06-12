@@ -39,7 +39,7 @@
     PROCESS
     {
             $FileInfo = Get-Item -Path $FilePath.FullName
-            $Uri = "$($ImmichSession.ApiUri)/user/profile-image"
+            $Uri = "$($ImmichSession.ApiUri)/users/profile-image"
             $Header = @{
                 'Accept'    = 'application/json'
                 'x-api-key' = ConvertFromSecureString -SecureString $ImmichSession.AccessToken

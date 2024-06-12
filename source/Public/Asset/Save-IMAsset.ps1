@@ -62,7 +62,7 @@
                 $SavedProgressPreference = $global:ProgressPreference
                 $global:ProgressPreference = 'SilentlyContinue'
             }
-            InvokeImmichRestMethod -Method Get -RelativePath "/asset/file/$CurrentID" -ImmichSession:$Session -QueryParameters $QueryParameters -ContentType 'application/octet-stream' -OutFilePath $OutputPath
+            InvokeImmichRestMethod -Method Get -RelativePath "/assets/$CurrentID/original" -ImmichSession:$Session -QueryParameters $QueryParameters -ContentType 'application/octet-stream' -OutFilePath $OutputPath
             if ($PSVersionTable.PSEdition -eq 'Desktop')
             {
                 $global:ProgressPreference = $SavedProgressPreference

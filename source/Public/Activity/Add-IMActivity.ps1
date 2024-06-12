@@ -55,7 +55,7 @@
 
     PROCESS
     {
-        InvokeImmichRestMethod -Method Post -RelativePath '/activity' -ImmichSession:$Session -Body $BodyParameters
+        InvokeImmichRestMethod -Method Post -RelativePath '/activities' -ImmichSession:$Session -Body $BodyParameters
     }
 
 }

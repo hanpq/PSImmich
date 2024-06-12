@@ -35,11 +35,11 @@
             {
                 'list'
                 {
-                    InvokeImmichRestMethod -Method Get -RelativePath '/api-key' -ImmichSession:$Session
+                    InvokeImmichRestMethod -Method Get -RelativePath '/api-keys' -ImmichSession:$Session
                 }
                 'id'
                 {
-                    InvokeImmichRestMethod -Method Get -RelativePath "/api-key/$CurrentID" -ImmichSession:$Session
+                    InvokeImmichRestMethod -Method Get -RelativePath "/api-keys/$CurrentID" -ImmichSession:$Session
                 }
             }
         }

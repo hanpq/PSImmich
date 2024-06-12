@@ -9,8 +9,8 @@
         -Session $Session
     .PARAMETER id
         Defines a specific user id to be retreived
-    .PARAMETER isAll
-        ...
+    .PARAMETER IncludeDeleted
+        Defines if deleted users should be returned.
     .PARAMETER Me
         Defines that the currently connected users information is retreived.
     .EXAMPLE
@@ -18,7 +18,7 @@
 
         Retreives Immich user
     #>
-
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP, evaluated as part of parameterset check')]
     [CmdletBinding(DefaultParameterSetName = 'list')]
     param(
         [Parameter()]
@@ -31,22 +31,13 @@
         $id,
 
         [Parameter(ParameterSetName = 'list')]
-        [boolean]
-        $isAll,
+        [switch]
+        $IncludeDeleted,
 
-        [Parameter(Mandatory,ParameterSetName = 'me')]
+        [Parameter(Mandatory, ParameterSetName = 'me')]
         [switch]
         $Me
     )
-
-    BEGIN
-    {
-        if ($PSCmdlet.ParameterSetName -eq 'list')
-        {
-            $QueryParameters = @{}
-            $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'isAll')
-        }
-    }
 
     PROCESS
     {
@@ -54,16 +45,24 @@
         {
             'list'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/user' -ImmichSession:$Session -QueryParameters $QueryParameters
+                if ($IncludeDeleted)
+                {
+                    InvokeImmichRestMethod -Method Get -RelativePath '/admin/users' -ImmichSession:$Session -Query:@{withDeleted = $true }
+                }
+                else
+                {
+                    InvokeImmichRestMethod -Method Get -RelativePath '/admin/users' -ImmichSession:$Session
+                }
             }
             'id'
             {
                 $id | ForEach-Object {
-                    InvokeImmichRestMethod -Method Get -RelativePath "/user/info/$PSItem" -ImmichSession:$Session
+                    InvokeImmichRestMethod -Method Get -RelativePath "/admin/users/$PSItem" -ImmichSession:$Session
                 }
             }
-            'me' {
-                InvokeImmichRestMethod -Method Get -RelativePath '/user/me' -ImmichSession:$Session
+            'me'
+            {
+                InvokeImmichRestMethod -Method Get -RelativePath '/users/me' -ImmichSession:$Session
             }
         }
     }

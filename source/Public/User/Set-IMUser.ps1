@@ -49,15 +49,6 @@
         $Email,
 
         [Parameter()]
-        [ValidateSet('primary', 'pink', 'red', 'yellow', 'blue', 'green', 'purple', 'orange', 'gray', 'amber')]
-        [string]
-        $AvatarColor,
-
-        [Parameter()]
-        [boolean]
-        $MemoriesEnabled = $true,
-
-        [Parameter()]
         [string]
         $Name,
 
@@ -75,26 +66,19 @@
 
         [Parameter()]
         [string]
-        $StorageLabel,
-
-        [Parameter()]
-        [boolean]
-        $IsAdmin
+        $StorageLabel
     )
 
     BEGIN
     {
         $Body = @{}
-        $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'IsAdmin', 'AvatarColor', 'Email', 'MemoriesEnabled', 'Name', 'Password', 'QuotaSizeInBytes', 'ShouldChangePassword', 'StorageLabel' -NameMapping @{
+        $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'Email', 'Name', 'Password', 'QuotaSizeInBytes', 'ShouldChangePassword', 'StorageLabel' -NameMapping @{
                 Email                = 'email'
-                MemoriesEnabled      = 'memoriesEnabled'
                 Name                 = 'name'
                 Password             = 'password'
                 QuotaSizeInBytes     = 'quotaSizeInBytes'
                 ShouldChangePassword = 'shouldChangePassword'
                 StorageLabel         = 'storageLabel'
-                AvatarColor          = 'avatarColor'
-                IsAdmin              = 'isAdmin'
             })
     }
 
@@ -102,8 +86,7 @@
     {
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem,'Set')) {
-                $Body.id = $PSItem
-                InvokeImmichRestMethod -Method PUT -RelativePath '/user' -ImmichSession:$Session -Body $Body
+                InvokeImmichRestMethod -Method PUT -RelativePath "/admin/users/$PSItem" -ImmichSession:$Session -Body $Body
             }
         }
     }

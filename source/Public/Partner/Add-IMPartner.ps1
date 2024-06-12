@@ -27,6 +27,6 @@
         $id
     )
 
-    InvokeImmichRestMethod -Method POST -RelativePath "/partner/$id" -ImmichSession:$Session
+    InvokeImmichRestMethod -Method POST -RelativePath "/partners/$id" -ImmichSession:$Session
 }
 #endregion

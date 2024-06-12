@@ -81,7 +81,7 @@
             $BodyResult = @{
                 people = $ObjectArray
             }
-            InvokeImmichRestMethod -Method Put -RelativePath '/person' -ImmichSession:$Session -Body:$BodyResult
+            InvokeImmichRestMethod -Method Put -RelativePath '/people' -ImmichSession:$Session -Body:$BodyResult
         }
     }
 

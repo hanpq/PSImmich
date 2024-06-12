@@ -36,6 +36,6 @@
 
     $BodyParameters = @{}
     $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'NewName' -NameMapping:@{NewName = 'name' })
-    InvokeImmichRestMethod -Method PATCH -RelativePath "/tag/$id" -ImmichSession:$Session -Body:$BodyParameters
+    InvokeImmichRestMethod -Method PATCH -RelativePath "/tags/$id" -ImmichSession:$Session -Body:$BodyParameters
 }
 #endregion

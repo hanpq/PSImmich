@@ -45,7 +45,7 @@
 
     PROCESS
     {
-        InvokeImmichRestMethod -Method Get -RelativePath '/asset/memory-lane' -ImmichSession:$Session -QueryParameters $QueryParameters
+        InvokeImmichRestMethod -Method Get -RelativePath '/assets/memory-lane' -ImmichSession:$Session -QueryParameters $QueryParameters
     }
 }
 #endregion
