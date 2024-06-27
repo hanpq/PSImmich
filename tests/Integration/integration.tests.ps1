@@ -267,7 +267,7 @@ Describe 'Asset' -Tag 'Integration' {
     Context -Name 'Get-IMAsset - Specifying a single ID' {
         It -Name 'Should return a object with the correct properties' {
             $Result = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $ExpectedProperties = @('unassignedFaces','duplicateId','hasMetadata', 'isOffline', 'stackCount', 'checksum', 'people', 'tags', 'livePhotoVideoId', 'smartInfo', 'exifInfo', 'duration', 'isTrashed', 'isArchived', 'isFavorite', 'updatedAt', 'localDateTime', 'fileModifiedAt', 'fileCreatedAt', 'thumbhash', 'resized', 'id', 'deviceAssetId', 'ownerId', 'owner', 'deviceId', 'libraryId', 'type', 'originalPath', 'originalFileName')
+            $ExpectedProperties = @('unassignedFaces','duplicateId','hasMetadata', 'isOffline', 'stackCount', 'checksum', 'people', 'tags', 'livePhotoVideoId', 'smartInfo', 'exifInfo', 'duration', 'isTrashed', 'isArchived', 'isFavorite', 'updatedAt', 'localDateTime', 'fileModifiedAt', 'fileCreatedAt', 'thumbhash', 'resized', 'id', 'deviceAssetId', 'ownerId', 'owner', 'deviceId', 'libraryId', 'type', 'originalPath', 'originalFileName','originalMimeType')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
         It -Name 'Should return a single object' {
@@ -324,7 +324,7 @@ Describe 'Asset' -Tag 'Integration' {
         }
         It -Name 'Assets gets added to album' {
             Set-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037' -AddToAlbum $NewAlbum.id
-            $Result = Get-IMAlbum -albumId $NewAlbum.id
+            $Result = Get-IMAlbum -albumId $NewAlbum.id -IncludeAssets
             $Result.assets | Should -HaveCount 2
             $Result.assets.id | Should -Contain '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $Result.assets.id | Should -Contain '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
@@ -510,16 +510,28 @@ Describe 'Album' -Tag 'Integration' {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     Context 'Get-IMAlbum' {
+        It -Name 'search-albumname-wildcard' {
+            $Result = Get-IMAlbum -Name 'Test'
+            $Result | should -havecount 1
+        }
+        It -Name 'search-albumname-nomatch' {
+            $Result = Get-IMAlbum -Name 'NewYork'
+            $Result | should -havecount 0
+        }
+        It -Name 'search-albumname-exact' {
+            $Result = Get-IMAlbum -Name 'TestAlbum'
+            $Result | should -havecount 1
+        }
         It -Name 'list-shared' {
             $Result = Get-IMAlbum | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
             $Result | Should -HaveCount 1
         }
         It -Name 'list-shared-true' {
-            $Result = Get-IMAlbum -shared:$true | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
+            $Result = Get-IMAlbum | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
             $Result | Should -HaveCount 1
         }
         It -Name 'list-shared-false' {
-            $Result = Get-IMAlbum -shared:$false | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
+            $Result = Get-IMAlbum -ExcludeShared | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
             $Result | Should -HaveCount 0
         }
         It -Name 'list-assetid' {
@@ -527,12 +539,12 @@ Describe 'Album' -Tag 'Integration' {
             $Result | Should -HaveCount 1
         }
         It -Name 'list-id' {
-            $Result = Get-IMAlbum -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
+            $Result = Get-IMAlbum -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -IncludeAssets | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
             $Result | Should -HaveCount 1
             $Result.Assets | Should -Not -BeNullOrEmpty
         }
         It -Name 'list-id-withoutassets' {
-            $Result = Get-IMAlbum -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -withoutAssets | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
+            $Result = Get-IMAlbum -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
             $Result | Should -HaveCount 1
             $Result.Assets | Should -BeNullOrEmpty
         }
@@ -574,7 +586,7 @@ Describe 'Album' -Tag 'Integration' {
         }
         It -Name 'Album gets created' {
             $NewAlbum = New-IMAlbum -albumName $AlbumName -assetIds 'a4908e1f-697f-4d7b-9330-93b5eabe3baf' -description $AlbumName
-            $Result = Get-IMAlbum -albumId $NewAlbum.id
+            $Result = Get-IMAlbum -albumId $NewAlbum.id -IncludeAssets
             $Result | Should -HaveCount 1
             $Result.Description | Should -Be $AlbumName
             $Result.albumName | Should -Be $AlbumName
@@ -619,14 +631,14 @@ Describe 'Album' -Tag 'Integration' {
         }
         It -Name 'Assets gets added to album' {
             Set-IMAlbum -id $NewAlbum.id -AddAssets '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
-            $Result = Get-IMAlbum -albumId $NewAlbum.id
+            $Result = Get-IMAlbum -albumId $NewAlbum.id -IncludeAssets
             $Result.assets | Should -HaveCount 2
             $Result.assets.id | Should -Contain '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $Result.assets.id | Should -Contain '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
         }
         It -Name 'Assets gets removed from album' {
             Set-IMAlbum -id $NewAlbum.id -RemoveAssets '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
-            $Result = Get-IMAlbum -albumId $NewAlbum.id
+            $Result = Get-IMAlbum -albumId $NewAlbum.id -IncludeAssets
             $Result.assets | Should -HaveCount 0
         }
         It -Name 'Album gets updated' {

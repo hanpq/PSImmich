@@ -7,14 +7,16 @@
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
-    .PARAMETER albumId
+    .PARAMETER AlbumId
         Defines the album to get
-    .PARAMETER assetId
+    .PARAMETER AssetId
         Only returns albums that contain the asset
-    .PARAMETER shared
+    .PARAMETER ExcludeShared
         Defines weather to return shared albums or not.
-    .PARAMETER withoutAssets
+    .PARAMETER IncludeAssets
         Defines weather to return assets as part of the object or not
+    .PARAMETER Name
+        Get album by name
     .EXAMPLE
         Get-IMAlbum -albumid <albumid>
 
@@ -27,24 +29,30 @@
         [ImmichSession]
         $Session = $null,
 
-        [Parameter(Mandatory, ParameterSetName = 'id', ValueFromPipelineByPropertyName, ValueFromPipeline)]
+        [Parameter(Position = 1, Mandatory, ParameterSetName = 'id', ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [Alias('id')]
+        [Alias('Id')]
         [string]
-        $albumId,
+        $AlbumId,
 
         [Parameter(Mandatory, ParameterSetName = 'list-asset')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $assetId,
+        $AssetId,
 
         [Parameter(ParameterSetName = 'id')]
         [switch]
-        $withoutAssets,
+        $IncludeAssets,
 
         [Parameter(ParameterSetName = 'list-shared')]
-        [boolean]
-        $shared
+        [Parameter(ParameterSetName = 'search-albumname')]
+        [switch]
+        $ExcludeShared,
+
+        [Parameter(Position = 1, Mandatory, ParameterSetName = 'search-albumname')]
+        [string]
+        $Name
+
     )
 
     BEGIN
@@ -54,17 +62,22 @@
             'list-shared'
             {
                 $QueryParameters = @{}
-                $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'shared')
+                $QueryParameters.shared = (-not $ExcludeShared)
+            }
+            'search-albumname'
+            {
+                $QueryParameters = @{}
+                $QueryParameters.shared = (-not $ExcludeShared)
             }
             'list-asset'
             {
                 $QueryParameters = @{}
-                $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'assetId')
+                $QueryParameters.assetId = $AssetId
             }
             'id'
             {
                 $QueryParameters = @{}
-                $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'withoutAssets')
+                $QueryParameters.withoutAssets = (-not $IncludeAssets)
             }
         }
     }
@@ -73,13 +86,17 @@
     {
         switch ($PSCmdlet.ParameterSetName)
         {
+            'search-albumname'
+            {
+                InvokeImmichRestMethod -Method Get -RelativePath '/albums' -ImmichSession:$Session -QueryParameters $QueryParameters | Where-Object { $_.albumname -like "*$Name*" }
+            }
             'list-shared'
             {
                 InvokeImmichRestMethod -Method Get -RelativePath '/albums' -ImmichSession:$Session -QueryParameters $QueryParameters
             }
             'id'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/albums/$albumId" -ImmichSession:$Session -QueryParameters $QueryParameters
+                InvokeImmichRestMethod -Method Get -RelativePath "/albums/$AlbumId" -ImmichSession:$Session -QueryParameters $QueryParameters
             }
             'list-asset'
             {
