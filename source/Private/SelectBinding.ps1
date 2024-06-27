@@ -33,21 +33,7 @@
             $APIName = $Parameter
         }
 
-        # Typecast switch to string
-        #if ($Binding[$Parameter] -is [switch])
-        #{
-        #    $ReturnHash.Add($APIName, (($Binding[$Parameter] -as [boolean]).ToString().ToLower()))
-        #}
-        # Typecast boolean to string
-        #elseif ($Binding[$Parameter] -is [boolean])
-        #{
-        #    $ReturnHash.Add($APIName, ($Binding[$Parameter].ToString().ToLower()))
-        #}
-        # Else add the value unaltered
-        #else
-        #{
         $ReturnHash.Add($APIName, $Binding[$Parameter])
-        #}
     }
     return $ReturnHash
 
