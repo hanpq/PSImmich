@@ -47,22 +47,22 @@
             {
                 if ($IncludeDeleted)
                 {
-                    InvokeImmichRestMethod -Method Get -RelativePath '/admin/users' -ImmichSession:$Session -Query:@{withDeleted = $true }
+                    InvokeImmichRestMethod -Method Get -RelativePath '/admin/users' -ImmichSession:$Session -Query:@{withDeleted = $true } | AddCustomType IMUser
                 }
                 else
                 {
-                    InvokeImmichRestMethod -Method Get -RelativePath '/admin/users' -ImmichSession:$Session
+                    InvokeImmichRestMethod -Method Get -RelativePath '/admin/users' -ImmichSession:$Session | AddCustomType IMUser
                 }
             }
             'id'
             {
                 $id | ForEach-Object {
-                    InvokeImmichRestMethod -Method Get -RelativePath "/admin/users/$PSItem" -ImmichSession:$Session
+                    InvokeImmichRestMethod -Method Get -RelativePath "/admin/users/$PSItem" -ImmichSession:$Session | AddCustomType IMUser
                 }
             }
             'me'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/users/me' -ImmichSession:$Session
+                InvokeImmichRestMethod -Method Get -RelativePath '/users/me' -ImmichSession:$Session | AddCustomType IMUser
             }
         }
     }

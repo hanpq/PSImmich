@@ -1,4 +1,4 @@
-﻿$temp = Get-Content C:\Repos\PSImmich\api\api.1.106.json | ConvertFrom-Json -Depth 10
+﻿$temp = Get-Content C:\Repos\PSImmich\api\api.1.107.json | ConvertFrom-Json -Depth 10
 
 $AllCodeFiles = Get-ChildItem 'C:\Repos\PSImmich\source\public' -Recurse -Filter '*.ps1'
 $AllCodeFilesAst = foreach ($file in $AllCodeFiles)

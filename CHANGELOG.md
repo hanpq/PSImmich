@@ -5,7 +5,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.106.1] - 2024-06-27
+### IMPORTANT NOTE
+
+- The previous release had the aim to simplify the use of Get-IMAlbum and to align the cmdlet to how a powershell user would expect a cmdlet to function. However the changes caused quite a lot of breaking changes not motivated by the gains. And actually caused some behavior in itself that might be unexpected as a powershell user. Therefor the previous release has been yanked and a new version will be released with more moderate changes.
+
+### Added
+
+- Get-IMAlbum now has a -Name parameter allowing you to return a single album with the name specified.
+- Get-IMAlbum now has a -SearchString parameter allowing you to do wildcard searches for album names.
+- Many cmdlets, mainly "set"-cmdlets returned an empty string for each object that was updated, this noise is now suppressed.
+- Most objects is now tagged with a type name that allows default table formatting to be applied.
+
+### Fixed
+
+- Find-IMPerson, fixed issue where parameter values was not sent correctly to the API
+- Find-IMPlace, fixed issue where parameter values was not sent correctly to the API
+
+### Changed
+
+- Get-IMAlbum, Before you had to use -withoutAssets:$false to return assets which is not logical. This parameter has been changed to a switch parameter named IncludeAssets. This means that Get-IMAlbum will by default not return assets as part of the album object returned. You must specify -IncludeAssets if assets should be returned.
+- Get-IMAlbum, the parameter -IncludeAssets can now be used in list-mode as well. Previously -IncludeAssets (withoutAssets) was only effective together with the -Id parameter.
+
+## [1.106.1] [YANKED] - 2024-06-27
 
 ### IMPORTANT NOTE
 

@@ -331,7 +331,7 @@ Describe 'Asset' -Tag 'Integration' {
         }
         It -Name 'Assets gets removed from album' {
             Set-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb', '0d34e23c-8a4e-40a2-9c70-644eea8a9037' -RemoveFromAlbum $NewAlbum.id
-            $Result = Get-IMAlbum -albumId $NewAlbum.id
+            $Result = Get-IMAlbum -albumId $NewAlbum.id -IncludeAssets
             $Result.assets | Should -HaveCount 0
         }
         It -Name 'Should update asset' {
@@ -510,40 +510,46 @@ Describe 'Album' -Tag 'Integration' {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     Context 'Get-IMAlbum' {
-        It -Name 'search-albumname-wildcard' {
-            $Result = Get-IMAlbum -Name 'Test'
-            $Result | should -havecount 1
-        }
-        It -Name 'search-albumname-nomatch' {
-            $Result = Get-IMAlbum -Name 'NewYork'
-            $Result | should -havecount 0
-        }
-        It -Name 'search-albumname-exact' {
-            $Result = Get-IMAlbum -Name 'TestAlbum'
-            $Result | should -havecount 1
-        }
-        It -Name 'list-shared' {
+        It -Name 'list-default' {
             $Result = Get-IMAlbum | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
             $Result | Should -HaveCount 1
         }
         It -Name 'list-shared-true' {
-            $Result = Get-IMAlbum | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
+            $Result = Get-IMAlbum -Shared:$true | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
             $Result | Should -HaveCount 1
         }
+        It -Name 'list-name correct name' {
+            $Result = Get-IMAlbum -Name 'TestAlbum'
+            $Result.Id | should -contain 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+            $Result | should -havecount 1
+        }
+        It -Name 'list-name incorrect name' {
+            $Result = Get-IMAlbum -Name 'NewYork'
+            $Result | should -havecount 0
+        }
+        It -Name 'list-searchstring expect find' {
+            $Result = Get-IMAlbum -SearchString 'Test*'
+            $Result.Id | should -contain 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+            $Result | should -havecount 1
+        }
+        It -Name 'list-searchstring do not expect find' {
+            $Result = Get-IMAlbum -Searchstring 'NewYork*'
+            $Result | should -havecount 0
+        }
         It -Name 'list-shared-false' {
-            $Result = Get-IMAlbum -ExcludeShared | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
+            $Result = Get-IMAlbum -Shared:$false | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
             $Result | Should -HaveCount 0
         }
         It -Name 'list-assetid' {
             $Result = Get-IMAlbum -assetId 'a4908e1f-697f-4d7b-9330-93b5eabe3baf' | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
             $Result | Should -HaveCount 1
         }
-        It -Name 'list-id' {
-            $Result = Get-IMAlbum -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -IncludeAssets | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
+        It -Name 'list-id with assets' {
+            $Result = Get-IMAlbum -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -IncludeAssets | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
             $Result | Should -HaveCount 1
             $Result.Assets | Should -Not -BeNullOrEmpty
         }
-        It -Name 'list-id-withoutassets' {
+        It -Name 'list-id without assets' {
             $Result = Get-IMAlbum -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
             $Result | Should -HaveCount 1
             $Result.Assets | Should -BeNullOrEmpty
@@ -941,6 +947,19 @@ Describe 'FileReport' -Tag 'Integration' {
             $Result = Get-IMFileChecksum -FileName 'upload/library/admin/2024/2024-01-10/michael-daniels-ylUGx4g6eHk-unsplash.jpg'
             $Result | Should -HaveCount 1
             $Result.checksum | Should -Be 'd32h7hS/Z04nsNaXgYcmBW5ktY0='
+        }
+    }
+}
+
+Describe 'Search' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context 'Find-IMAsset' {
+        It 'Should return multiple assets with correct type' {
+            $Result = Find-IMAsset
+            $Result | measure-object | select-object -ExpandProperty count | should -BeGreaterThan 1
+            $Result[0].PSObject.TypeNames | should -contain 'PSImmich.ObjectType.IMAsset'
         }
     }
 }

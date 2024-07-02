@@ -97,7 +97,7 @@
         {
             'id'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/assets/$id" -ImmichSession:$Session -QueryParameters $QueryParameters
+                InvokeImmichRestMethod -Method Get -RelativePath "/assets/$id" -ImmichSession:$Session -QueryParameters $QueryParameters | AddCustomType IMAsset
             }
             'deviceid'
             {
@@ -113,7 +113,7 @@
             }
             'random'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/assets/random' -ImmichSession:$Session -QueryParameters $QueryParameters
+                InvokeImmichRestMethod -Method Get -RelativePath '/assets/random' -ImmichSession:$Session -QueryParameters $QueryParameters | AddCustomType IMAsset
             }
             'list'
             {

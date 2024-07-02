@@ -35,11 +35,11 @@
             {
                 'list'
                 {
-                    InvokeImmichRestMethod -Method Get -RelativePath '/api-keys' -ImmichSession:$Session
+                    InvokeImmichRestMethod -Method Get -RelativePath '/api-keys' -ImmichSession:$Session | AddCustomType IMAPIKey
                 }
                 'id'
                 {
-                    InvokeImmichRestMethod -Method Get -RelativePath "/api-keys/$CurrentID" -ImmichSession:$Session
+                    InvokeImmichRestMethod -Method Get -RelativePath "/api-keys/$CurrentID" -ImmichSession:$Session | AddCustomType IMAPIKey
                 }
             }
         }

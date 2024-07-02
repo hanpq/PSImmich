@@ -20,14 +20,14 @@
         [Parameter()]
         [ImmichSession]$Session = $null,
 
-        [Parameter()]
+        [Parameter(Mandatory)]
         [string]$name
     )
 
-    $Body = @{}
-    $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'name')
+    $Query = @{}
+    $Query += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'name')
 
-    InvokeImmichRestMethod -Method GET -RelativePath '/search/places' -ImmichSession:$Session -Body $Body
+    InvokeImmichRestMethod -Method GET -RelativePath '/search/places' -ImmichSession:$Session -QueryParameters:$Query | AddCustomType IMPlace
 
 }
 #endregion

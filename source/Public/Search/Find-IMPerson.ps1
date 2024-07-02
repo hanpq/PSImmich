@@ -22,17 +22,17 @@
         [Parameter()]
         [ImmichSession]$Session = $null,
 
-        [Parameter()]
+        [Parameter(Mandatory)]
         [string]$name,
 
         [Parameter()]
         [boolean]$withHidden
     )
 
-    $Body = @{}
-    $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'name', 'withHidden')
+    $Query = @{}
+    $Query += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'name', 'withHidden')
 
-    InvokeImmichRestMethod -Method GET -RelativePath '/search/person' -ImmichSession:$Session -Body $Body
+    InvokeImmichRestMethod -Method GET -RelativePath '/search/person' -ImmichSession:$Session -QueryParameters:$Query
 
 }
 #endregion

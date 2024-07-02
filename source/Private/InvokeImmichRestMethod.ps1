@@ -182,7 +182,7 @@
     }
     else
     {
-        Invoke-RestMethod @InvokeRestMethodSplat -Verbose:$false | ForEach-Object { $_ }
+        Invoke-RestMethod @InvokeRestMethodSplat -Verbose:$false | ForEach-Object { if ($_ -ne '' -and $null -ne $_) {$_} }
     }
 
 }

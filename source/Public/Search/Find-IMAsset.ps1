@@ -239,13 +239,13 @@
     $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'checksum', 'city', 'country', 'createdAfter', 'createdBefore', 'deviceAssetId', 'deviceId', 'encodedVideoPath', 'id', 'isArchived', 'isEncoded', 'isExternal', 'isFavorite', 'isMotion', 'isNotInAlbum', 'isOffline', 'isReadOnly', 'isVisible', 'lensModel', 'libraryId', 'make', 'model', 'order', 'originalFileName', 'originalPath', 'page', 'personIds', 'resizePath', 'size', 'state', 'takenAfter', 'takenBefore', 'trashedAfter', 'trashedBefore', 'type', 'updatedAfter', 'updatedBefore', 'webpPath', 'withArchived', 'withDeleted', 'withExif', 'withPeople', 'withStacked')
 
     $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/metadata' -ImmichSession:$Session -Body $Body | Select-Object -ExpandProperty assets
-    $Result | Select-Object -ExpandProperty items
+    $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
 
     while ($Result.NextPage)
     {
         $Body.page = $Result.NextPage
         $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/metadata' -ImmichSession:$Session -Body $Body | Select-Object -ExpandProperty assets
-        $Result | Select-Object -ExpandProperty items
+        $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
     }
 
 }

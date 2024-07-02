@@ -11,68 +11,64 @@
         Defines the album to get
     .PARAMETER AssetId
         Only returns albums that contain the asset
-    .PARAMETER ExcludeShared
+    .PARAMETER Shared
         Defines weather to return shared albums or not.
     .PARAMETER IncludeAssets
         Defines weather to return assets as part of the object or not
     .PARAMETER Name
-        Get album by name
+        Specify an exact name of an album
+    .PARAMETER SearchString
+        Specify a string to search for in album names, accepts wildcard
     .EXAMPLE
         Get-IMAlbum -albumid <albumid>
 
         Retreives Immich album
     #>
 
-    [CmdletBinding(DefaultParameterSetName = 'list-shared')]
+    [CmdletBinding(DefaultParameterSetName = 'list')]
     param(
         [Parameter()]
         [ImmichSession]
         $Session = $null,
 
-        [Parameter(Position = 1, Mandatory, ParameterSetName = 'id', ValueFromPipelineByPropertyName, ValueFromPipeline)]
+        [Parameter(Mandatory, ParameterSetName = 'id', ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [Alias('Id')]
         [string]
         $AlbumId,
 
-        [Parameter(Mandatory, ParameterSetName = 'list-asset')]
+        [Parameter(ParameterSetName = 'list')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
         $AssetId,
 
         [Parameter(ParameterSetName = 'id')]
+        [Parameter(ParameterSetName = 'list')]
         [switch]
         $IncludeAssets,
 
-        [Parameter(ParameterSetName = 'list-shared')]
-        [Parameter(ParameterSetName = 'search-albumname')]
-        [switch]
-        $ExcludeShared,
+        [Parameter(ParameterSetName = 'list')]
+        [boolean]
+        $Shared,
 
-        [Parameter(Position = 1, Mandatory, ParameterSetName = 'search-albumname')]
+        [Parameter(ParameterSetName = 'list')]
         [string]
-        $Name
+        $Name,
 
+        [Parameter(ParameterSetName = 'list')]
+        [string]
+        $SearchString
     )
 
     BEGIN
     {
         switch ($PSCmdlet.ParameterSetName)
         {
-            'list-shared'
+            'list'
             {
                 $QueryParameters = @{}
-                $QueryParameters.shared = (-not $ExcludeShared)
-            }
-            'search-albumname'
-            {
-                $QueryParameters = @{}
-                $QueryParameters.shared = (-not $ExcludeShared)
-            }
-            'list-asset'
-            {
-                $QueryParameters = @{}
-                $QueryParameters.assetId = $AssetId
+                $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'Shared' -NameMapping @{'Shared' = 'shared' })
+                $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'AssetId' -NameMapping @{'AssetId' = 'assetId' })
             }
             'id'
             {
@@ -86,21 +82,32 @@
     {
         switch ($PSCmdlet.ParameterSetName)
         {
-            'search-albumname'
+            'list'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/albums' -ImmichSession:$Session -QueryParameters $QueryParameters | Where-Object { $_.albumname -like "*$Name*" }
-            }
-            'list-shared'
-            {
-                InvokeImmichRestMethod -Method Get -RelativePath '/albums' -ImmichSession:$Session -QueryParameters $QueryParameters
+                $Result = InvokeImmichRestMethod -Method Get -RelativePath '/albums' -ImmichSession:$Session -QueryParameters $QueryParameters
+                if ($Name)
+                {
+                    $Result = $Result | Where-Object { $_.AlbumName -eq $Name }
+                }
+                if ($SearchString)
+                {
+                    $Result = $Result | Where-Object { $_.Albumname -like $SearchString }
+                }
+                if (-not $IncludeAssets)
+                {
+                    $Result | AddCustomType IMAlbum
+                }
+                else
+                {
+                    $Result | ForEach-Object {
+                        Get-IMAlbum -Id $PSItem.Id -IncludeAssets
+                    } | AddCustomType IMAlbum
+                }
+
             }
             'id'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/albums/$AlbumId" -ImmichSession:$Session -QueryParameters $QueryParameters
-            }
-            'list-asset'
-            {
-                InvokeImmichRestMethod -Method Get -RelativePath '/albums' -ImmichSession:$Session -QueryParameters $QueryParameters
+                InvokeImmichRestMethod -Method Get -RelativePath "/albums/$albumId" -ImmichSession:$Session -QueryParameters $QueryParameters | AddCustomType IMAlbum
             }
         }
     }

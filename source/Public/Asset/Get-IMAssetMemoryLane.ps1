@@ -45,7 +45,10 @@
 
     PROCESS
     {
-        InvokeImmichRestMethod -Method Get -RelativePath '/assets/memory-lane' -ImmichSession:$Session -QueryParameters $QueryParameters
+        InvokeImmichRestMethod -Method Get -RelativePath '/assets/memory-lane' -ImmichSession:$Session -QueryParameters $QueryParameters | ForEach-Object {
+            $PSItem.assets | ForEach-Object { $null = $PSItem | AddCustomType IMAsset }
+            $PSItem
+        }
     }
 }
 #endregion
