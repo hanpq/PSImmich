@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.107.0] - 2024-07-02
+
 ### IMPORTANT NOTE
 
 - The previous release had the aim to simplify the use of Get-IMAlbum and to align the cmdlet to how a powershell user would expect a cmdlet to function. However the changes caused quite a lot of breaking changes not motivated by the gains. And actually caused some behavior in itself that might be unexpected as a powershell user. Therefor the previous release has been yanked and a new version will be released with more moderate changes.
