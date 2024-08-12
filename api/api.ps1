@@ -1,4 +1,4 @@
-﻿$temp = Get-Content C:\Repos\PSImmich\api\api.1.107.json | ConvertFrom-Json -Depth 10
+﻿$temp = Get-Content C:\Repos\PSImmich\api\api.1.111.json | ConvertFrom-Json -Depth 10
 
 $AllCodeFiles = Get-ChildItem 'C:\Repos\PSImmich\source\public' -Recurse -Filter '*.ps1'
 $AllCodeFilesAst = foreach ($file in $AllCodeFiles)
@@ -40,8 +40,8 @@ $Result = foreach ($path in $temp.paths.PSObject.Properties.Name)
             Path      = $Path
             Skipped   = $false
             Covered   = [boolean]($CoveredBy)
+            Deprecated = [boolean]($PathObject.$Method.Deprecated)
             CoveredBy = ($CoveredBy.BaseName | Select-Object -Unique) -join ','
-
         }
 
         # Cmdlets covered but not detected
@@ -64,6 +64,10 @@ $Result = foreach ($path in $temp.paths.PSObject.Properties.Name)
         # Cmdlets skipped and should not count for coverage
         switch ( $Object)
         {
+            { $_.Path -eq '/assets/stack/parent' -and $_.Method -eq 'PUT' }
+            {
+                $Object.Skipped = $true; $Object.CoveredBy = 'Unclear usage of API'
+            }
             { $_.Path -eq '/assets/bulk-upload-check' -and $_.Method -eq 'POST' }
             {
                 $Object.Skipped = $true; $Object.CoveredBy = 'Probably used by mobile'
@@ -167,7 +171,11 @@ function GetTableColor
         $Hash = [hashtable]@{
             Label      = $property
             Expression = [scriptblock]::Create(@'
-            if ($_.Skipped -eq $true -and $_.Covered -eq $false )
+            if ($_.Deprecated -eq $true )
+            {{
+                $e = [char]27; "$e[38;5;8m$($_.{0})$e[0m"
+    }}
+            elseif ($_.Skipped -eq $true -and $_.Covered -eq $false )
             {{
                 $e = [char]27; "$e[38;5;8m$($_.{0})$e[0m"
     }}
@@ -191,7 +199,7 @@ function GetTableColor
 
 }
 
-$Result | Format-Table (GetTableColor -propertyname 'Method', 'Path', 'Skipped', 'Covered', 'CoveredBy')
+$Result | Format-Table (GetTableColor -propertyname 'Method', 'Path', 'Skipped', 'Covered', 'Deprecated', 'CoveredBy')
 $CoveredCount = $Result | Where-Object { $_.covered -EQ $true -and $_.skipped -eq $false } | Measure-Object | Select-Object -expand count
 
 Write-Host "API Coverage $($CoveredCount) / $($Result.Count) ($([Math]::Round($CoveredCount/($Result.Count)*100,0))%)" -ForegroundColor Magenta

@@ -16,7 +16,6 @@
         $InputObject,
 
         [Parameter(Mandatory, Position = 1)]
-        [ValidateSet('IMAsset', 'IMAlbum', 'IMActivity', 'IMAPIKey', 'IMPlace', 'IMUser')]
         [string]
         $Type
     )

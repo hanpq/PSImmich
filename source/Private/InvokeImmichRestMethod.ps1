@@ -154,6 +154,10 @@
                 {
                     "$($QueryParameter)=$($QueryParameters.$QueryParameter)"
                 }
+                'double'
+                {
+                    "$($QueryParameter)=$($QueryParameters.$QueryParameter)"
+                }
                 'datetime'
                 {
                     "$($QueryParameter)=$($QueryParameters.$QueryParameter.ToString('yyyy-MM-ddTHH:mm:ss'))"
@@ -182,7 +186,10 @@
     }
     else
     {
-        Invoke-RestMethod @InvokeRestMethodSplat -Verbose:$false | ForEach-Object { if ($_ -ne '' -and $null -ne $_) {$_} }
+        Invoke-RestMethod @InvokeRestMethodSplat -Verbose:$false | ForEach-Object { if ($_ -ne '' -and $null -ne $_)
+            {
+                $_
+            } }
     }
 
 }

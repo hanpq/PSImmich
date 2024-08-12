@@ -1155,6 +1155,37 @@ Describe 'Timeline' -Tag 'Integration' {
     }
 }
 
+Describe 'Map' -Tag 'Integration' {
+    Context 'Convert-IMCoordinatesToLocation' {
+        It 'Should return location of Kensington' {
+            $Result = Convert-IMCoordinatesToLocation -Latitude 51.496637 -Longitude -0.176370
+            $Result.country | should -be 'United Kingdom'
+            $Result.state | should -be 'England'
+            $Result.city | should -be 'Kensington'
+        }
+    }
+}
+
+Describe 'Duplicate' -Tag 'Integration' {
+    Context 'Get-IMDuplicate' {
+        It 'Should no throw' {
+            {Get-IMDuplicate} | should -not -throw
+        }
+    }
+}
+
+Describe 'Server' -Tag 'Integration' {
+    Context 'Get-IMServerLicense' {
+        # No way to test without a valid license
+    }
+    Context 'Set-IMServerLicense' {
+        # No way to test without a valid license
+    }
+    Context 'Remove-IMServerLicense' {
+        # No way to test without a valid license
+    }
+}
+
 Describe 'User' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
@@ -1173,6 +1204,45 @@ Describe 'User' -Tag 'Integration' {
             $Result = Get-IMUser -me
             $Result | Should -HaveCount 1
             $Result.name | Should -Be 'Hannes Palmquist'
+        }
+    }
+    Context 'Get-IMUserPreference' {
+        It 'Should list self' {
+            $Result = Get-IMUserPreference
+            $Result.PSObject.Properties.Name | should -Contain 'memories'
+            $Result.PSObject.Properties.Name | should -Contain 'avatar'
+            $Result.PSObject.Properties.Name | should -Contain 'emailNotifications'
+            $Result.PSObject.Properties.Name | should -Contain 'download'
+            $Result.PSObject.Properties.Name | should -Contain 'purchase'
+            $Result | Should -HaveCount 1
+        }
+        It 'Should list specific user' {
+            $Result = Get-IMUserPreference -id 'fb95c457-7685-428c-b850-2fd60345819c'
+            $Result.PSObject.Properties.Name | should -Contain 'memories'
+            $Result.PSObject.Properties.Name | should -Contain 'avatar'
+            $Result.PSObject.Properties.Name | should -Contain 'emailNotifications'
+            $Result.PSObject.Properties.Name | should -Contain 'download'
+            $Result.PSObject.Properties.Name | should -Contain 'purchase'
+            $Result | Should -HaveCount 1
+        }
+    }
+    Context 'Set-IMUserPreference' {
+        BeforeEach {
+            Set-IMUserPreference -Id 'fb95c457-7685-428c-b850-2fd60345819c' -EmailNotificationEnabled:$true
+        }
+        AfterEach {
+            Set-IMUserPreference -Id 'fb95c457-7685-428c-b850-2fd60345819c' -EmailNotificationEnabled:$true
+        }
+        It 'Should change setting for user when using id' {
+            Set-IMUserPreference -Id 'fb95c457-7685-428c-b850-2fd60345819c' -EmailNotificationEnabled:$false
+            $Result = Get-IMUserPreference
+            $Result.emailNotifications.enabled | should -befalse
+        }
+        It 'Should change setting for user when using pipe' {
+            Get-IMUser -Id 'fb95c457-7685-428c-b850-2fd60345819c' | `
+            Set-IMUserPreference -EmailNotificationEnabled:$false
+            $Result = Get-IMUserPreference
+            $Result.emailNotifications.enabled | should -befalse
         }
     }
     Context 'New-IMUser' {

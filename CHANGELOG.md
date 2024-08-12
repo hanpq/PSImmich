@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added support for the user preference API. This has been added as two new cmdlets Get-IMUserPreference and Set-IMUserPreference.
+- Added support for the duplicates API. This has been added as one new cmdlet Get-IMDuplicate.
+- Added support for the reverse geocoding API. This has been added as one new cmdlet Convert-IMCoordinatesToLocation.
+- Added support for the server license API. This has been added as three new cmdlets Get-IMServerLicense, Set-IMServerLicense, Remove-IMServerLicense.
+
 ## [1.107.0] - 2024-07-02
 
 ### IMPORTANT NOTE
