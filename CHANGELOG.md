@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.111.0] - 2024-08-12
+
 ### Added
 
 - Added support for the user preference API. This has been added as two new cmdlets Get-IMUserPreference and Set-IMUserPreference.
