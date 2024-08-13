@@ -6,17 +6,17 @@ no-bump-message: '\+semver:\s?(none|skip)'
 assembly-informational-format: "{NuGetVersionV2}+Sha.{Sha}.Date.{CommitDate}"
 branches:
   master:
-    tag: preview
+    label: preview
     regex: ^main$
   pull-request:
-    tag: PR
+    label: PR
   feature:
-    tag: useBranchName
+    label: useBranchName
     increment: Minor
     regex: f(eature(s)?)?[\/-]
     source-branches: ["main"]
   hotfix:
-    tag: fix
+    label: fix
     increment: Patch
     regex: (hot)?fix(es)?[\/-]
     source-branches: ["main"]
@@ -24,4 +24,3 @@ branches:
 ignore:
   sha: []
 merge-message-formats: {}
-
