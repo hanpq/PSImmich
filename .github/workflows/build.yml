@@ -37,7 +37,7 @@ jobs:
           fetch-depth: "0"
       - name: Calculate ModuleVersion (GitVersion)
         run: |
-          dotnet tool install --global GitVersion.Tool
+          dotnet tool install --global GitVersion.Tool --version 5.*
           dotnet-gitversion
           $gitVersionObject = dotnet-gitversion | ConvertFrom-Json
           $gitVersionObject.PSObject.Properties.ForEach{

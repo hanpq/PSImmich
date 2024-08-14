@@ -3,20 +3,20 @@ major-version-bump-message: '(breaking\schange|breaking|major)\b'
 minor-version-bump-message: '(adds?|features?|minor)\b'
 patch-version-bump-message: '\s?(fix|patch)'
 no-bump-message: '\+semver:\s?(none|skip)'
-assembly-informational-format: "{SemVer}+Sha.{Sha}.Date.{CommitDate}"
+assembly-informational-format: "{NugetVersionV2}+Sha.{Sha}.Date.{CommitDate}"
 branches:
   master:
-    label: preview
+    tag: preview
     regex: ^main$
   pull-request:
-    label: PR
+    tag: PR
   feature:
-    label: useBranchName
+    tag: useBranchName
     increment: Minor
     regex: f(eature(s)?)?[\/-]
     source-branches: ["main"]
   hotfix:
-    label: fix
+    tag: fix
     increment: Patch
     regex: (hot)?fix(es)?[\/-]
     source-branches: ["main"]
