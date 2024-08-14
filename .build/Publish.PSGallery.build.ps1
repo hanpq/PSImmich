@@ -128,6 +128,7 @@ Task publish_module_to_gallery -if ($GalleryApiToken -and (Get-Command -Name 'Pu
         NuGetApiKey = $GalleryApiToken
         Repository  = 'PSGallery'
         ErrorAction = 'Stop'
+        Force       = $true
     }
 
     if ($PublishModuleWhatIf)
