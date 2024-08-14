@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Maintenance: Fix version number issue causing PSGallery publish to fail
+
 ## [1.111.0] - 2024-08-12
 
 ### Added
