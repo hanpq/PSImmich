@@ -1,16 +1,16 @@
-﻿function Get-IMSupportedMediaType
+﻿function Get-IMServerStorage
 {
     <#
     .DESCRIPTION
-        Retreives Immich supported media type
+        Retreives Immich server config
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
     .EXAMPLE
-        Get-IMSupportedMediaType
+        Get-IMServerConfig
 
-        Retreives Immich supported media type
+        Retreives Immich server config
     #>
 
     [CmdletBinding()]
@@ -18,7 +18,7 @@
         [Parameter()][ImmichSession]$Session = $null
     )
 
-    InvokeImmichRestMethod -noauth -Method Get -RelativePath '/server-info/media-types' -ImmichSession:$Session
+    InvokeImmichRestMethod -Method Get -RelativePath '/server/storage' -ImmichSession:$Session
 
 }
 #endregion

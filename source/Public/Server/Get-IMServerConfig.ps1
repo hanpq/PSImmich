@@ -1,16 +1,16 @@
-﻿function Get-IMServerStatistic
+﻿function Get-IMServerConfig
 {
     <#
     .DESCRIPTION
-        Retreives Immich server statistic
+        Retreives Immich server config
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
     .EXAMPLE
-        Get-IMServerStatistic
+        Get-IMServerConfig
 
-        Retreives Immich server statistic
+        Retreives Immich server config
     #>
 
     [CmdletBinding()]
@@ -18,7 +18,7 @@
         [Parameter()][ImmichSession]$Session = $null
     )
 
-    InvokeImmichRestMethod -Method Get -RelativePath '/server-info/statistics' -ImmichSession:$Session
+    InvokeImmichRestMethod -noauth -Method Get -RelativePath '/server/config' -ImmichSession:$Session
 
 }
 #endregion

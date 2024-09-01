@@ -1,16 +1,16 @@
-﻿function Get-IMAlbumCount
+﻿function Get-IMAlbumStatistic
 {
     <#
     .DESCRIPTION
-        Retreives album count
+        Retreives Immich album statistics
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
     .EXAMPLE
-        Get-IMAlbumCount
+        Get-IMAlbumStatistics
 
-        Retreives album count
+        Retreives Immich album statistics
     #>
 
     [CmdletBinding()]
@@ -20,7 +20,6 @@
         $Session = $null
     )
 
-    InvokeImmichRestMethod -Method Get -RelativePath '/albums/count' -ImmichSession:$Session
-
+    InvokeImmichRestMethod -Method Get -RelativePath '/albums/statistics' -ImmichSession:$Session
 }
 #endregion

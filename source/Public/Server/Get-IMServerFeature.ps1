@@ -1,16 +1,16 @@
-﻿function Get-IMServerStorage
+﻿function Get-IMServerFeature
 {
     <#
     .DESCRIPTION
-        Retreives Immich server config
+        Retreives Immich server feature
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
     .EXAMPLE
-        Get-IMServerConfig
+        Get-IMServerFeature
 
-        Retreives Immich server config
+        Retreives Immich server feature
     #>
 
     [CmdletBinding()]
@@ -18,7 +18,7 @@
         [Parameter()][ImmichSession]$Session = $null
     )
 
-    InvokeImmichRestMethod -Method Get -RelativePath '/server-info/storage' -ImmichSession:$Session
+    InvokeImmichRestMethod -noauth -Method Get -RelativePath '/server/features' -ImmichSession:$Session
 
 }
 #endregion

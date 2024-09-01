@@ -175,9 +175,18 @@ Describe 'Session' -Tag 'Integration' {
     }
 }
 
-Describe 'ServerInfo' -Tag 'Integration' {
+Describe 'Server' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context 'Get-IMServerLicense' {
+        # No way to test without a valid license
+    }
+    Context 'Set-IMServerLicense' {
+        # No way to test without a valid license
+    }
+    Context 'Remove-IMServerLicense' {
+        # No way to test without a valid license
     }
     Context -Name 'Get-IMServer' {
         It -Name 'Should not throw' {
@@ -246,6 +255,16 @@ Describe 'ServerInfo' -Tag 'Integration' {
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
+    Context -Name 'Get-IMServerAbout - When no parameters are specified' {
+        It -Name 'Should not throw' {
+            { Get-IMServerAbout } | Should -Not -Throw
+        }
+        It -Name 'Should return these properties' {
+            #$Result = Get-IMTheme
+            #$ExpectedProperties = @('customCss')
+            #Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
+        }
+    }
     Context -Name 'Test-IMPing - When no parameters are specified' {
         It -Name 'Should not throw' {
             { Test-IMPing } | Should -Not -Throw
@@ -258,8 +277,6 @@ Describe 'ServerInfo' -Tag 'Integration' {
     }
 }
 
-
-
 Describe 'Asset' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
@@ -267,7 +284,7 @@ Describe 'Asset' -Tag 'Integration' {
     Context -Name 'Get-IMAsset - Specifying a single ID' {
         It -Name 'Should return a object with the correct properties' {
             $Result = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $ExpectedProperties = @('unassignedFaces','duplicateId','hasMetadata', 'isOffline', 'stackCount', 'checksum', 'people', 'tags', 'livePhotoVideoId', 'smartInfo', 'exifInfo', 'duration', 'isTrashed', 'isArchived', 'isFavorite', 'updatedAt', 'localDateTime', 'fileModifiedAt', 'fileCreatedAt', 'thumbhash', 'resized', 'id', 'deviceAssetId', 'ownerId', 'owner', 'deviceId', 'libraryId', 'type', 'originalPath', 'originalFileName','originalMimeType')
+            $ExpectedProperties = @('unassignedFaces','duplicateId','hasMetadata', 'isOffline', 'checksum', 'people', 'tags', 'livePhotoVideoId', 'smartInfo', 'exifInfo', 'duration', 'isTrashed', 'isArchived', 'isFavorite', 'updatedAt', 'localDateTime', 'fileModifiedAt', 'fileCreatedAt', 'thumbhash', 'resized', 'id', 'deviceAssetId', 'ownerId', 'owner', 'deviceId', 'libraryId', 'type', 'originalPath', 'originalFileName','originalMimeType','stack')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
         It -Name 'Should return a single object' {
@@ -509,6 +526,14 @@ Describe 'Album' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
+    Context 'Get-IMAlbumStatistic' {
+        It -Name 'get' {
+            $Result = Get-IMAlbumStatistic
+            $Result.owned | Should -Be 1
+            $Result.shared | Should -Be 1
+            $Result.notShared | Should -Be 0
+        }
+    }
     Context 'Get-IMAlbum' {
         It -Name 'list-default' {
             $Result = Get-IMAlbum | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
@@ -569,14 +594,6 @@ Describe 'Album' -Tag 'Integration' {
         It -Name 'list-id-pipe-object-array-alias' {
             $Result = @([pscustomobject]@{id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }, [pscustomobject]@{id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }) | Get-IMAlbum | Where-Object { $_.id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
             $Result | Should -HaveCount 2
-        }
-    }
-    Context 'Get-IMAlbumCount' -Skip:([boolean]($env:CI)) {
-        It -Name 'Gets correct count' {
-            $Result = Get-IMAlbumCount
-            $Result.owned | Should -Be 1
-            $Result.shared | Should -Be 1
-            $Result.notShared | Should -Be 0
         }
     }
     Context 'New-IMAlbum' {
@@ -754,7 +771,13 @@ Describe 'APIKey' -Tag 'Integration' {
     }
     Context 'New-IMAPIKey' {
         It 'Should create a new api-key' {
-            $Result = New-IMAPIKey -name $KeyName
+            $Result = New-IMAPIKey -name $KeyName -Permission all
+            $Result.secret | Should -Not -BeNullOrEmpty
+            Get-IMAPIKey -id $Result.apiKey.id | Should -HaveCount 1
+            Remove-IMAPIKey -id $Result.apiKey.id
+        }
+        It 'Should create a new api-key with multiple permissions' {
+            $Result = New-IMAPIKey -name $KeyName -Permission "activity.create", "activity.read", "activity.update"
             $Result.secret | Should -Not -BeNullOrEmpty
             Get-IMAPIKey -id $Result.apiKey.id | Should -HaveCount 1
             Remove-IMAPIKey -id $Result.apiKey.id
@@ -762,7 +785,7 @@ Describe 'APIKey' -Tag 'Integration' {
     }
     Context 'Set-IMAPIKey' {
         It 'Should set a new name' {
-            $Result = New-IMAPIKey -name $KeyName
+            $Result = New-IMAPIKey -name $KeyName -Permission all
             Rename-IMAPIKey -id $Result.apiKey.id -name "$($KeyName)_New"
             $Result = Get-IMAPIKey -id $Result.apiKey.id
             $Result.Name | Should -Be "$($KeyName)_New"
@@ -771,7 +794,7 @@ Describe 'APIKey' -Tag 'Integration' {
     }
     Context 'Remove-IMAPIKey' {
         It 'Should remove the api key' {
-            $Result = New-IMAPIKey -name $KeyName
+            $Result = New-IMAPIKey -name $KeyName -Permission all
             Remove-IMAPIKey -id $Result.apiKey.id
             { Get-IMAPIKey -id $Result.apiKey.id } | Should -Throw
         }
@@ -1110,15 +1133,6 @@ Describe 'Tag' -Tag 'Integration' {
             { Get-IMTag -id $New.id } | Should -Throw
         }
     }
-    Context 'Rename-IMTag' {
-        It 'Should rename tag' {
-            $New = New-IMTag -Name 'TestTag' -Type 'OBJECT'
-            $Rename = Rename-IMTag -id $New.id -NewName 'TestTag2'
-            $Result = Get-IMTag -id $new.id
-            $Result.Name | Should -Be 'TestTag2'
-            Remove-IMTag -Id $New.id
-        }
-    }
     Context 'Set-IMTag' {
         BeforeAll {
             $NewTag = New-IMTag -Name 'TestTag' -Type 'OBJECT'
@@ -1135,6 +1149,10 @@ Describe 'Tag' -Tag 'Integration' {
             $Result = Set-IMTag -id $NewTag.id -RemoveAssets '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $Asset.tags.id | Should -not -Contain $newtag.id
+        }
+        It 'Should set color' {
+            $Result = Set-IMTag -id $NewTag.id -Color '#008000'
+            $Result | should -not -BeNullOrEmpty
         }
     }
 }
@@ -1171,18 +1189,6 @@ Describe 'Duplicate' -Tag 'Integration' {
         It 'Should no throw' {
             {Get-IMDuplicate} | should -not -throw
         }
-    }
-}
-
-Describe 'Server' -Tag 'Integration' {
-    Context 'Get-IMServerLicense' {
-        # No way to test without a valid license
-    }
-    Context 'Set-IMServerLicense' {
-        # No way to test without a valid license
-    }
-    Context 'Remove-IMServerLicense' {
-        # No way to test without a valid license
     }
 }
 

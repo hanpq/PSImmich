@@ -18,7 +18,7 @@
         [Parameter()][ImmichSession]$Session = $null
     )
 
-    $Result = InvokeImmichRestMethod -noauth -Method Get -RelativePath '/server-info/version' -ImmichSession:$Session
+    $Result = InvokeImmichRestMethod -noauth -Method Get -RelativePath '/server/version' -ImmichSession:$Session
     return [pscustomobject]@{
         version = "$($Result.Major).$($Result.Minor).$($Result.Patch)"
     }

@@ -1,16 +1,16 @@
-﻿function Get-IMTheme
+﻿function Get-IMServerStatistic
 {
     <#
     .DESCRIPTION
-        Retreives Immich theme CSS
+        Retreives Immich server statistic
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
     .EXAMPLE
-        Get-IMTheme
+        Get-IMServerStatistic
 
-        Retreives Immich theme CSS
+        Retreives Immich server statistic
     #>
 
     [CmdletBinding()]
@@ -18,7 +18,7 @@
         [Parameter()][ImmichSession]$Session = $null
     )
 
-    InvokeImmichRestMethod -Method Get -RelativePath '/server-info/theme' -ImmichSession:$Session
+    InvokeImmichRestMethod -Method Get -RelativePath '/server/statistics' -ImmichSession:$Session
 
 }
 #endregion

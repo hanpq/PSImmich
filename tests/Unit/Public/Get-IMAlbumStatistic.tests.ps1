@@ -22,7 +22,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Get-IMAlbumCount  -Tag 'Unit' {
+    Describe Get-IMAlbumStatistic {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

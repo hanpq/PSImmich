@@ -5,6 +5,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added Color parameter to Set-IMTag
+- Added Permissions to New-IMAPIKey
+- Added Get-IMServerAbout
+
+### Fixed
+
+- Renamed Get-IMAlbumCount to Get-IMAlbumStatistics according to upstream API change
+- Changed removed/server-info calls and replace with new /server calls.
+- Removed Rename-IMTag as it is removed from the upstream API
+
 ## [1.111.1] - 2024-08-14
 
 ### Fixed
@@ -75,9 +87,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New cmdlet Get-IMProfilePicture
 - New cmdlet Get-IMAssetThumbnail
 - New cmdlet Set-IMAlbumUser to allow changing the user role for an album.
-- Set-IMAsset now has a parameter for AddToFace to incorporate the /face/{id} API
-- New cmdlet Marge-IMPerson to incorporate the /person/{id}/merge API
-- Get-IMPerson now has a new switch IncludeStatistics to incorporate the /person/{id}/statistics API. The switch is not currently available with the list parameter set. However one could use the following to produce the same result Get-IMPerson | Get-IMPerson -IncludeStatistics
+- Set-IMAsset now has a parameter for AddToFace to incorporate the /face/\{id\} API
+- New cmdlet Marge-IMPerson to incorporate the /person/\{id\}/merge API
+- Get-IMPerson now has a new switch IncludeStatistics to incorporate the /person/\{id\}/statistics API. The switch is not currently available with the list parameter set. However one could use the following to produce the same result Get-IMPerson | Get-IMPerson -IncludeStatistics
 - New cmdlet Export-IMPersonThumbnail
 
 ### Fixed

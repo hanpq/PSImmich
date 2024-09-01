@@ -20,6 +20,7 @@
 
     $ResultObject = [ordered]@{}
     $Results = [array]@()
+    $Results += Get-IMServerAbout -Session:$Session | Add-Member -MemberType NoteProperty -Name 'ObjectType' -Value 'About' -PassThru
     $Results += Get-IMServerConfig -Session:$Session | Add-Member -MemberType NoteProperty -Name 'ObjectType' -Value 'Config' -PassThru
     $Results += Get-IMServerFeature -Session:$Session | Add-Member -MemberType NoteProperty -Name 'ObjectType' -Value 'Feature' -PassThru
     $Results += Get-IMServerStatistic -Session:$Session | Add-Member -MemberType NoteProperty -Name 'ObjectType' -Value 'Stats' -PassThru

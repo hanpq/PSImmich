@@ -18,7 +18,7 @@
         [Parameter()][ImmichSession]$Session = $null
     )
 
-    $Result = InvokeImmichRestMethod -noauth -Method Get -RelativePath '/server-info/ping' -ImmichSession:$Session
+    $Result = InvokeImmichRestMethod -noauth -Method Get -RelativePath '/server/ping' -ImmichSession:$Session
     if ($Result.res -eq 'pong')
     {
         return [pscustomobject]@{responds = $true }

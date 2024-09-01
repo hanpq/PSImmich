@@ -175,11 +175,11 @@
                         }
                         if ($PSBoundParameters.ContainsKey('AddTag'))
                         {
-                            $null = InvokeImmichRestMethod -Method PUT -RelativePath "/tags/$AddTag/assets" -ImmichSession:$Session -Body:@{assetIds = [string[]]$object }
+                            $null = InvokeImmichRestMethod -Method PUT -RelativePath "/tags/$AddTag/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$object }
                         }
                         if ($PSBoundParameters.ContainsKey('RemoveTag'))
                         {
-                            $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/tags/$AddTag/assets" -ImmichSession:$Session -Body:@{assetIds = [string[]]$object }
+                            $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/tags/$AddTag/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$object }
                         }
                         if ($PSBoundParameters.ContainsKey('AddToFace'))
                         {
@@ -218,11 +218,11 @@
                     }
                     if ($PSBoundParameters.ContainsKey('AddTag'))
                     {
-                        $null = InvokeImmichRestMethod -Method PUT -RelativePath "/tags/$AddTag/assets" -ImmichSession:$Session -Body:@{assetIds = [string[]]($BodyParameters.ids) }
+                        $null = InvokeImmichRestMethod -Method PUT -RelativePath "/tags/$AddTag/assets" -ImmichSession:$Session -Body:@{ids = [string[]]($BodyParameters.ids) }
                     }
                     if ($PSBoundParameters.ContainsKey('RemoveTag'))
                     {
-                        $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/tags/$RemoveTag/assets" -ImmichSession:$Session -Body:@{assetIds = [string[]]($BodyParameters.ids) }
+                        $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/tags/$RemoveTag/assets" -ImmichSession:$Session -Body:@{ids = [string[]]($BodyParameters.ids) }
                     }
                     if ($PSBoundParameters.ContainsKey('AddToFace'))
                     {

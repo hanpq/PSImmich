@@ -1,16 +1,16 @@
-﻿function Get-IMServerConfig
+﻿function Get-IMServerAbout
 {
     <#
     .DESCRIPTION
-        Retreives Immich server config
+        Retreives Immich server about
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
     .EXAMPLE
-        Get-IMServerConfig
+        Get-IMServerAbout
 
-        Retreives Immich server config
+        Retreives Immich server about
     #>
 
     [CmdletBinding()]
@@ -18,7 +18,7 @@
         [Parameter()][ImmichSession]$Session = $null
     )
 
-    InvokeImmichRestMethod -noauth -Method Get -RelativePath '/server-info/config' -ImmichSession:$Session
+    InvokeImmichRestMethod -Method Get -RelativePath '/server/about' -ImmichSession:$Session
 
 }
 #endregion

@@ -22,7 +22,7 @@ BeforeDiscovery {
 }
 
 InModuleScope $ProjectName {
-    Describe Rename-IMTag {
+    Describe Get-IMServerAbout {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

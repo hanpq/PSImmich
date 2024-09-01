@@ -1,4 +1,4 @@
-﻿$temp = Get-Content C:\Repos\PSImmich\api\api.1.111.json | ConvertFrom-Json -Depth 10
+﻿$temp = Get-Content C:\Repos\PSImmich\api\api.1.113.json | ConvertFrom-Json -Depth 10
 
 $AllCodeFiles = Get-ChildItem 'C:\Repos\PSImmich\source\public' -Recurse -Filter '*.ps1'
 $AllCodeFilesAst = foreach ($file in $AllCodeFiles)
@@ -36,12 +36,12 @@ $Result = foreach ($path in $temp.paths.PSObject.Properties.Name)
     {
         $CoveredBy = $CalledApiFunctions | Where-Object { $PSItem.RelativePath -like $CleanedPath -and $PSItem.Method -eq $Method }
         $Object = [pscustomobject]@{
-            Method    = $Method.ToUpper()
-            Path      = $Path
-            Skipped   = $false
-            Covered   = [boolean]($CoveredBy)
+            Method     = $Method.ToUpper()
+            Path       = $Path
+            Skipped    = $false
+            Covered    = [boolean]($CoveredBy)
             Deprecated = [boolean]($PathObject.$Method.Deprecated)
-            CoveredBy = ($CoveredBy.BaseName | Select-Object -Unique) -join ','
+            CoveredBy  = ($CoveredBy.BaseName | Select-Object -Unique) -join ','
         }
 
         # Cmdlets covered but not detected
@@ -155,6 +155,14 @@ $Result = foreach ($path in $temp.paths.PSObject.Properties.Name)
             { $_.Path -eq '/search/suggestions' -and $_.Method -eq 'GET' }
             {
                 $Object.Skipped = $true; $Object.CoveredBy = 'Not applicable for powershell'
+            }
+            {$_.path -eq '/tags' -and $_.Method -eq 'PUT'}
+            {
+                $Object.Skipped = $true; $Object.CoveredBy = 'Used to create multiple tags at once. Not needed as it is easy to replicate the functionality within PS: $array | % {New-IMTag -Name $PSItem}'
+            }
+            {$_.path -eq '/tags/assets' -and $_.Method -eq 'PUT'}
+            {
+                $Object.Skipped = $true; $Object.CoveredBy = 'Used to create multiple tags at once. Not needed as it is easy to replicate the functionality within PS: $array | % {New-IMTag -Name $PSItem}'
             }
         }
 
