@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.113.0] - 2024-09-01
 
-### Added
+### Added 
 
 - Added Color parameter to Set-IMTag
 - Added Permissions to New-IMAPIKey
