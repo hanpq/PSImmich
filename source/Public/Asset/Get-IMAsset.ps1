@@ -50,8 +50,9 @@
         $Random,
 
         [Parameter(ParameterSetName = 'random')]
+        [ValidateRange(1,1000)]
         [int]
-        $Count,
+        $Count = 1,
 
         [Parameter(Mandatory, ParameterSetName = 'deviceid')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
@@ -83,11 +84,6 @@
                 $QueryParameters = @{}
                 $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'isFavorite', 'isArchived', 'skip', 'take', 'updatedAfter', 'updatedBefore', 'userId', 'key')
             }
-            'random'
-            {
-                $QueryParameters = @{}
-                $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'count' -NameMapping @{Count = 'count' })
-            }
         }
     }
 
@@ -113,7 +109,11 @@
             }
             'random'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/assets/random' -ImmichSession:$Session -QueryParameters $QueryParameters | AddCustomType IMAsset
+                # Requires body, but we wont provide any parameters in this case. TBD
+                $Body = @{
+                    size = $Count
+                }
+                InvokeImmichRestMethod -Method POST -RelativePath '/search/random' -ImmichSession:$Session -Body:$Body | AddCustomType IMAsset
             }
             'list'
             {

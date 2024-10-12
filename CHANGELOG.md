@@ -5,6 +5,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Updated Start-IMJob to align with API changes.
+- Get-IMAsset -Random now uses the new /search/random endpoint.
+
+### Added
+
+- Added -History parameter to Get-IMServerVersion to retrieve version history.
+- Added new jobs to Start-,Suspend-,Resume-,Clear-IMJob
+
+### Removed
+
+- Removed Remove-IMLibraryOfflineFiles as it has been removed from the API and is now handled by Immich automatically.
+
 ## [1.113.0] - 2024-09-01
 
 ### Added 

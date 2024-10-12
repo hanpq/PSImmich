@@ -26,7 +26,22 @@
         $Session = $null,
 
         [Parameter(Mandatory)]
-        [ValidateSet('thumbnailGeneration', 'metadataExtraction', 'videoConversion', 'faceDetection', 'facialRecognition', 'smartSearch', 'backgroundTask', 'storageTemplateMigration', 'migration', 'search', 'sidecar', 'library')]
+        [ValidateSet(
+            'thumbnailGeneration',
+            'metadataExtraction',
+            'videoConversion',
+            'faceDetection',
+            'facialRecognition',
+            'smartSearch',
+            'duplicateDetection',
+            'backgroundTask',
+            'storageTemplateMigration',
+            'migration',
+            'search',
+            'sidecar',
+            'library',
+            'notifications'
+        )]
         [string[]]
         $Job,
 

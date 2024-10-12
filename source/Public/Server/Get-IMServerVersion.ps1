@@ -7,6 +7,8 @@
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
+    .PARAMETER History
+        Defines that version history should be return instead of the current version
     .EXAMPLE
         Get-IMServerVersion
 
@@ -15,12 +17,20 @@
 
     [CmdletBinding()]
     param(
-        [Parameter()][ImmichSession]$Session = $null
+        [Parameter()][ImmichSession]$Session = $null,
+
+        [Parameter()][switch]$History
     )
 
-    $Result = InvokeImmichRestMethod -noauth -Method Get -RelativePath '/server/version' -ImmichSession:$Session
-    return [pscustomobject]@{
-        version = "$($Result.Major).$($Result.Minor).$($Result.Patch)"
+    if ($History) {
+        $Result = InvokeImmichRestMethod -noauth -Method Get -RelativePath '/server/version-history' -ImmichSession:$Session
+        return $Result
+    }
+    else {
+        $Result = InvokeImmichRestMethod -noauth -Method Get -RelativePath '/server/version' -ImmichSession:$Session
+        return [pscustomobject]@{
+            version = "$($Result.Major).$($Result.Minor).$($Result.Patch)"
+        }
     }
 
 }

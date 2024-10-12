@@ -25,7 +25,26 @@
         $Session = $null,
 
         [Parameter(Mandatory)]
-        [ValidateSet('emptyTrash', 'thumbnailGeneration', 'metadataExtraction', 'videoConversion', 'faceDetection', 'facialRecognition', 'smartSearch', 'backgroundTask', 'storageTemplateMigration', 'migration', 'search', 'sidecar', 'library')]
+        [ValidateSet(
+            'thumbnailGeneration',
+            'metadataExtraction',
+            'videoConversion',
+            'faceDetection',
+            'facialRecognition',
+            'smartSearch',
+            'duplicateDetection',
+            'backgroundTask',
+            'storageTemplateMigration',
+            'migration',
+            'search',
+            'sidecar',
+            'library',
+            'notifications',
+            'emptyTrash',
+            'person-cleanup',
+            'tag-cleanup',
+            'user-cleanup'
+        )]
         [string[]]
         $Job,
 
@@ -44,13 +63,28 @@
                     InvokeImmichRestMethod -Method POST -RelativePath '/trash/empty' -ImmichSession:$Session
                 }
             }
+            { @('person-cleanup', 'tag-cleanup', 'user-cleanup') -contains $PSItem }
+            {
+                if ($PSCmdlet.ShouldProcess("Start job: $($PSitem)", 'START'))
+                {
+                    $Body = @{
+                        name = $PSitem
+                    }
+                    InvokeImmichRestMethod -Method POST -RelativePath '/jobs' -ImmichSession:$Session -Body:$Body
+                }
+            }
             default
             {
-                $CurrentJob = $PSItem
-                $Body = @{}
-                $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'Force')
-                $Body += @{command = 'start' }
-                InvokeImmichRestMethod -Method PUT -RelativePath "/jobs/$CurrentJob" -ImmichSession:$Session -Body:$Body
+                if ($PSCmdlet.ShouldProcess("Start job: $($PSitem)", 'START'))
+                {
+                    $CurrentJob = $PSItem
+                    $Body = @{}
+                    $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'Force')
+                    $Body += @{
+                        command = 'start'
+                    }
+                    InvokeImmichRestMethod -Method PUT -RelativePath "/jobs/$CurrentJob" -ImmichSession:$Session -Body:$Body
+                }
             }
         }
     }
