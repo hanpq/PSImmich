@@ -163,7 +163,11 @@ Describe 'Quality for files' -Tag 'TestQuality' {
         }
         Context $File.Name {
             It 'Function has unit tests' {
-                Get-ChildItem "$PSScriptRoot\.." -Recurse -Include "$($Name).Tests.ps1" | Should -Not -BeNullOrEmpty
+                #Get-ChildItem "$PSScriptRoot\.." -Recurse -Include "$($Name).Tests.ps1" | Should -Not -BeNullOrEmpty
+                $Result = Get-ChildItem "$PSScriptRoot\..\Unit" -file -Recurse | foreach-object {
+                    Select-String -Path $PSItem.FullName -Pattern "Describe '$Name'" -SimpleMatch
+                }
+                $Result | should -not -BeNullOrEmpty
             } -ForEach $File
             It 'Script analyzer' {
                 $PSSAResult = (Invoke-ScriptAnalyzer -Path $File.FullName)
