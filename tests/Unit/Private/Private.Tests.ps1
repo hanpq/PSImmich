@@ -43,6 +43,9 @@ InModuleScope $ProjectName {
             Mock -CommandName 'Invoke-RestMethod' -Verifiable -MockWith {
 
             }
+            Mock -CommandName 'ValidateToken' -Verifiable -MockWith {
+
+            }
             $Session = [ImmichSession]::New('https://test.domain.com/api', (ConvertTo-SecureString -String 'string' -AsPlainText -Force))
         }
         Context 'When calling get without query or body' {
