@@ -1,4 +1,4 @@
-﻿$temp = Get-Content C:\Repos\PSImmich\api\api.1.113.json | ConvertFrom-Json -Depth 10
+﻿$temp = Get-Content C:\Repos\PSImmich\api\api.1.118.json | ConvertFrom-Json -Depth 10
 
 $AllCodeFiles = Get-ChildItem 'C:\Repos\PSImmich\source\public' -Recurse -Filter '*.ps1'
 $AllCodeFilesAst = foreach ($file in $AllCodeFiles)
@@ -156,11 +156,11 @@ $Result = foreach ($path in $temp.paths.PSObject.Properties.Name)
             {
                 $Object.Skipped = $true; $Object.CoveredBy = 'Not applicable for powershell'
             }
-            {$_.path -eq '/tags' -and $_.Method -eq 'PUT'}
+            { $_.path -eq '/tags' -and $_.Method -eq 'PUT' }
             {
                 $Object.Skipped = $true; $Object.CoveredBy = 'Used to create multiple tags at once. Not needed as it is easy to replicate the functionality within PS: $array | % {New-IMTag -Name $PSItem}'
             }
-            {$_.path -eq '/tags/assets' -and $_.Method -eq 'PUT'}
+            { $_.path -eq '/tags/assets' -and $_.Method -eq 'PUT' }
             {
                 $Object.Skipped = $true; $Object.CoveredBy = 'Used to create multiple tags at once. Not needed as it is easy to replicate the functionality within PS: $array | % {New-IMTag -Name $PSItem}'
             }
