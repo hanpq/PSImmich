@@ -25,10 +25,14 @@
 InModuleScope $ProjectName {
     Describe InvokeImmichRestMethod  -Tag 'Unit' {
         BeforeAll {
-            $Session = [ImmichSession]::New('https://test.domain.com/api', (ConvertTo-SecureString -String 'string' -AsPlainText -Force))
+            function Invoke-RestMethod
+            {
+                return [pscustomobject]@{}
+            }
             Mock -CommandName 'Invoke-RestMethod' -Verifiable -MockWith {
 
             }
+            $Session = [ImmichSession]::New('https://test.domain.com/api', (ConvertTo-SecureString -String 'string' -AsPlainText -Force))
         }
         Context 'When calling get without query or body' {
             It 'Should not throw' {
