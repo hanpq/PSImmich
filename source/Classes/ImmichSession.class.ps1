@@ -80,7 +80,7 @@ class ImmichSession
     hidden GetStatus()
     {
         $this.ValidateToken()
-        $Status = InvokeImmichRestMethod -Method:'Get' -ImmichSession $this -RelativePath '/server-info/version'
+        $Status = InvokeImmichRestMethod -Method:'Get' -ImmichSession $this -RelativePath '/server/version'
         $this.ImmichVersion = "$($Status.Major).$($Status.Minor).$($Status.Patch)"
         Remove-Variable -Name Status
     }
