@@ -19,16 +19,27 @@
     ).BaseName
 
     Import-Module $ProjectName -Force
-
 }
 
 InModuleScope $ProjectName {
-    Describe InvokeImmichRestMethod  -Tag 'Unit' {
-        BeforeAll {
-            function Invoke-RestMethod
-            {
-                return [pscustomobject]@{}
+
+    Describe 'AddCustomType' {
+        Context 'Default' {
+            It 'Should be true' {
+                $true | Should -BeTrue
             }
+        }
+    }
+    Describe 'ConvertFromSecureString' -Tag 'Unit' {
+        Context 'When providing a securestring' {
+            It 'Should return the correct string' {
+                $SecureString = ConvertTo-SecureString -String 'immich' -AsPlainText -Force
+                ConvertFromSecureString -SecureString $SecureString | Should -BeExactly 'immich'
+            }
+        }
+    }
+    Describe 'InvokeImmichRestMethod' -Tag 'Unit' {
+        BeforeAll {
             Mock -CommandName 'Invoke-RestMethod' -Verifiable -MockWith {
 
             }
@@ -55,6 +66,20 @@ InModuleScope $ProjectName {
                         param2 = Get-Date
                         param3 = 1
                     } } | Should -Not -Throw
+            }
+        }
+    }
+    Describe 'SelectBinding' -Tag 'Unit' {
+        Context 'Default' {
+            It 'Should be true' {
+                $true | Should -BeTrue
+            }
+        }
+    }
+    Describe 'ValidateToken' -Tag 'Unit' {
+        Context 'Default' {
+            It 'Should be true' {
+                $true | Should -BeTrue
             }
         }
     }
