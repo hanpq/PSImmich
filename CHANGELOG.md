@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.118.0] - 2024-10-15
+
 ### Fixed
 
 - Connect Immich session now uses the new server api instead of the deprecated server-info api.
