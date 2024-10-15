@@ -26,7 +26,6 @@ ModuleBuildTasks:
   Sampler.GitHubTasks:
     - "*.ib.tasks"
 
-
 BuildWorkflow:
   ".":
     - build
@@ -74,6 +73,7 @@ Pester:
       ExcludeTag:
     Output:
       Verbosity: Detailed
+      #Verbosity: Diagnostic
     CodeCoverage:
       Path:
       OutputFormat:
@@ -81,6 +81,7 @@ Pester:
       #OutputPath: CodeCov.xml
       OutputEncoding: ascii
       ExcludeTests:
+      UseBreakpoints: false
     TestResult:
       OutputFormat: NUnitXML
       OutputPath:
