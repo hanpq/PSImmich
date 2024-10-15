@@ -5,6 +5,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Connect Immich session now uses the new server api instead of the deprecated server-info api.
+
+### Chore
+
+- Combined all unit test files to two combined test-files. Cuts test-discovery with 80%
+- Switched to Profiler for code coverage instead of breakpoints. Also cuts testing time substantially.
+- ValidateToken has been moved to a new private function to allow mocking when called from a class.
+
 ## [1.117.0] - 2024-10-12
 
 ### Fixed
