@@ -42,12 +42,13 @@ class ImmichSession
         {
             if ($this.AuthMethod -eq 'Credential')
             {
-                $Result = Invoke-RestMethod -Method Post -Uri "$($this.ApiUri)/auth/validateToken" -Headers @{Authorization = "Bearer $(ConvertFromSecureString -SecureString $this.JWT)" } | Select-Object -Property AuthStatus
+                $Secret = $this.JWT
             }
             else
             {
-                $Result = Invoke-RestMethod -Method Post -Uri "$($this.ApiUri)/auth/validateToken" -Headers @{'X-API-Key' = "$(ConvertFromSecureString -SecureString $this.AccessToken)" } | Select-Object -Property AuthStatus
+                $Secret = $this.AccessToken
             }
+            $Result = ValidateToken -Type $this.AuthMethod -ApiURL $this.ApiUri -Secret $Secret
         }
         catch
         {
