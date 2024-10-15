@@ -40,17 +40,14 @@ InModuleScope $ProjectName {
     }
     Describe 'InvokeImmichRestMethod' -Tag 'Unit' {
         BeforeAll {
-            Mock -CommandName 'Invoke-RestMethod' -Verifiable -MockWith {
+            Mock -CommandName Invoke-RestMethod -MockWith {
 
             }
-            Mock -CommandName 'ValidateToken' -Verifiable -MockWith {
-
-            }
-            $Session = [ImmichSession]::New('https://test.domain.com/api', (ConvertTo-SecureString -String 'string' -AsPlainText -Force))
+            $Session = [ImmichSession]::New('https://immich.domain.com', 'AccessToken', (ConvertTo-SecureString -String 'accesstoken' -AsPlainText -Force), $true, (New-Object -TypeName pscredential -ArgumentList 'username', (ConvertTo-SecureString -String 'password' -AsPlainText -Force)), (ConvertTo-SecureString -String 'jwt' -AsPlainText -Force), '1.1.1', (New-Guid).Guid)
         }
         Context 'When calling get without query or body' {
             It 'Should not throw' {
-                { InvokeImmichRestMethod -Method get -RelativePath '/auth/login' -immichsession:$session }
+                { InvokeImmichRestMethod -Method get -RelativePath '/auth/login' -ImmichSession:$session } | Should -Not -Throw
             }
         }
         Context 'When calling get with query' {

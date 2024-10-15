@@ -36,6 +36,29 @@ class ImmichSession
         Write-Verbose -Message "Connected to Immich instance at $($this.BaseUri) with Credentials"
     }
 
+    ImmichSession (
+        [string]$BaseUri,
+        [string]$AuthMethod,
+        [securestring]$AccessToken,
+        [boolean]$AccessTokenValid,
+        [pscredential]$Credential,
+        [securestring]$JWT,
+        [string]$ImmichVersion,
+        [string]$SessionID
+    )
+    {
+        Write-Debug -Message 'ImmichSession.Class; Running constructor manual'
+        $this.BaseUri = $BaseUri
+        $this.APIUri = "$BaseUri/api"
+        $this.AuthMethod = $AuthMethod
+        $this.AccessToken = $AccessToken
+        $this.AccessTokenValid = $AccessTokenValid
+        $this.Credential = $Credential
+        $this.JWT = $JWT
+        $this.ImmichVersion = $ImmichVersion
+        $this.SessionID = $SessionID
+    }
+
     ValidateToken()
     {
         try
