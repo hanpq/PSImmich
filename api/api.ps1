@@ -1,6 +1,6 @@
-﻿$temp = Get-Content C:\Repos\PSImmich\api\api.1.118.json | ConvertFrom-Json -Depth 10
+﻿$temp = Get-Content "$PSScriptRoot\api.1.127.json" | ConvertFrom-Json -Depth 10
 
-$AllCodeFiles = Get-ChildItem 'C:\Repos\PSImmich\source\public' -Recurse -Filter '*.ps1'
+$AllCodeFiles = Get-ChildItem "$PSScriptRoot\..\source\public" -Recurse -Filter '*.ps1'
 $AllCodeFilesAst = foreach ($file in $AllCodeFiles)
 {
     $AST = Get-Command $file.FullName
