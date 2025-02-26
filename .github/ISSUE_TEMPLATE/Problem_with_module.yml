@@ -1,7 +1,7 @@
 name: Problem with the module
 description: If you have a problem using this module, want to report a bug, or suggest an enhancement to this module.
-labels: []
-assignees: []
+labels: [Problem]
+assignees: [hanpq]
 body:
   - type: markdown
     attributes:
@@ -99,4 +99,3 @@ body:
       render: text
     validations:
       required: true
-
