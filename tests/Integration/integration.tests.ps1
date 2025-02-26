@@ -199,7 +199,7 @@ Describe 'Server' -Tag 'Integration' {
         }
         It -Name 'Should return these properties' {
             $Result = Get-IMServerConfig
-            $ExpectedProperties = @('loginPageMessage', 'trashDays', 'userDeleteDelay', 'oauthButtonText', 'isInitialized', 'isOnboarded', 'externalDomain','mapDarkStyleUrl','mapLightStyleUrl')
+            $ExpectedProperties = @('loginPageMessage', 'trashDays', 'userDeleteDelay', 'oauthButtonText', 'isInitialized', 'isOnboarded', 'externalDomain','mapDarkStyleUrl','mapLightStyleUrl','publicUsers')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
@@ -219,9 +219,9 @@ Describe 'Server' -Tag 'Integration' {
         }
         It -Name 'Should return these properties' {
             $Result = Get-IMServerStatistic
-            $ExpectedProperties = @('photos', 'videos', 'usage', 'usageByUser')
+            $ExpectedProperties = @('photos', 'videos', 'usage', 'usageByUser','usagePhotos','usageVideos')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
-            $ExpectedProperties = @('userID', 'userName', 'photos', 'videos', 'usage', 'quotaSizeInBytes')
+            $ExpectedProperties = @('userID', 'userName', 'photos', 'videos', 'usage','usagePhotos','usageVideos', 'quotaSizeInBytes')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.usagebyuser[0].PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
@@ -284,7 +284,7 @@ Describe 'Asset' -Tag 'Integration' {
     Context -Name 'Get-IMAsset - Specifying a single ID' {
         It -Name 'Should return a object with the correct properties' {
             $Result = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $ExpectedProperties = @('unassignedFaces','duplicateId','hasMetadata', 'isOffline', 'checksum', 'people', 'tags', 'livePhotoVideoId', 'smartInfo', 'exifInfo', 'duration', 'isTrashed', 'isArchived', 'isFavorite', 'updatedAt', 'localDateTime', 'fileModifiedAt', 'fileCreatedAt', 'thumbhash', 'resized', 'id', 'deviceAssetId', 'ownerId', 'owner', 'deviceId', 'libraryId', 'type', 'originalPath', 'originalFileName','originalMimeType','stack')
+            $ExpectedProperties = @('duplicateId','hasMetadata', 'isOffline', 'checksum', 'people', 'tags', 'livePhotoVideoId', 'exifInfo', 'duration', 'isTrashed', 'isArchived', 'isFavorite', 'updatedAt', 'localDateTime', 'fileModifiedAt', 'fileCreatedAt', 'thumbhash', 'resized', 'id', 'deviceAssetId', 'ownerId', 'owner', 'deviceId', 'libraryId', 'type', 'originalPath', 'originalFileName','originalMimeType','stack')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
         It -Name 'Should return a single object' {
@@ -362,7 +362,23 @@ Describe 'Asset' -Tag 'Integration' {
             $Asset.tags.id | Should -Contain $newtag.id
         }
         It 'Should remove tag from asset' {
+
+            # Seems to be a delay in the tag being added to the asset. Adding a retry loop to wait for the tag to be added.
+            $retrycounter = 0
+            while ((Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb').tags.id -notcontains $NewTag.id -and $retrycounter -lt 5) {
+                start-sleep -seconds 2
+                $retrycounter++
+            }
+
             $Result = Set-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb' -RemoveTag $NewTag.id
+            # Seems to be a delay in the tag being added to the asset. Adding a retry loop to wait for the tag to be added.
+
+            $retrycounter = 0
+            while ((Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb').tags.id -contains $NewTag.id -and $retrycounter -lt 5) {
+                start-sleep -seconds 2
+                $retrycounter++
+            }
+
             $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $Asset.tags.id | Should -not -Contain $newtag.id
         }
@@ -431,7 +447,7 @@ Describe 'Asset' -Tag 'Integration' {
     Context 'Get-IMAssetMemoryLane' {
         It -Name 'Should return one object' {
             $Result = Get-IMAssetMemoryLane -Day 10 -Month 3
-            $Result | Should -HaveCount 1
+            $Result | Should -HaveCount 2
         }
     }
     Context 'Get-IMAsset -Random' {
@@ -849,7 +865,6 @@ Describe 'AuthSession' -Tag 'Integration' {
         }
     }
 }
-
 
 Describe 'Face' -Tag 'Integration' {
     BeforeAll {
@@ -1337,8 +1352,9 @@ Describe 'SharedLink' -Tag 'Integration' {
         }
     }
 
-    Context 'Remove-IMSharedLinkAsset' {
+    Context 'Remove-IMSharedLinkAsset' -Skip:$true{
         It 'Should remove asset from shared link' {
+            # API broken in 1.127.X.
             $SharedLink = Get-IMSharedLink | Where-Object { $_.type -eq 'INDIVIDUAL' }
             $IdToRemove = [array]($SharedLink.Assets.Id) | Get-Random -Count 1
             $Remove = Remove-IMSharedLinkAsset -sharedlinkid $Sharedlink.id -id $IdToRemove
