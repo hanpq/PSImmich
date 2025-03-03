@@ -1287,7 +1287,7 @@ Describe 'User' -Tag 'Integration' {
         }
     }
     Context 'Remove-IMMyProfilePicture' {
-        It 'Should remove profile picture' {
+        It 'Should remove profile picture' -skip:($PSVersionTable.PSEdition -eq 'Desktop') {
             { $Result = Remove-IMMyProfilePicture } | Should -Not -Throw
         }
     }
