@@ -225,13 +225,6 @@ InModuleScope $ProjectName {
             }
         }
     }
-    Describe 'Get-IMAuditDelete' {
-        Context 'Default' {
-            It 'Should be true' {
-                $true | Should -BeTrue
-            }
-        }
-    }
     Describe 'Test-IMAccessToken' {
         Context 'Default' {
             It 'Should be true' {
@@ -478,6 +471,13 @@ InModuleScope $ProjectName {
         }
     }
     Describe 'Find-IMAsset' {
+        Context 'Default' {
+            It 'Should be true' {
+                $true | Should -BeTrue
+            }
+        }
+    }
+    Describe 'Search-IMAsset' {
         Context 'Default' {
             It 'Should be true' {
                 $true | Should -BeTrue

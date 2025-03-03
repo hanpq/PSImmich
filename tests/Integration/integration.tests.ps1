@@ -483,6 +483,12 @@ Describe 'Asset' -Tag 'Integration' {
             $Result | Should -HaveCount 13
         }
     }
+    Context 'Search-IMAsset' {
+        It -Name 'Should find road assets' {
+            $Result = Search-IMAsset -query 'Road'
+            $Result.Count | should -BeGreaterThan 0
+        }
+    }
 }
 
 Describe 'Activity' -Tag 'Integration' {
@@ -813,18 +819,6 @@ Describe 'APIKey' -Tag 'Integration' {
             $Result = New-IMAPIKey -name $KeyName -Permission all
             Remove-IMAPIKey -id $Result.apiKey.id
             { Get-IMAPIKey -id $Result.apiKey.id } | Should -Throw
-        }
-    }
-}
-
-Describe 'Audit' -Tag 'Integration' {
-    BeforeAll {
-        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
-    }
-    Context 'Get-IMAuditDelete' {
-        It 'Should return' {
-            $Result = Get-IMAuditDelete -after (Get-Date).AddYears(-1) -entityType ASSET
-            $Result | Should -HaveCount 1
         }
     }
 }
