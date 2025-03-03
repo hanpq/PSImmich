@@ -103,8 +103,9 @@ jobs:
         with:
           name: output
           path: "output"
-      - name: Check ModuleBuilder Import
+      - name: Windows_Desktop
         run: |
+          ./build.ps1 -ResolveDependency -tasks noop
           try {
             Import-Module ModuleBuilder -ErrorAction Stop
             Write-Host "ModuleBuilder imported successfully."
@@ -112,9 +113,6 @@ jobs:
             Write-Error "Failed to import ModuleBuilder: $_"
             exit 1
           }
-        shell: pwsh
-      - name: Windows_Desktop
-        run: |
           ./build.ps1 -ResolveDependency -tasks test -pesterpath "$((Get-Location).Path)\tests\Unit"
         shell: powershell
       - uses: actions/upload-artifact@v4
