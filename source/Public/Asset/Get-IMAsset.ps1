@@ -105,7 +105,19 @@
             }
             'tagid'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/tags/$tagid/assets" -ImmichSession:$Session | Get-IMAsset
+                $Body = @{
+                    tagIds = @($tagid)
+                }
+
+                $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/metadata' -ImmichSession:$Session -Body $Body | Select-Object -ExpandProperty assets
+                $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
+
+                while ($Result.NextPage)
+                {
+                    $Body.page = $Result.NextPage
+                    $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/metadata' -ImmichSession:$Session -Body $Body | Select-Object -ExpandProperty assets
+                    $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
+                }
             }
             'random'
             {
@@ -118,7 +130,6 @@
             'list'
             {
                 Find-IMAsset
-                Write-Warning -Message 'Previous versions of Immich allowed enumeration of all assets using the Assets endpoint. This is deprecated and Find- should now be used. To enumerate all assets you can call Find-IMAsset.'
             }
         }
     }

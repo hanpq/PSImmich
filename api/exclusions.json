@@ -124,6 +124,56 @@
             "Path": "/system-metadata/reverse-geocoding-state",
             "Method": "GET",
             "Reason": "Internal state - unclear usage"
+        },
+        {
+            "Path": "/api-keys/me",
+            "Method": "GET",
+            "Reason": "User-specific endpoint - admin-focused module excludes /me endpoints"
+        },
+        {
+            "Path": "/shared-links/me",
+            "Method": "GET",
+            "Reason": "User-specific endpoint - admin-focused module excludes /me endpoints"
+        },
+        {
+            "Path": "/users/me",
+            "Method": "PUT",
+            "Reason": "User-specific endpoint - admin-focused module excludes /me endpoints"
+        },
+        {
+            "Path": "/users/me/license",
+            "Method": "DELETE",
+            "Reason": "User-specific endpoint - admin-focused module excludes /me endpoints"
+        },
+        {
+            "Path": "/users/me/license",
+            "Method": "GET",
+            "Reason": "User-specific endpoint - admin-focused module excludes /me endpoints"
+        },
+        {
+            "Path": "/users/me/license",
+            "Method": "PUT",
+            "Reason": "User-specific endpoint - admin-focused module excludes /me endpoints"
+        },
+        {
+            "Path": "/users/me/onboarding",
+            "Method": "DELETE",
+            "Reason": "User-specific endpoint - admin-focused module excludes /me endpoints"
+        },
+        {
+            "Path": "/users/me/onboarding",
+            "Method": "GET",
+            "Reason": "User-specific endpoint - admin-focused module excludes /me endpoints"
+        },
+        {
+            "Path": "/users/me/onboarding",
+            "Method": "PUT",
+            "Reason": "User-specific endpoint - admin-focused module excludes /me endpoints"
+        },
+        {
+            "Path": "/users/me/preferences",
+            "Method": "PUT",
+            "Reason": "User-specific endpoint - admin-focused module excludes /me endpoints"
         }
     ],
     "ManualMappings": [
@@ -141,6 +191,21 @@
             "Path": "/assets",
             "Method": "POST",
             "CoveredBy": "Import-IMAsset"
+        },
+        {
+            "Path": "/users/me",
+            "Method": "GET",
+            "CoveredBy": "Get-IMUser"
+        },
+        {
+            "Path": "/users/me/preferences",
+            "Method": "GET",
+            "CoveredBy": "Get-IMUserPreference"
+        },
+        {
+            "Path": "/shared-links/me",
+            "Method": "GET",
+            "CoveredBy": "Get-IMSharedLink"
         }
     ]
 }

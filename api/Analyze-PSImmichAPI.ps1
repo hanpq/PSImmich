@@ -26,11 +26,12 @@
 .PARAMETER ShowFolderMismatches
     Show functions that are in folders not matching their OpenAPI tag
 
-.PARAMETER ExportResults
-    Export results to CSV files
+.PARAMETER ExcludeSkipped
+    Hide skipped APIs from console output (they will still be included in CSV exports)
 
-.EXAMPLE
-    .\Analyze-PSImmichAPI.ps1 -ApiSpecFile "api\api.2.2.0.json" -ShowParameters -ShowFolderMismatches
+.PARAMETER ExportResults
+    Export results to CSV files.EXAMPLE
+    .\Analyze-PSImmichAPI.ps1 -ApiSpecFile "api\api.2.2.0.json" -ShowParameters -ShowFolderMismatches -ExcludeSkipped
 #>
 
 [CmdletBinding()]
@@ -45,6 +46,8 @@ param(
     [switch]$ShowParameters,
 
     [switch]$ShowFolderMismatches,
+
+    [switch]$ExcludeSkipped,
 
     [switch]$ExportResults
 )
@@ -480,9 +483,10 @@ function Get-FunctionParameters
             $uncoveredAPIs = ($results | Where-Object { $_.Covered -eq $false -and $_.Skipped -eq $false }).Count
             $deprecatedAPIs = ($results | Where-Object { $_.Deprecated -eq $true }).Count
 
-            $coveragePercentage = if (($totalAPIs - $skippedAPIs) -gt 0)
+            $applicableAPIs = $coveredAPIs + $uncoveredAPIs
+            $coveragePercentage = if ($applicableAPIs -gt 0)
             {
-                [Math]::Round(($coveredAPIs / ($totalAPIs - $skippedAPIs)) * 100, 1)
+                [Math]::Round(($coveredAPIs / $applicableAPIs) * 100, 1)
             }
             else
             {
@@ -494,7 +498,12 @@ function Get-FunctionParameters
             Write-Host "Uncovered: $uncoveredAPIs" -ForegroundColor Red
             Write-Host "Skipped: $skippedAPIs" -ForegroundColor Gray
             Write-Host "Deprecated: $deprecatedAPIs" -ForegroundColor DarkYellow
-            Write-Host "Coverage: $coveragePercentage% ($coveredAPIs/$($totalAPIs - $skippedAPIs))" -ForegroundColor Magenta
+            Write-Host "Coverage: $coveragePercentage% ($coveredAPIs/$applicableAPIs)" -ForegroundColor Magenta
+
+            if ($ExcludeSkipped)
+            {
+                Write-Host 'Note: Skipped APIs are hidden from detailed results below' -ForegroundColor Cyan
+            }
 
             # Show folder mismatches if requested
             if ($ShowFolderMismatches)
@@ -513,7 +522,15 @@ function Get-FunctionParameters
 
             # Display main results
             Write-Host "`n=== Detailed Results ===" -ForegroundColor Yellow
-            Format-ResultsTable -Results $results
+            $displayResults = if ($ExcludeSkipped)
+            {
+                $results | Where-Object { $_.Status -ne 'Skipped' }
+            }
+            else
+            {
+                $results
+            }
+            Format-ResultsTable -Results $displayResults
 
             # Export if requested
             if ($ExportResults)

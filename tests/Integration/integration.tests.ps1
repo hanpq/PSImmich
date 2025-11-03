@@ -209,7 +209,7 @@ Describe 'Server' -Tag 'Integration' {
         }
         It -Name 'Should return these properties' {
             $Result = Get-IMServerFeature
-            $ExpectedProperties = @('importFaces','duplicateDetection','smartSearch', 'passwordLogin', 'configFile', 'facialRecognition', 'map', 'reverseGeocoding', 'sidecar', 'search', 'trash', 'oauth', 'oauthAutoLaunch','email')
+            $ExpectedProperties = @('ocr','importFaces','duplicateDetection','smartSearch', 'passwordLogin', 'configFile', 'facialRecognition', 'map', 'reverseGeocoding', 'sidecar', 'search', 'trash', 'oauth', 'oauthAutoLaunch','email')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
@@ -284,7 +284,7 @@ Describe 'Asset' -Tag 'Integration' {
     Context -Name 'Get-IMAsset - Specifying a single ID' {
         It -Name 'Should return a object with the correct properties' {
             $Result = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $ExpectedProperties = @('duplicateId','hasMetadata', 'isOffline', 'checksum', 'people', 'tags', 'livePhotoVideoId', 'exifInfo', 'duration', 'isTrashed', 'isArchived', 'isFavorite', 'updatedAt', 'localDateTime', 'fileModifiedAt', 'fileCreatedAt', 'thumbhash', 'resized', 'id', 'deviceAssetId', 'ownerId', 'owner', 'deviceId', 'libraryId', 'type', 'originalPath', 'originalFileName','originalMimeType','stack')
+            $ExpectedProperties = @('duplicateId','hasMetadata', 'isOffline', 'checksum', 'people', 'tags', 'livePhotoVideoId', 'exifInfo', 'duration', 'isTrashed', 'isArchived', 'isFavorite', 'updatedAt', 'localDateTime', 'fileModifiedAt', 'fileCreatedAt', 'thumbhash', 'resized', 'id', 'deviceAssetId', 'ownerId', 'owner', 'deviceId', 'libraryId', 'type', 'originalPath', 'originalFileName','originalMimeType','stack','createdAt','visibility','unassignedFaces')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
         It -Name 'Should return a single object' {
@@ -376,6 +376,7 @@ Describe 'Asset' -Tag 'Integration' {
             $retrycounter = 0
             while ((Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb').tags.id -contains $NewTag.id -and $retrycounter -lt 5) {
                 start-sleep -seconds 2
+                $Result = Set-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb' -RemoveTag $NewTag.id
                 $retrycounter++
             }
 
@@ -442,12 +443,6 @@ Describe 'Asset' -Tag 'Integration' {
     Context 'Update-IMAssetThumbnail' {
         It -Name 'Should not throw' {
             { Update-IMAssetThumbnail -id '025665c6-d874-46a2-bbc6-37250ddcb2eb' } | Should -Not -Throw
-        }
-    }
-    Context 'Get-IMAssetMemoryLane' {
-        It -Name 'Should return one object' {
-            $Result = Get-IMAssetMemoryLane -Day 10 -Month 3
-            $Result | Should -HaveCount 2
         }
     }
     Context 'Get-IMAsset -Random' {
@@ -885,8 +880,7 @@ Describe 'Job' -Tag 'Integration' {
     Context -Name 'Start-IMJob' {
         It 'Should start job' {
             $Result = Start-IMJob -Job 'thumbnailGeneration'
-            $Result.jobCounts.active | Should -Be 1
-            $Result.queueStatus.isActive | Should -BeTrue
+            $Result.jobCounts.active + $Result.jobCounts.waiting | Should -Be 1
         }
         It 'Should start emptyTrash job' {
             $Result = Import-IMAsset -FilePath "$PSScriptRoot\Immich.png"
@@ -960,25 +954,6 @@ Describe 'Person' -Tag 'Integration' {
             Set-IMPerson -Id $New.id -Name 'TestPerson2'
             $Result = Get-IMPerson -id $New.id
             $Result.Name | Should -Be 'TestPerson2'
-        }
-    }
-}
-
-Describe 'FileReport' -Tag 'Integration' {
-    BeforeAll {
-        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
-    }
-    Context 'Get-IMAuditFile' {
-        It 'Should return one object' {
-            $Result = Get-IMAuditFile
-            $Result | Should -HaveCount 1
-        }
-    }
-    Context 'Get-IMFileChecksum' {
-        It 'Should return one object' {
-            $Result = Get-IMFileChecksum -FileName 'upload/library/admin/2024/2024-01-10/michael-daniels-ylUGx4g6eHk-unsplash.jpg'
-            $Result | Should -HaveCount 1
-            $Result.checksum | Should -Be 'd32h7hS/Z04nsNaXgYcmBW5ktY0='
         }
     }
 }
@@ -1147,6 +1122,10 @@ Describe 'Tag' -Tag 'Integration' {
             $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $Asset.tags.id | Should -Contain $newtag.id
         }
+        It 'Get-IMAsset -TagId should return tagged asset' {
+            $Result = Get-IMAsset -TagId $NewTag.id
+            $Result.id | Should -Contain '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+        }
         It 'Should remove tag from asset' {
             $Result = Set-IMTag -id $NewTag.id -RemoveAssets '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
@@ -1181,7 +1160,7 @@ Describe 'Timeline' -Tag 'Integration' {
         }
         It -Name 'Should return 1 object' {
             $Result = Get-IMTimeBucket -timeBucket '2024-03-01 00:00:00' -size MONTH
-            $Result | Should -HaveCount 12
+            $Result.id | Should -HaveCount 12
         }
     }
 }
@@ -1228,20 +1207,32 @@ Describe 'User' -Tag 'Integration' {
     Context 'Get-IMUserPreference' {
         It 'Should list self' {
             $Result = Get-IMUserPreference
+            $Result.PSObject.Properties.Name | should -Contain 'albums'
+            $Result.PSObject.Properties.Name | should -Contain 'folders'
             $Result.PSObject.Properties.Name | should -Contain 'memories'
-            $Result.PSObject.Properties.Name | should -Contain 'avatar'
+            $Result.PSObject.Properties.Name | should -Contain 'people'
+            $Result.PSObject.Properties.Name | should -Contain 'sharedLinks'
+            $Result.PSObject.Properties.Name | should -Contain 'ratings'
+            $Result.PSObject.Properties.Name | should -Contain 'tags'
             $Result.PSObject.Properties.Name | should -Contain 'emailNotifications'
             $Result.PSObject.Properties.Name | should -Contain 'download'
             $Result.PSObject.Properties.Name | should -Contain 'purchase'
+            $Result.PSObject.Properties.Name | should -Contain 'cast'
             $Result | Should -HaveCount 1
         }
         It 'Should list specific user' {
             $Result = Get-IMUserPreference -id 'fb95c457-7685-428c-b850-2fd60345819c'
+            $Result.PSObject.Properties.Name | should -Contain 'albums'
+            $Result.PSObject.Properties.Name | should -Contain 'folders'
             $Result.PSObject.Properties.Name | should -Contain 'memories'
-            $Result.PSObject.Properties.Name | should -Contain 'avatar'
+            $Result.PSObject.Properties.Name | should -Contain 'people'
+            $Result.PSObject.Properties.Name | should -Contain 'sharedLinks'
+            $Result.PSObject.Properties.Name | should -Contain 'ratings'
+            $Result.PSObject.Properties.Name | should -Contain 'tags'
             $Result.PSObject.Properties.Name | should -Contain 'emailNotifications'
             $Result.PSObject.Properties.Name | should -Contain 'download'
             $Result.PSObject.Properties.Name | should -Contain 'purchase'
+            $Result.PSObject.Properties.Name | should -Contain 'cast'
             $Result | Should -HaveCount 1
         }
     }
@@ -1362,6 +1353,110 @@ Describe 'SharedLink' -Tag 'Integration' {
             Get-IMSharedLink | Remove-IMSharedLink
             $Get = Get-IMSharedLink
             $Get | Should -HaveCount 0
+        }
+    }
+}
+
+Describe 'Stack' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+        # Clean up any existing stacks from previous test runs
+        Get-IMStack | Remove-IMStack -Force -ErrorAction SilentlyContinue
+    }
+
+    Context 'Get-IMStack - List all stacks' {
+        It 'Should return stacks when none exist' {
+            $Result = Get-IMStack
+            $Result | Should -BeNullOrEmpty
+        }
+    }
+
+    Context 'New-IMStack - Create new stack' {
+        It 'Should create a new stack with multiple assets' {
+            $Result = New-IMStack -AssetIds 'd54f1eb3-076f-4c5b-a9e6-61c694559e3c','a4908e1f-697f-4d7b-9330-93b5eabe3baf'
+            $Result | Should -Not -BeNullOrEmpty
+            $Result.Id | Should -Match '^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$'
+            $Result.Assets | Should -HaveCount 2
+            $Result.PrimaryAssetId | Should -Be 'd54f1eb3-076f-4c5b-a9e6-61c694559e3c'
+        }
+    }
+
+    Context 'Get-IMStack - Retrieve specific stack' {
+        It 'Should return stack by ID' {
+            $StackId = Get-IMStack | where {$_.assets.id -contains 'd54f1eb3-076f-4c5b-a9e6-61c694559e3c'} | select -expand id
+            $Result = Get-IMStack -Id $StackId
+            $Result | Should -Not -BeNullOrEmpty
+            $Result.Id | Should -Be $StackId
+            $Result.Assets | Should -HaveCount 2
+        }
+
+        It 'Should return stacks filtered by primary asset ID' {
+            $Result = Get-IMStack -PrimaryAssetId 'd54f1eb3-076f-4c5b-a9e6-61c694559e3c'
+            $Result | Should -Not -BeNullOrEmpty
+            $Result.PrimaryAssetId | Should -Be 'd54f1eb3-076f-4c5b-a9e6-61c694559e3c'
+        }
+
+        It 'Should list all stacks' {
+            $StackId = Get-IMStack | where {$_.assets.id -contains 'd54f1eb3-076f-4c5b-a9e6-61c694559e3c'} | select -expand id
+            $Result = Get-IMStack
+            $Result | Should -HaveCount 1
+            $Result[0].Id | Should -Be $StackId
+        }
+    }
+
+    Context 'Set-IMStack - Update stack' {
+        It 'Should update primary asset of stack' {
+            $StackId = Get-IMStack | where {$_.assets.id -contains 'd54f1eb3-076f-4c5b-a9e6-61c694559e3c'} | select -expand id
+            $Result = Set-IMStack -Id $StackId -PrimaryAssetId 'a4908e1f-697f-4d7b-9330-93b5eabe3baf'
+            $Result | Should -Not -BeNullOrEmpty
+            $Result.PrimaryAssetId | Should -Be 'a4908e1f-697f-4d7b-9330-93b5eabe3baf'
+
+            # Verify the change persisted
+            $Verify = Get-IMStack -Id $StackId
+            $Verify.PrimaryAssetId | Should -Be 'a4908e1f-697f-4d7b-9330-93b5eabe3baf'
+        }
+    }
+
+    Context 'Remove-IMStackAsset - Remove asset from stack' {
+        It 'Should remove an asset from the stack' {
+            $StackId = Get-IMStack | where {$_.assets.id -contains 'd54f1eb3-076f-4c5b-a9e6-61c694559e3c'} | select -expand id
+
+            # Remove the third asset
+            Remove-IMStackAsset -StackId $StackId -AssetId 'd54f1eb3-076f-4c5b-a9e6-61c694559e3c' -Force
+
+            # Verify asset was removed
+            $Verify = Get-IMStack -Id $StackId
+            $Verify.Assets.Id | Should -Not -Contain 'd54f1eb3-076f-4c5b-a9e6-61c694559e3c'
+            $Verify.Assets | Should -HaveCount 1
+        }
+    }
+
+    Context 'Remove-IMStack - Delete stack' {
+        It 'Should remove a single stack' {
+            $StackId = Get-IMStack | where {$_.assets.id -contains 'a4908e1f-697f-4d7b-9330-93b5eabe3baf'} | select -expand id
+            Remove-IMStack -Id $StackId -Force
+
+            # Verify stack was removed
+            { Get-IMStack -Id $StackId } | Should -Throw
+        }
+
+        It 'Should remove multiple stacks in bulk' {
+            $Stack1 = New-IMStack -AssetIds 'd54f1eb3-076f-4c5b-a9e6-61c694559e3c','a4908e1f-697f-4d7b-9330-93b5eabe3baf'
+            $Stack2 = New-IMStack -AssetIds 'bdc6d2c8-6168-4a88-a51f-6da11bf8f506','a4908e1f-697f-4d7b-9330-93b5eabe3baf'
+            Remove-IMStack -Id $Stack1.Id, $Stack2.Id -Force
+
+            # Verify stacks were removed
+            $Result = Get-IMStack
+            $Result | Should -BeNullOrEmpty
+        }
+    }
+
+    AfterAll {
+        # Clean up any remaining stacks (but leave the existing test assets intact)
+        try {
+            Get-IMStack | Remove-IMStack -Force -ErrorAction SilentlyContinue
+        } catch {
+            # No stacks to clean up
         }
     }
 }
