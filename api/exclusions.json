@@ -1,0 +1,146 @@
+﻿{
+    "ExcludedPaths": [
+        {
+            "Path": "/auth/admin-sign-up",
+            "Method": "POST",
+            "Reason": "Admin setup - not suitable for interactive use"
+        },
+        {
+            "Path": "/auth/change-password",
+            "Method": "POST",
+            "Reason": "Interactive web operation"
+        },
+        {
+            "Path": "/oauth/authorize",
+            "Method": "POST",
+            "Reason": "OIDC web flow - not for interactive use"
+        },
+        {
+            "Path": "/oauth/callback",
+            "Method": "POST",
+            "Reason": "OIDC web flow - not for interactive use"
+        },
+        {
+            "Path": "/oauth/link",
+            "Method": "POST",
+            "Reason": "OIDC web flow - not for interactive use"
+        },
+        {
+            "Path": "/oauth/mobile-redirect",
+            "Method": "GET",
+            "Reason": "Mobile app specific"
+        },
+        {
+            "Path": "/oauth/unlink",
+            "Method": "POST",
+            "Reason": "OIDC web flow - not for interactive use"
+        },
+        {
+            "Path": "/download/archive",
+            "Method": "POST",
+            "Reason": "Use Save-IMAsset instead"
+        },
+        {
+            "Path": "/download/asset/{id}",
+            "Method": "POST",
+            "Reason": "Use Save-IMAsset instead"
+        },
+        {
+            "Path": "/download/info",
+            "Method": "POST",
+            "Reason": "Web frontend specific"
+        },
+        {
+            "Path": "/assets/bulk-upload-check",
+            "Method": "POST",
+            "Reason": "Mobile app specific"
+        },
+        {
+            "Path": "/assets/exist",
+            "Method": "POST",
+            "Reason": "Bulk operation - unclear usage"
+        },
+        {
+            "Path": "/assets/stack/parent",
+            "Method": "PUT",
+            "Reason": "Unclear API usage"
+        },
+        {
+            "Path": "/assets/{id}/video/playback",
+            "Method": "GET",
+            "Reason": "Streaming - not applicable for PowerShell"
+        },
+        {
+            "Path": "/search/suggestions",
+            "Method": "GET",
+            "Reason": "Interactive search - not applicable for PowerShell"
+        },
+        {
+            "Path": "/tags",
+            "Method": "PUT",
+            "Reason": "Batch operation easily replicated in PowerShell"
+        },
+        {
+            "Path": "/tags/assets",
+            "Method": "PUT",
+            "Reason": "Batch operation easily replicated in PowerShell"
+        },
+        {
+            "Path": "/people/{id}",
+            "Method": "PUT",
+            "Reason": "Single item version of batch API"
+        },
+        {
+            "Path": "/people/{id}/reassign",
+            "Method": "PUT",
+            "Reason": "Unclear usage - no documentation"
+        },
+        {
+            "Path": "/reports/fix",
+            "Method": "POST",
+            "Reason": "Unclear usage - no documentation"
+        },
+        {
+            "Path": "/sync/delta-sync",
+            "Method": "POST",
+            "Reason": "Unclear usage - no documentation"
+        },
+        {
+            "Path": "/sync/full-sync",
+            "Method": "POST",
+            "Reason": "Unclear usage - no documentation"
+        },
+        {
+            "Path": "/system-metadata/admin-onboarding",
+            "Method": "GET",
+            "Reason": "Admin setup - web specific"
+        },
+        {
+            "Path": "/system-metadata/admin-onboarding",
+            "Method": "POST",
+            "Reason": "Admin setup - web specific"
+        },
+        {
+            "Path": "/system-metadata/reverse-geocoding-state",
+            "Method": "GET",
+            "Reason": "Internal state - unclear usage"
+        }
+    ],
+    "ManualMappings": [
+        {
+            "Path": "/auth/login",
+            "Method": "POST",
+            "CoveredBy": "Connect-Immich"
+        },
+        {
+            "Path": "/auth/logout",
+            "Method": "POST",
+            "CoveredBy": "Disconnect-Immich"
+        },
+        {
+            "Path": "/assets",
+            "Method": "POST",
+            "CoveredBy": "Import-IMAsset"
+        }
+    ]
+}
