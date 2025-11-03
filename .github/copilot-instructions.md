@@ -93,3 +93,28 @@ Use parameter sets for different function modes (e.g., 'list', 'id', 'random', '
 - **Code Coverage**: Codecov integration tracks test coverage metrics
 
 When implementing new features, prioritize consistency with existing patterns over novel approaches. The codebase emphasizes predictable parameter naming, consistent error handling through `InvokeImmichRestMethod`, and comprehensive parameter validation.
+
+## API Implementation Workflow
+
+### Discovery and Analysis
+- **OpenAPI Exploration**: Use `api/Analyze-PSImmichAPI.ps1` to identify uncovered endpoints and understand API structure
+- **Schema Research**: Examine DTO schemas (e.g., `StackCreateDto`, `StackResponseDto`) in OpenAPI spec for parameter requirements
+- **Endpoint Mapping**: Check for bulk vs individual operations (e.g., `DELETE /stacks` vs `DELETE /stacks/{id}`)
+
+### Implementation Strategy
+- **Start with Get Operations**: Implement retrieve functions first as they're safest for testing
+- **Progressive Implementation**: Get → New → Set → Remove → Asset Management operations
+- **Validation Patterns**: Use `ValidateScript` for complex validation (e.g., minimum array counts, multi-GUID validation)
+- **Confirmation Support**: Add `ShouldProcess` for destructive operations with appropriate `ConfirmImpact` levels
+
+### Integration Testing Approach
+- **Use Existing Assets**: Prefer existing test asset IDs over creating new assets for reliability and speed
+- **Full Lifecycle Testing**: Test Create → Read → Update → Delete workflows in sequence
+- **Cleanup Strategy**: Clean up test artifacts but preserve existing assets
+- **Edge Case Validation**: Test both success and failure scenarios (e.g., invalid parameters)
+
+### API Coverage Verification
+- **Coverage Tracking**: Run analyzer after implementation to verify endpoints are detected
+- **Documentation Updates**: Update coverage metrics and changelog with user-facing changes
+- **Pattern Consistency**: Ensure new cmdlets follow established naming and parameter conventions
+- **Changelog Focus**: Only include user-facing changes in changelog - omit test updates, integration test changes, and internal test improvements

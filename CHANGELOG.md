@@ -5,6 +5,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added complete Stack API support with Get-IMStack, New-IMStack, Set-IMStack, Remove-IMStack, and Remove-IMStackAsset cmdlets
+
+### Fixed
+
+- Fixed Get-IMAsset -TagId to use search API instead of deprecated tags/{id}/assets endpoint
+- Updated Get-IMAsset to remove deprecation warning for asset enumeration
+
+### Removed
+
+- Removed Get-IMAssetMemoryLane cmdlet (endpoint no longer available)
+- Removed Get-IMAuditFile cmdlet (functionality moved to different endpoint)
+- Removed Get-IMFileChecksum cmdlet (functionality moved to different endpoint)
+
 ## [1.128.0] - 2025-03-03
 
 ### Added
