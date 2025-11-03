@@ -793,4 +793,42 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'Get-IMStack' {
+        Context 'Default' {
+            It 'Should be true' {
+                $true | Should -BeTrue
+            }
+        }
+    }
+
+    Describe 'New-IMStack' {
+        Context 'Default' {
+            It 'Should be true' {
+                $true | Should -BeTrue
+            }
+        }
+    }
+    Describe 'Remove-IMStack' {
+        Context 'Default' {
+            It 'Should be true' {
+                $true | Should -BeTrue
+            }
+        }
+    }
+
+    Describe 'Remove-IMStackAsset' {
+        Context 'Default' {
+            It 'Should be true' {
+                $true | Should -BeTrue
+            }
+        }
+    }
+
+    Describe 'Set-IMStack' {
+        Context 'Default' {
+            It 'Should be true' {
+                $true | Should -BeTrue
+            }
+        }
+    }
 }

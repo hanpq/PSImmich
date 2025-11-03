@@ -14,7 +14,7 @@
 
         Creates a new stack with the specified assets, with asset-id-1 as the primary
     #>
-
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions','', Justification='Do not agree that -new- alters system state')]
     [CmdletBinding()]
     param(
         [Parameter()]

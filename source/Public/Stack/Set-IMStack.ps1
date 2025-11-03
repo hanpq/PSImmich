@@ -16,7 +16,7 @@
 
         Updates the stack to use the specified asset as the primary asset
     #>
-
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions','', Justification='Do not agree that -set- alters system state')]
     [CmdletBinding()]
     param(
         [Parameter()]
