@@ -5,6 +5,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added ApiParameter attribute system for better parameter mapping to API endpoints
+
+### Changed
+
+- Enhanced Search-IMAsset with ApiParameter attributes and improved pagination handling
+- Updated New-IMAlbum, Set-IMAsset, Find-IMPerson, and Find-IMPlace to use new ApiParameter system
+- Improved parameter mapping consistency across cmdlets
+
+### Fixed
+
+- Fixed pagination bug in Search-IMAsset when multiple pages are returned
+
+
 ## [2.2.0] - 2025-11-03
 
 ### Added
