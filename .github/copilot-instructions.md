@@ -3,6 +3,18 @@
 ## Project Overview
 PSImmich is a PowerShell API wrapper module for the Immich photo management system. The project follows PowerShell module development best practices with automated build/test pipelines and comprehensive API coverage tracking.
 
+## Meta-Instructions for Copilot Enhancement
+**Continuous Improvement**: While working on this project, actively identify opportunities to enhance these copilot instructions. When you encounter:
+- **New development patterns** that work well and should be standardized
+- **Common pitfalls** that future development should avoid
+- **Workflow improvements** discovered during implementation
+- **Missing documentation** for existing processes or architectural decisions
+- **Best practices** that emerge from successful implementations
+
+**Suggest specific additions or updates** to this copilot instructions file. Frame suggestions as concrete text additions with clear reasoning for why the improvement would benefit future development sessions. This creates a self-improving documentation system where each development session can contribute to better guidance for subsequent work.
+
+**Documentation Scope**: Focus suggestions on actionable guidance that would help an AI assistant (or human developer) work more effectively with this specific codebase, rather than general PowerShell or software development advice.
+
 ## Architecture Patterns
 
 ### Module Structure
@@ -58,9 +70,71 @@ function Get-IMAsset {
 - **Version Strategy**: Module version directly corresponds to supported Immich App API version (e.g., PSImmich v2.2.0 supports Immich API v2.2.0)
 
 ### Testing Strategy
-- **Unit Tests**: Pester 5 framework, mostly placeholder tests in `tests/Unit/Public/Public.Tests.ps1`
+- **Unit Tests**: Pester 5 framework with comprehensive test coverage goal - currently has placeholder tests for all cmdlets in `tests/Unit/Public/Public.Tests.ps1`
 - **Integration Tests**: Real API calls in `tests/Integration/integration.tests.ps1`
 - **QA Tests**: Module-level quality tests in `tests/QA/module.tests.ps1`
+
+### Test Execution Guidelines
+**CRITICAL**: Always run tests after making code changes to verify functionality and catch regressions early.
+
+#### When to Run Tests
+- **Immediately after creating/modifying any function**: Run targeted tests to verify changes work as expected
+- **Before completing any development session**: Run full test suite to ensure no regressions introduced
+- **After fixing test failures**: Re-run specific failing tests to confirm fixes work
+- **During active development**: Use targeted test tags to focus on current work area
+
+#### Test Running Commands
+```powershell
+# Run all tests (comprehensive verification)
+./build.ps1 -Tasks test
+
+# Run specific test categories using tags
+./build.ps1 -Tasks test -PesterTag "ConvertTo-ApiParameters"     # Single function
+./build.ps1 -Tasks test -PesterTag "Get-IMLibrary"              # Specific cmdlet
+./build.ps1 -Tasks test -PesterTag "Unit"                       # All unit tests
+./build.ps1 -Tasks test -PesterTag "Integration"                # Integration tests only
+
+# Run tests for specific file/context (when working on particular areas)
+./build.ps1 -Tasks test -PesterPath "tests/Unit/Private/Private.Tests.ps1"
+./build.ps1 -Tasks test -PesterPath "tests/Unit/Public/Public.Tests.ps1"
+```
+
+#### Test Execution Workflow
+1. **Start with Targeted Tests**: When working on specific functions, use tags to run only relevant tests for faster feedback
+2. **Verify Fixes Immediately**: After fixing a failing test, re-run that specific test to confirm the fix works
+3. **Full Test Suite Before Completion**: Always run full test suite before considering work complete
+4. **Check Test Output**: Pay attention to test timing, coverage reports, and any warnings in output
+5. **Handle Test Failures Promptly**: Don't proceed with new development if tests are failing - fix them first
+
+#### Common Test Failure Patterns and Solutions
+- **Mock Parameter Mismatches**: Check `ParameterFilter` blocks match actual mock parameter names (e.g., `$Name` vs `$CommandName`)
+- **Reflection-Based Function Testing**: Complex functions using `Get-Command` require sophisticated mocking with `GetType().Name` simulation
+- **Pester 5 Syntax**: Use `Should -Invoke` instead of deprecated `Assert-MockCalled`; ensure proper parameter filter syntax
+- **Build Process Errors**: InvokeBuild version compatibility issues may require dependency version pinning
+- **Coverage Conversion Failures**: Module structure changes may require build system adjustments
+
+#### Test Development Best Practices
+- **Mock Realistically**: Use actual API response structures in mocks, not minimal test data
+- **Test Edge Cases**: Include validation failures, empty inputs, and boundary conditions
+- **Verify All Parameter Sets**: Each parameter set should have dedicated test contexts
+- **Cache Testing**: For performance-critical functions with caching, verify cache behavior works correctly
+- **Session Parameter Testing**: Ensure explicit session parameters are properly passed through to underlying functions
+
+#### Unit Testing Standards
+**Goal**: Achieve comprehensive unit test coverage for all public cmdlets, replacing placeholder "Should be true" tests with robust, isolated testing.
+
+**Current State**: Quality gate ensures unit test blocks exist for all cmdlets, but most contain only placeholder tests. `Get-IMLibrary` serves as the reference implementation for comprehensive unit testing patterns.
+
+**Unit Test Requirements**:
+- **Complete Isolation**: Mock all external dependencies, especially `InvokeImmichRestMethod` calls
+- **Parameter Set Coverage**: Test all parameter sets (e.g., 'list', 'id', 'random') individually
+- **Pipeline Support**: Test both `ValueFromPipeline` and `ValueFromPipelineByPropertyName` functionality
+- **Parameter Validation**: Test both valid inputs and validation failures (e.g., invalid GUIDs)
+- **Edge Cases**: Test multiple IDs, empty results, optional switches (like `IncludeStatistics`)
+- **Session Handling**: Verify session parameters are passed correctly to underlying functions
+- **Pester 5 Syntax**: Use `Should -Invoke` instead of deprecated `Assert-MockCalled`
+
+**Mock Pattern**: Mock `InvokeImmichRestMethod` with switch-based responses that return realistic data structures matching actual API responses. Use regex patterns for RelativePath matching to handle dynamic IDs.
 
 ## Critical Patterns
 
@@ -117,4 +191,17 @@ When implementing new features, prioritize consistency with existing patterns ov
 - **Coverage Tracking**: Run analyzer after implementation to verify endpoints are detected
 - **Documentation Updates**: Update coverage metrics and changelog with user-facing changes
 - **Pattern Consistency**: Ensure new cmdlets follow established naming and parameter conventions
+- **Unit Test Implementation**: When implementing new cmdlets, create comprehensive unit tests following the `Get-IMLibrary` pattern instead of placeholder tests
 - **Changelog Focus**: Only include user-facing changes in changelog - omit test updates, integration test changes, and internal test improvements
+
+### Unit Testing Implementation Workflow
+When creating or updating cmdlets, follow this testing approach:
+
+1. **Mock Setup**: Create comprehensive mocks for `InvokeImmichRestMethod` with realistic API response data
+2. **Parameter Set Testing**: Write separate test contexts for each parameter set (list, id, etc.)
+3. **Validation Testing**: Test parameter validation patterns, especially GUID formats and required parameters
+4. **Pipeline Testing**: Verify pipeline input works correctly for both direct values and property names
+5. **Session Testing**: Ensure session parameters are properly passed through to REST method calls
+6. **Error Scenarios**: Test invalid inputs to ensure proper parameter validation occurs
+
+**Reference Implementation**: Use `tests/Unit/Public/Public.Tests.ps1` around lines 312-536 (`Get-IMLibrary` tests) as the template for comprehensive unit test structure and patterns.
