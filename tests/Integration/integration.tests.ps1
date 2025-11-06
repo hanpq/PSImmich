@@ -323,7 +323,7 @@ Describe 'Asset' -Tag 'Integration' {
             {
                 $AlbumName = HOSTNAME.EXE
             }
-            $NewAlbum = New-IMAlbum -albumName $AlbumName
+            $NewAlbum = New-IMAlbum -AlbumName $AlbumName
             if (-not (Get-IMTag | where name -eq 'TestTag')) {
                 $NewTag = New-IMTag -Name 'TestTag' -Type 'OBJECT'
             }
