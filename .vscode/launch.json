@@ -10,7 +10,9 @@
             "request": "launch",
             "script": "${workspaceFolder}\\build.ps1",
             "args": [
-                "build, test"
+                "-Tasks",
+                "build,test"
+
             ],
             "cwd": "${workspaceFolder}",
             "createTemporaryIntegratedConsole": true
