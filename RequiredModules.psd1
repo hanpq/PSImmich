@@ -7,7 +7,7 @@
         }
     }
 
-    InvokeBuild                          = 'latest'
+    InvokeBuild                          = '5.11.3'
     PSScriptAnalyzer                     = 'latest'
     Pester                               = 'latest'
     Plaster                              = 'latest'
