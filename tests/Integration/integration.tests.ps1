@@ -480,8 +480,39 @@ Describe 'Asset' -Tag 'Integration' {
     }
     Context 'Search-IMAsset' {
         It -Name 'Should find road assets' {
-            $Result = Search-IMAsset -query 'Road'
+            $Result = Search-IMAsset -Query 'Road'
             $Result.Count | should -BeGreaterThan 0
+        }
+
+        It -Name 'Should correctly translate PascalCase parameters to API camelCase' {
+            # This test uses parameters that have different PowerShell vs API naming
+            # If ConvertTo-ApiParameters isn't working, the API call would fail or return unexpected results
+            # Using -IsFavorite (PowerShell) which should translate to 'isFavorite' (API)
+            # Using -IsEncoded (PowerShell) which should translate to 'isEncoded' (API)
+            # Using -Type (PowerShell) which should translate to 'type' (API)
+
+            # Test with boolean parameters that would fail if not translated correctly
+            $Result = Search-IMAsset -Query 'Road' -IsFavorite:$false -IsEncoded:$true -Type 'IMAGE'
+
+            # If the parameter translation worked, we should get a valid response (even if empty)
+            # If it failed, we'd get an API error about unknown parameters
+            $Result | Should -Not -BeNull
+            # Result should be an array (even if empty)
+            $Result.GetType().BaseType.Name | Should -Be 'Array'
+        }
+
+        It -Name 'Should handle DateTime parameters with correct API translation' {
+            # Test DateTime parameters that need correct translation
+            # CreatedAfter (PowerShell) -> createdAfter (API)
+            # TakenBefore (PowerShell) -> takenBefore (API)
+
+            $createdAfter = [datetime]"2023-03-10 13:00:00"
+            $takenBefore = [datetime]"2023-03-10 13:30:00"
+
+            $Result = Search-IMAsset -Query 'Road' -CreatedAfter $createdAfter -TakenBefore $takenBefore
+
+            # If parameter translation worked, we get valid results
+            $Result | Should -Not -BeNull
         }
     }
 }
