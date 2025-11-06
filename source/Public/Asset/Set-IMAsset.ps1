@@ -60,41 +60,48 @@
 
         [Parameter(ParameterSetName = 'batch')]
         [Parameter(ParameterSetName = 'id')]
+        [ApiParameter('dateTimeOriginal')]
         [string]
-        $dateTimeOriginal,
+        $DateTimeOriginal,
 
         [Parameter(ParameterSetName = 'batch')]
-        [Parameter(ParameterSetName = 'id')]
+        [ApiParameter('isArchived')]
         [boolean]
-        $isArchived,
+        $IsArchived,
 
         [Parameter(ParameterSetName = 'batch')]
         [Parameter(ParameterSetName = 'id')]
+        [ApiParameter('isFavorite')]
         [boolean]
-        $isFavorite,
+        $IsFavorite,
 
         [Parameter(ParameterSetName = 'batch')]
         [Parameter(ParameterSetName = 'id')]
+        [ApiParameter('latitude')]
         [Int32]
-        $latitude,
+        $Latitude,
 
         [Parameter(ParameterSetName = 'batch')]
         [Parameter(ParameterSetName = 'id')]
+        [ApiParameter('longitude')]
         [int32]
-        $longitude,
+        $Longitude,
 
         [Parameter(ParameterSetName = 'batch')]
+        [ApiParameter('removeParent')]
         [switch]
-        $removeParent,
+        $RemoveParent,
 
         [Parameter(ParameterSetName = 'batch')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [ApiParameter('stackParentId')]
         [string]
-        $stackParentId,
+        $StackParentId,
 
         [Parameter(ParameterSetName = 'id')]
+        [ApiParameter('description')]
         [string]
-        $description,
+        $Description,
 
         [Parameter()]
         [string]
@@ -129,7 +136,7 @@
 
     )
 
-    BEGIN
+    begin
     {
         switch ($PSCmdlet.ParameterSetName)
         {
@@ -138,17 +145,17 @@
                 $BodyParameters = @{
                     ids = @()
                 }
-                $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'dateTimeOriginal', 'isFavorite', 'isArchived', 'latitude', 'longitude', 'removeParent', 'stackParentId')
+                $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
             }
             'id'
             {
                 $BodyParameters = @{}
-                $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'dateTimeOriginal', 'isFavorite', 'isArchived', 'latitude', 'longitude', 'description')
+                $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
             }
         }
     }
 
-    PROCESS
+    process
     {
         switch ($PSCmdlet.ParameterSetName)
         {
@@ -162,7 +169,7 @@
             {
                 foreach ($object in $id)
                 {
-                    if ($PSCmdlet.ShouldProcess(($BodyParameters.ids -join ','), 'PUT'))
+                    if ($PSCmdlet.ShouldProcess($object, 'PUT'))
                     {
                         InvokeImmichRestMethod -Method Put -RelativePath "/assets/$object" -ImmichSession:$Session -Body:$BodyParameters
                         if ($PSBoundParameters.ContainsKey('AddToAlbum'))
@@ -199,7 +206,7 @@
         }
     }
 
-    END
+    end
     {
         switch ($PSCmdlet.ParameterSetName)
         {
@@ -241,6 +248,5 @@
             }
         }
     }
-
 }
 #endregion

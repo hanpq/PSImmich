@@ -32,30 +32,34 @@
         $Session = $null,
 
         [Parameter(Mandatory)]
+        [ApiParameter('albumName')]
         [string]
-        $albumName,
+        $AlbumName,
 
         [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [ApiParameter('assetIds')]
         [string[]]
-        $assetIds,
+        $AssetIds,
 
         [Parameter()]
+        [ApiParameter('description')]
         [string]
-        $description,
+        $Description,
 
         [Parameter()]
+        [ApiParameter('albumUsers')]
         [hashtable[]]
-        $albumUsers
+        $AlbumUsers
     )
 
-    BEGIN
+    begin
     {
         $BodyParameters = @{}
-        $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'albumName', 'assetIds', 'description', 'albumUsers')
+        $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
     }
 
-    PROCESS
+    process
     {
         InvokeImmichRestMethod -Method Post -RelativePath '/albums' -ImmichSession:$Session -Body $BodyParameters
     }

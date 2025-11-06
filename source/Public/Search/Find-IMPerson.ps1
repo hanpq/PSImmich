@@ -9,10 +9,10 @@
         -Session $Session
     .PARAMETER Name
         Name filter
-    .PARAMETER withHidden
+    .PARAMETER WithHidden
         Filter hidden
     .EXAMPLE
-        Find-IMPerson -name 'Jim Carrey'
+        Find-IMPerson -Name 'Jim Carrey'
 
         Search for persons named Jim Carrey
     #>
@@ -23,14 +23,16 @@
         [ImmichSession]$Session = $null,
 
         [Parameter(Mandatory)]
-        [string]$name,
+        [ApiParameter('name')]
+        [string]$Name,
 
         [Parameter()]
-        [boolean]$withHidden
+        [ApiParameter('withHidden')]
+        [boolean]$WithHidden
     )
 
     $Query = @{}
-    $Query += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'name', 'withHidden')
+    $Query += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
 
     InvokeImmichRestMethod -Method GET -RelativePath '/search/person' -ImmichSession:$Session -QueryParameters:$Query
 

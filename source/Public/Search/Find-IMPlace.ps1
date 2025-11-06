@@ -10,7 +10,7 @@
     .PARAMETER Name
         Name filter
     .EXAMPLE
-        Find-IMPlace -name 'Stockholm'
+        Find-IMPlace -Name 'Stockholm'
 
         Search for places named Stockholm
     #>
@@ -21,11 +21,12 @@
         [ImmichSession]$Session = $null,
 
         [Parameter(Mandatory)]
-        [string]$name
+        [ApiParameter('name')]
+        [string]$Name
     )
 
     $Query = @{}
-    $Query += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'name')
+    $Query += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
 
     InvokeImmichRestMethod -Method GET -RelativePath '/search/places' -ImmichSession:$Session -QueryParameters:$Query | AddCustomType IMPlace
 
