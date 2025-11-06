@@ -2,7 +2,7 @@
 {
     <#
     .DESCRIPTION
-        Search for assets using smart search
+        Search for assets using smart search. Do note that this uses the machine learning model find assets based on content so results may vary. If you rather want to search based on metadata use the Find-IMAsset cmdlet.
     .PARAMETER Session
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
@@ -17,8 +17,10 @@
         CreatedBefore filter
     .PARAMETER deviceId
         Device Id filter
-    .PARAMETER isArchived
-        Archvied filter
+    .PARAMETER visibility
+        Asset visibility filter (archive, timeline, hidden, locked)
+    .PARAMETER ocr
+        OCR text search filter
     .PARAMETER isEncoded
         Encoded filter
     .PARAMETER isFavorite
@@ -29,16 +31,18 @@
         Not in Album filter
     .PARAMETER isOffline
         Offline filter
-    .PARAMETER isVisible
-        Visible filter
     .PARAMETER lensModel
         Lens model filter
     .PARAMETER libraryId
         Library id filter
+    .PARAMETER AlbumIds
+        Album id filter (array of UUIDs)
     .PARAMETER make
         Make filter
     .PARAMETER model
         Model filter
+    .PARAMETER language
+        Language filter
     .PARAMETER personIds
         Person id filter
     .PARAMETER query
@@ -65,8 +69,6 @@
         Updated after filter
     .PARAMETER updatedBefore
         Updated before filter
-    .PARAMETER withArchived
-        Archived filter
     .PARAMETER withDeleted
         Deleted filter
     .PARAMETER withExif
@@ -79,113 +81,154 @@
         Searches for assets matching content Road.
     #>
 
-    [CmdletBinding(DefaultParameterSetName = 'list-shared')]
+    [CmdletBinding()]
     param(
         [Parameter()]
         [ImmichSession]$Session = $null,
 
         [Parameter()]
-        [string]$city,
+        [ApiParameter('city')]
+        [string]$City,
 
         [Parameter()]
-        [string]$country,
+        [ApiParameter('country')]
+        [string]$Country,
 
         [Parameter()]
-        [datetime]$createdAfter,
+        [ApiParameter('createdAfter')]
+        [datetime]$CreatedAfter,
 
         [Parameter()]
-        [datetime]$createdBefore,
+        [ApiParameter('createdBefore')]
+        [datetime]$CreatedBefore,
 
         [Parameter()]
-        [string]$deviceId,
+        [ApiParameter('deviceId')]
+        [string]$DeviceId,
 
         [Parameter()]
-        [boolean]$isArchived,
+        [ApiParameter('visibility')]
+        [ValidateSet('archive', 'timeline', 'hidden', 'locked')]
+        [string]$Visibility,
 
         [Parameter()]
-        [boolean]$isEncoded,
+        [ApiParameter('ocr')]
+        [string]$OCR,
 
         [Parameter()]
-        [boolean]$isFavorite,
+        [ApiParameter('isEncoded')]
+        [boolean]$IsEncoded,
 
         [Parameter()]
-        [boolean]$isMotion,
+        [ApiParameter('isFavorite')]
+        [boolean]$IsFavorite,
 
         [Parameter()]
-        [boolean]$isNotInAlbum,
+        [ApiParameter('isMotion')]
+        [boolean]$IsMotion,
 
         [Parameter()]
-        [boolean]$isOffline,
+        [ApiParameter('isNotInAlbum')]
+        [boolean]$IsNotInAlbum,
 
         [Parameter()]
-        [boolean]$isVisible,
+        [ApiParameter('isOffline')]
+        [boolean]$IsOffline,
 
         [Parameter()]
-        [string]$lensModel,
+        [ApiParameter('lensModel')]
+        [string]$LensModel,
 
         [Parameter()]
+        [ApiParameter('libraryId')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [string]$libraryId,
+        [string]$LibraryId,
 
         [Parameter()]
-        [string]$make,
-
-        [Parameter()]
-        [string]$model,
-
-        [Parameter()]
+        [ApiParameter('albumIds')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [string[]]$personIds,
+        [string[]]$AlbumIds,
+
+        [Parameter()]
+        [ApiParameter('make')]
+        [string]$Make,
+
+        [Parameter()]
+        [ApiParameter('model')]
+        [string]$Model,
+
+        [Parameter()]
+        [ApiParameter('language')]
+        [string]$Language,
+
+        [Parameter()]
+        [ApiParameter('personIds')]
+        [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [string[]]$PersonIds,
 
         [Parameter(Mandatory)]
-        [Alias('SearchString')][string]$query,
+        [ApiParameter('query')]
+        [Alias('SearchString')]
+        [string]$Query,
 
         [Parameter()]
-        [ValidateRange(-1, 5)][int]$rating,
+        [ApiParameter('rating')]
+        [ValidateRange(-1, 5)]
+        [int]$Rating,
 
         [Parameter()]
-        [int]$size,
+        [ApiParameter('size')]
+        [int]$Size,
 
         [Parameter()]
-        [string]$state,
+        [ApiParameter('state')]
+        [string]$State,
 
         [Parameter()]
-        [string[]]$tagIds,
+        [ApiParameter('tagIds')]
+        [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [string[]]$TagIds,
 
         [Parameter()]
-        [datetime]$takenAfter,
+        [ApiParameter('takenAfter')]
+        [datetime]$TakenAfter,
 
         [Parameter()]
-        [datetime]$takenBefore,
+        [ApiParameter('takenBefore')]
+        [datetime]$TakenBefore,
 
         [Parameter()]
-        [datetime]$trashedAfter,
+        [ApiParameter('trashedAfter')]
+        [datetime]$TrashedAfter,
 
         [Parameter()]
-        [datetime]$trashedBefore,
+        [ApiParameter('trashedBefore')]
+        [datetime]$TrashedBefore,
 
         [Parameter()]
+        [ApiParameter('type')]
         [ValidateSet('IMAGE', 'VIDEO', 'AUDIO', 'OTHER')]
-        [string]$type,
+        [string]$Type,
 
         [Parameter()]
-        [datetime]$updatedAfter,
+        [ApiParameter('updatedAfter')]
+        [datetime]$UpdatedAfter,
 
         [Parameter()]
-        [datetime]$updatedBefore,
+        [ApiParameter('updatedBefore')]
+        [datetime]$UpdatedBefore,
 
         [Parameter()]
-        [boolean]$withArchived,
+        [ApiParameter('withDeleted')]
+        [boolean]$WithDeleted,
 
         [Parameter()]
-        [boolean]$withDeleted,
-
-        [Parameter()]
-        [boolean]$withExif
+        [ApiParameter('withExif')]
+        [boolean]$WithEXIF
     )
 
     $Body = @{}
-    $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'city', 'country', 'createdAfter', 'createdBefore', 'deviceId', 'isArchived', 'isEncoded', 'isFavorite', 'isMotion', 'isNotInAlbum', 'isOffline', 'isVisible', 'lensModel', 'libraryId', 'make', 'model', 'personIds', 'query', 'rating', 'size', 'state', 'tagIds', 'takenAfter', 'takenBefore', 'trashedAfter', 'trashedBefore', 'type', 'updatedAfter', 'updatedBefore', 'withArchived', 'withDeleted', 'withExif')
+    $Body += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
 
     $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/smart' -ImmichSession:$Session -Body $Body | Select-Object -ExpandProperty assets
     $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
@@ -193,7 +236,7 @@
     while ($Result.NextPage)
     {
         $Body.page = $Result.NextPage
-        $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/metadata' -ImmichSession:$Session -Body $Body | Select-Object -ExpandProperty assets
+        $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/smart' -ImmichSession:$Session -Body $Body | Select-Object -ExpandProperty assets
         $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
     }
 }
