@@ -1,18 +1,21 @@
 ﻿function Set-IMConfig
 {
     <#
+    .SYNOPSIS
+        Updates Immich server configuration.
     .DESCRIPTION
-        Set immich config
+        Applies new configuration settings to the Immich server using JSON format.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER RawJSON
-        Defines the immich configuration. Provided as JSON text.
+        Configuration data as JSON text string.
     .EXAMPLE
-        Set-IMConfig
+        $config = Get-IMConfig -ReturnRawJSON
+        Set-IMConfig -RawJSON $config
 
-        Set immich config
+        Updates server configuration using modified JSON.
+    .NOTES
+        Supports -WhatIf and -Confirm for safety.
     #>
 
     [CmdletBinding(SupportsShouldProcess)]

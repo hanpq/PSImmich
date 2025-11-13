@@ -1,22 +1,24 @@
 ﻿function Get-IMStack
 {
     <#
+    .SYNOPSIS
+        Retrieves asset stacks.
     .DESCRIPTION
-        Retrieves Immich stack information
+        Gets stacks that group related assets together (like photo bursts or HDR sets).
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER Id
-        Defines the stack to get
+        Specific stack ID to retrieve.
     .PARAMETER PrimaryAssetId
-        Only returns stacks that contain the specified primary asset
+        Filter stacks by primary asset ID.
     .EXAMPLE
         Get-IMStack
 
-        Retrieves all Immich stacks
+        Gets all asset stacks.
     .EXAMPLE
-        Get-IMStack -Id <stackId>
+        Get-IMStack -Id 'stack-id'
+
+        Gets specific stack details.
 
         Retrieves a specific Immich stack by ID
     .EXAMPLE
@@ -42,7 +44,7 @@
         $PrimaryAssetId
     )
 
-    BEGIN
+    begin
     {
         $QueryParameters = @{}
         if ($PrimaryAssetId)
@@ -51,7 +53,7 @@
         }
     }
 
-    PROCESS
+    process
     {
         switch ($PSCmdlet.ParameterSetName)
         {

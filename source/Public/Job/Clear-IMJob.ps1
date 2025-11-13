@@ -1,22 +1,35 @@
 ﻿function Clear-IMJob
 {
     <#
+    .SYNOPSIS
+        Clears Immich job queues
     .DESCRIPTION
-        Clear immich job
+        Clears completed, failed, or all jobs from specific job queues in Immich. This helps manage
+        job queue cleanup and removes old job entries that are no longer needed.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
     .PARAMETER Job
-        Defines the job type
+        The type of job queue to clear. Valid values include thumbnailGeneration, metadataExtraction,
+        videoConversion, faceDetection, and other job types.
     .PARAMETER Force
-        Defines force
+        Forces the operation to proceed without additional confirmation for potentially disruptive actions.
     .PARAMETER FailedOnly
-        Defines that only failed jobs should be cleared
+        Clears only failed jobs from the queue, leaving completed and pending jobs intact.
     .EXAMPLE
-        Clear-IMJob
+        Clear-IMJob -Job 'thumbnailGeneration'
 
-        Clear immich job
+        Clears all jobs from the thumbnail generation queue.
+    .EXAMPLE
+        Clear-IMJob -Job 'faceDetection' -FailedOnly
+
+        Clears only failed jobs from the face detection queue.
+    .EXAMPLE
+        Clear-IMJob -Job 'metadataExtraction' -Force
+
+        Forcibly clears the metadata extraction job queue.
+    .NOTES
+        Use caution when clearing job queues as this may remove jobs that haven't completed yet.
+        The FailedOnly parameter is recommended for routine maintenance.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP')]
     [CmdletBinding()]

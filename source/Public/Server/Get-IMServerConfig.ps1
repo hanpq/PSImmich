@@ -1,16 +1,16 @@
 ﻿function Get-IMServerConfig
 {
     <#
+    .SYNOPSIS
+        Retrieves server configuration settings.
     .DESCRIPTION
-        Retreives Immich server config
+        Gets current server configuration and settings.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .EXAMPLE
         Get-IMServerConfig
 
-        Retreives Immich server config
+        Gets current server configuration.
     #>
 
     [CmdletBinding()]

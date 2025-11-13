@@ -1,18 +1,20 @@
 ﻿function Disconnect-Immich
 {
     <#
+    .SYNOPSIS
+        Disconnects from Immich server.
     .DESCRIPTION
-        Disconnect and cleanup session configuration
+        Cleans up session configuration and authentication state.
     .PARAMETER Session
-        Defines a ImmichSession object that will be disconnected and cleaned up.
+        Specific session to disconnect, or default session if omitted.
     .EXAMPLE
         Disconnect-Immich
 
-        Disconnect from the default immich session
+        Disconnects from default session.
     .EXAMPLE
-        Disconnect-Immich -Session $Session
+        Disconnect-Immich -Session $session
 
-        Disconnect the specified session
+        Disconnects specific session object.
     #>
 
     [CmdletBinding()]

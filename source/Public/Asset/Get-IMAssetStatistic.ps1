@@ -1,12 +1,13 @@
 ﻿function Get-IMAssetStatistic
 {
     <#
+    .SYNOPSIS
+        Retrieves Immich asset statistics
     .DESCRIPTION
-        Retrieves asset statistics with optional filtering
+        Retrieves comprehensive statistics about assets in the Immich library, including counts by type,
+        status, and other criteria. Supports filtering by favorite status, trash status, and visibility.
     .PARAMETER Session
         Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
-
-        -Session $Session
     .PARAMETER IsFavorite
         Filter statistics to include only favorite assets (true) or exclude favorites (false). If not specified, includes both.
     .PARAMETER IsTrashed
@@ -16,15 +17,20 @@
     .EXAMPLE
         Get-IMAssetStatistic
 
-        Retrieves all asset statistics without filtering
+        Retrieves comprehensive asset statistics for the entire library.
     .EXAMPLE
-        Get-IMAssetStatistic -IsFavorite $true
+        Get-IMAssetStatistic -IsFavorite:$true
 
-        Retrieves statistics for favorite assets only
+        Retrieves statistics for favorite assets only.
     .EXAMPLE
-        Get-IMAssetStatistic -IsTrashed $false -Visibility 'timeline'
+        Get-IMAssetStatistic -IsTrashed:$false -Visibility 'timeline'
 
-        Retrieves statistics for non-trashed timeline assets
+        Retrieves statistics for non-trashed assets visible in the timeline.
+    .EXAMPLE
+        $stats = Get-IMAssetStatistic
+        Write-Host "Total images: $($stats.images), Total videos: $($stats.videos)"
+
+        Retrieves statistics and displays specific counts.
     #>
 
     [CmdletBinding()]

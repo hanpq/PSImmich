@@ -1,20 +1,25 @@
 ﻿function Rename-IMAPIKey
 {
     <#
+    .SYNOPSIS
+        Renames an Immich API key
     .DESCRIPTION
-        Sets name of an apikey
+        Updates the name of an existing API key. This helps maintain organized and descriptive names
+        for API keys as their usage evolves.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines the id of the API key to update
-    .PARAMETER name
-        Defines a new name for the apikey
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER Id
+        The UUID of the API key to rename. Accepts pipeline input.
+    .PARAMETER Name
+        The new name for the API key. Should be descriptive to help identify the key's purpose.
     .EXAMPLE
-        Rename-IMAPIKey
+        Rename-IMAPIKey -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Name 'Production Backup Script'
 
-        Sets name of an apikey
+        Renames the specified API key to 'Production Backup Script'.
+    .EXAMPLE
+        Get-IMAPIKey | Where-Object {$_.name -eq 'temp'} | Rename-IMAPIKey -Name 'Mobile App Access'
+
+        Finds an API key named 'temp' and renames it to 'Mobile App Access'.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Do not agree, new initiates an entity not previously known to the system, that should not cause issues.')]
     [CmdletBinding()]

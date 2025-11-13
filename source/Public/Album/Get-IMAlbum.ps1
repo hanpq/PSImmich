@@ -1,28 +1,45 @@
 ﻿function Get-IMAlbum
 {
     <#
+    .SYNOPSIS
+        Retrieves Immich albums
     .DESCRIPTION
-        Retreives Immich asset
+        Retrieves one or more albums from the Immich server. Can retrieve all albums, specific albums by ID,
+        albums containing specific assets, or filter albums by name or shared status.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
     .PARAMETER AlbumId
-        Defines the album to get
+        The UUID of a specific album to retrieve. Accepts pipeline input.
     .PARAMETER AssetId
-        Only returns albums that contain the asset
+        Only returns albums that contain the specified asset UUID.
     .PARAMETER Shared
-        Defines weather to return shared albums or not.
+        Specifies whether to return shared albums. If not specified, returns both shared and non-shared albums.
     .PARAMETER IncludeAssets
-        Defines weather to return assets as part of the object or not
+        Specifies whether to include assets as part of the returned album objects. By default, assets are not included for performance.
     .PARAMETER Name
-        Specify an exact name of an album
+        Specifies the exact name of an album to retrieve.
     .PARAMETER SearchString
-        Specify a string to search for in album names, accepts wildcard
+        Specifies a string to search for in album names. Supports wildcards for pattern matching.
     .EXAMPLE
-        Get-IMAlbum -albumid <albumid>
+        Get-IMAlbum
 
-        Retreives Immich album
+        Retrieves all albums for the current user.
+    .EXAMPLE
+        Get-IMAlbum -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+
+        Retrieves a specific album by its ID.
+    .EXAMPLE
+        Get-IMAlbum -Name 'Family Vacation'
+
+        Retrieves the album with the exact name 'Family Vacation'.
+    .EXAMPLE
+        Get-IMAlbum -SearchString 'vacation*' -IncludeAssets
+
+        Retrieves all albums with names starting with 'vacation' and includes their assets.
+    .EXAMPLE
+        Get-IMAlbum -Shared:$true
+
+        Retrieves only albums that are shared with other users.
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'list')]

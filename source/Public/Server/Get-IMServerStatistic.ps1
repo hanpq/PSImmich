@@ -1,16 +1,16 @@
 ﻿function Get-IMServerStatistic
 {
     <#
+    .SYNOPSIS
+        Retrieves server usage statistics.
     .DESCRIPTION
-        Retreives Immich server statistic
+        Gets server performance metrics and usage statistics.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .EXAMPLE
         Get-IMServerStatistic
 
-        Retreives Immich server statistic
+        Gets server usage statistics.
     #>
 
     [CmdletBinding()]

@@ -1,18 +1,18 @@
 ﻿function Set-IMUser
 {
     <#
+    .SYNOPSIS
+        Updates user account settings.
     .DESCRIPTION
-        Set Immich user
+        Modifies user properties including admin status, avatar color, and other preferences.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines the user id to update
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        User ID to update.
     .PARAMETER IsAdmin
-        Defines if the user should be admin
+        Sets admin privileges for the user.
     .PARAMETER AvatarColor
-        Defines the avatar color for the user
+        Sets avatar background color for the user.
     .PARAMETER email
         Defines a specific user id to be retreived
     .PARAMETER MemoriesEnabled
@@ -75,16 +75,17 @@
         $StorageLabel
     )
 
-    BEGIN
+    begin
     {
         $BodyParameters = @{}
         $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
     }
 
-    PROCESS
+    process
     {
         $id | ForEach-Object {
-            if ($PSCmdlet.ShouldProcess($PSItem,'Set')) {
+            if ($PSCmdlet.ShouldProcess($PSItem, 'Set'))
+            {
                 InvokeImmichRestMethod -Method PUT -RelativePath "/admin/users/$PSItem" -ImmichSession:$Session -Body $BodyParameters
             }
         }

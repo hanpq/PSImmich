@@ -1,20 +1,24 @@
 ﻿function Get-IMSharedLink
 {
     <#
+    .SYNOPSIS
+        Retrieves shared links for asset sharing.
     .DESCRIPTION
-        Retreives Immich shared link
+        Gets shared links that allow external access to assets and albums.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines a specific shared link id to be retreived
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        Specific shared link ID to retrieve.
     .PARAMETER AlbumId
-        AlbumId filter
+        Filter by album ID to get album shared links.
     .EXAMPLE
         Get-IMSharedLink
 
-        Retreives Immich shared link
+        Gets all shared links.
+    .EXAMPLE
+        Get-IMSharedLink -Id 'link-id'
+
+        Gets specific shared link details.
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'list')]

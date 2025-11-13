@@ -1,18 +1,29 @@
 ﻿function Remove-IMAPIKey
 {
     <#
+    .SYNOPSIS
+        Removes Immich API keys
     .DESCRIPTION
-        Removes Immich api key
+        Removes one or more API keys from the Immich server. This action is permanent and cannot be undone.
+        Any applications using the removed API keys will lose access immediately.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines an api key to remove
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER Id
+        The UUID(s) of the API key(s) to remove. Accepts pipeline input and multiple values.
     .EXAMPLE
-        Remove-IMAPIKey -id <apikey id>
+        Remove-IMAPIKey -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
 
-        Remove api key
+        Removes the specified API key with confirmation prompt.
+    .EXAMPLE
+        Get-IMAPIKey | Where-Object {$_.name -like 'Old*'} | Remove-IMAPIKey
+
+        Removes all API keys with names starting with 'Old'.
+    .EXAMPLE
+        Remove-IMAPIKey -Id 'key-uuid' -Confirm:$false
+
+        Removes the API key without confirmation prompt.
+    .NOTES
+        This cmdlet supports ShouldProcess and will prompt for confirmation before removing API keys.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
     [CmdletBinding(SupportsShouldProcess)]

@@ -1,22 +1,26 @@
 ﻿function Get-IMPerson
 {
     <#
+    .SYNOPSIS
+        Retrieves person records from face recognition.
     .DESCRIPTION
-        Retreives Immich person
+        Gets people identified by Immich's face recognition with optional filtering and statistics.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines a specific person to be retreived
-    .PARAMETER withHidden
-        Defines if hidden should be returned or not. Do not specify if either should be returned.
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        Specific person ID to retrieve. Supports pipeline input.
+    .PARAMETER WithHidden
+        Include or exclude hidden people. Omit to return all.
     .PARAMETER IncludeStatistics
-        Defines if statistics should be returned for the person
+        Include asset count and other statistics for each person.
     .EXAMPLE
-        Get-IMPerson
+        Get-IMPerson -IncludeStatistics
 
-        Retreives Immich person
+        Gets all people with asset counts.
+    .EXAMPLE
+        Get-IMPerson -Id 'bf973405-3f2a-48d2-a687-2ed4167164be'
+
+        Gets specific person details.
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'list')]
@@ -40,7 +44,7 @@
         $IncludeStatistics
     )
 
-    BEGIN
+    begin
     {
         if ($PSCmdlet.ParameterSetName -eq 'list')
         {
@@ -49,7 +53,7 @@
         }
     }
 
-    PROCESS
+    process
     {
         switch ($PSCmdlet.ParameterSetName)
         {

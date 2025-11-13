@@ -1,18 +1,22 @@
 ﻿function Remove-IMStackAsset
 {
     <#
+    .SYNOPSIS
+        Removes assets from a stack.
     .DESCRIPTION
-        Removes an asset from an Immich stack
+        Removes specific assets from an existing stack. If primary asset is removed, another becomes primary.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER StackId
-        The stack ID from which to remove the asset
+        Stack ID to modify.
     .PARAMETER AssetId
-        The asset ID to remove from the stack
+        Asset ID to remove from the stack.
     .PARAMETER Force
-        Suppress confirmation prompt
+        Suppresses confirmation prompt when specified.
+    .EXAMPLE
+        Remove-IMStackAsset -StackId 'stack-id' -AssetId 'asset-id'
+
+        Removes asset from stack after confirmation.
     .EXAMPLE
         Remove-IMStackAsset -StackId <stackId> -AssetId <assetId>
 
@@ -44,7 +48,7 @@
         $Force
     )
 
-    BEGIN
+    begin
     {
         if ($Force)
         {
@@ -52,9 +56,9 @@
         }
     }
 
-    PROCESS
+    process
     {
-        if ($PSCmdlet.ShouldProcess("Asset $AssetId from Stack $StackId", "Remove"))
+        if ($PSCmdlet.ShouldProcess("Asset $AssetId from Stack $StackId", 'Remove'))
         {
             InvokeImmichRestMethod -Method Delete -RelativePath "/stacks/$StackId/assets/$AssetId" -ImmichSession:$Session
         }

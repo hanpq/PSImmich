@@ -1,22 +1,22 @@
 ﻿function Set-IMPerson
 {
     <#
+    .SYNOPSIS
+        Updates person information and settings.
     .DESCRIPTION
-        Updates an Immich asset
+        Modifies person details like name, birth date, visibility, and face thumbnail.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines the person to update
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        Person ID to update.
     .PARAMETER BirthDate
-        Defines birth date
+        Person's birth date.
     .PARAMETER FaceAssetId
-        Defines an face asset id
+        Asset ID to use as person's face thumbnail.
     .PARAMETER IsHidden
-        Defines if the person should be hidden
+        Set to $true to hide person from interface.
     .PARAMETER Name
-        Defines the name of the person
+        Display name for the person.
     .PARAMETER Color
         Defines the color associated with the person
     .PARAMETER IsFavorite
@@ -71,12 +71,12 @@
 
     )
 
-    BEGIN
+    begin
     {
         $ObjectArray = [array]@()
     }
 
-    PROCESS
+    process
     {
         $id | ForEach-Object {
             $CurrentID = $PSItem
@@ -87,7 +87,7 @@
         }
     }
 
-    END
+    end
     {
         if ($PSCmdlet.ShouldProcess(($ObjectArray.id -join ','), 'PUT'))
         {

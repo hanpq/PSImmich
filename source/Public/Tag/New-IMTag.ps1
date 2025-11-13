@@ -1,18 +1,20 @@
 ﻿function New-IMTag
 {
     <#
+    .SYNOPSIS
+        Creates a new asset tag.
     .DESCRIPTION
-        Creates a new Immich tag
+        Creates tags for organizing and categorizing assets by type.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER name
-        Defines a name for the new tag
-    .PARAMETER type
-        Defines the type of tag to create. Valid values, OBJECT, FACE, CUSTOM
+        Optional session object for multi-instance connections.
+    .PARAMETER Name
+        Name for the new tag.
+    .PARAMETER Type
+        Tag type: OBJECT, FACE, or CUSTOM.
     .EXAMPLE
-        New-IMTag -name 'Dogs' -type OBJECT
+        New-IMTag -Name 'Vacation' -Type CUSTOM
+
+        Creates custom tag for vacation photos.
 
         Creates a new Immich tag
     #>

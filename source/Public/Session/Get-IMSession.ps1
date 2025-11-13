@@ -1,16 +1,16 @@
 ﻿function Get-IMSession
 {
     <#
+    .SYNOPSIS
+        Displays current Immich session information.
     .DESCRIPTION
-        Displays the Immich Session object.
+        Shows active session details including server URL and authentication status.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Specific session to display, or default session if omitted.
     .EXAMPLE
-        Get-PSession
+        Get-IMSession
 
-        Returns the ImmichSession, if none is specified, it tries to retreive the default
+        Shows current session information.
     #>
 
     [CmdletBinding()]

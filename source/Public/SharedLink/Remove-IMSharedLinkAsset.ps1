@@ -1,18 +1,20 @@
 ﻿function Remove-IMSharedLinkAsset
 {
     <#
+    .SYNOPSIS
+        Removes assets from a shared link.
     .DESCRIPTION
-        Remove Immich shared link asset
+        Removes specific assets from an existing shared link.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines assets to add to the shared link
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        Asset IDs to remove from the shared link.
     .PARAMETER SharedLinkId
-        Defines a shared link to add assets to
+        Shared link ID to modify.
     .EXAMPLE
-        Remove-IMSharedLinkAsset -id <assetid> -sharedlinkid <sharedlinkid>
+        Remove-IMSharedLinkAsset -Id 'asset-id' -SharedLinkId 'link-id'
+
+        Removes asset from shared link.
 
         Remove Immich shared link asset
     #>
@@ -34,19 +36,19 @@
         $SharedLinkId
     )
 
-    BEGIN
+    begin
     {
         $AssetIDs = [System.Collections.Generic.List[string]]::New()
     }
 
-    PROCESS
+    process
     {
         $id | ForEach-Object {
             $AssetIDs.Add($PSItem)
         }
     }
 
-    END
+    end
     {
         $Body = @{
             assetIds = $AssetIDs

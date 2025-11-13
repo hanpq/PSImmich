@@ -1,16 +1,16 @@
 ﻿function Find-IMExploreData
 {
     <#
+    .SYNOPSIS
+        Retrieves data for explore interface.
     .DESCRIPTION
-        Find explore data
+        Gets curated content and suggestions for Immich's explore feature.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .EXAMPLE
         Find-IMExploreData
 
-        Retreives explore data
+        Gets explore interface data and suggestions.
     #>
 
     [CmdletBinding()]

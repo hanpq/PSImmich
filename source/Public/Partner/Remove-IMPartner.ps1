@@ -1,18 +1,20 @@
 ﻿function Remove-IMPartner
 {
     <#
+    .SYNOPSIS
+        Removes a sharing partner.
     .DESCRIPTION
-        Remove immich partner
+        Ends partnership relationship and stops asset sharing with specified user.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines the partner id
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        Partner user ID to remove. Must be valid GUID format.
     .EXAMPLE
-        Remove-IMPartner -id <userid>
+        Remove-IMPartner -Id 'bf973405-3f2a-48d2-a687-2ed4167164be'
 
-        Remove immich partner
+        Removes the specified partner relationship.
+    .NOTES
+        Supports -WhatIf and -Confirm for safety.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
     [CmdletBinding(SupportsShouldProcess)]

@@ -1,20 +1,22 @@
 ﻿function Set-IMServerLicense
 {
     <#
+    .SYNOPSIS
+        Activates Immich server license.
     .DESCRIPTION
-        Sets Immich server license
+        Installs and activates server license using provided keys.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER ActivationKey
-        Defines the activation key
+        License activation key provided by Immich.
     .PARAMETER LicenseKey
-        Defines the license key
+        License key for server activation.
     .EXAMPLE
-        Set-IMServerLicense -LicenseKey "ABC" -ActivationKey "ABC"
+        Set-IMServerLicense -LicenseKey 'your-license' -ActivationKey 'activation-key'
 
-        Sets Immich server license
+        Activates server with provided license keys.
+    .NOTES
+        Supports -WhatIf and -Confirm for safety.
     #>
 
     [CmdletBinding(SupportsShouldProcess)]

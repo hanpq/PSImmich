@@ -1,22 +1,22 @@
 ﻿function New-IMSharedLink
 {
     <#
+    .SYNOPSIS
+        Creates a new shared link for assets or albums.
     .DESCRIPTION
-        New Immich shared link
+        Generates public sharing links with configurable permissions and expiration.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER AssetId
-        Defines the asset ids to share
+        Asset IDs to include in the shared link.
     .PARAMETER AlbumId
-        Defines the albumid to share
+        Album ID to share via the link.
     .PARAMETER AllowDownload
-        Defines if downloading of assets are permitted.
+        Permits downloading assets through the shared link.
     .PARAMETER AllowUpload
-        Defines if uploads of assets are permitted.
+        Permits uploading assets through the shared link.
     .PARAMETER Description
-        Defines a description of the shared link
+        Description text for the shared link.
     .PARAMETER ExpiresAt
         Defines an expiration date of the shared link
     .PARAMETER ShowMetadata

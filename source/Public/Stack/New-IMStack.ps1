@@ -1,20 +1,20 @@
 ﻿function New-IMStack
 {
     <#
+    .SYNOPSIS
+        Creates a new asset stack.
     .DESCRIPTION
-        Creates a new Immich stack from assets
+        Groups related assets into a stack with the first asset as primary. Minimum 2 assets required.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER AssetIds
-        Array of asset IDs to include in the stack. The first asset becomes the primary asset. Minimum 2 assets required.
+        Array of asset IDs to stack. First asset becomes the primary asset.
     .EXAMPLE
-        New-IMStack -AssetIds @('asset-id-1', 'asset-id-2', 'asset-id-3')
+        New-IMStack -AssetIds @('asset1', 'asset2', 'asset3')
 
-        Creates a new stack with the specified assets, with asset-id-1 as the primary
+        Creates stack with asset1 as primary.
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions','', Justification='Do not agree that -new- alters system state')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Do not agree that -new- alters system state')]
     [CmdletBinding()]
     param(
         [Parameter()]
@@ -27,14 +27,14 @@
         $AssetIds
     )
 
-    BEGIN
+    begin
     {
         $BodyParameters = @{
             assetIds = $AssetIds
         }
     }
 
-    PROCESS
+    process
     {
         InvokeImmichRestMethod -Method Post -RelativePath '/stacks' -ImmichSession:$Session -Body $BodyParameters | AddCustomType IMStack
     }

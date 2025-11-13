@@ -1,18 +1,32 @@
 ﻿function Start-IMVideoTranscode
 {
     <#
+    .SYNOPSIS
+        Starts video transcoding jobs for Immich assets
     .DESCRIPTION
-        Recreates the transcoded version of the source video files
+        Initiates video transcoding jobs for one or more video assets, creating web-optimized versions
+        for better streaming and compatibility. This is useful for reprocessing videos or generating
+        transcoded versions when they are missing or corrupted.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines the asset id that the job should target. Accepts pipeline input.
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER Id
+        The UUID(s) of the video asset(s) to transcode. Accepts pipeline input and multiple values.
     .EXAMPLE
-        Start-IMVideoTranscode
+        Start-IMVideoTranscode -Id 'video-asset-uuid'
 
-        Recreates the transcoded version of the source video files
+        Starts transcoding for the specified video asset with confirmation prompt.
+    .EXAMPLE
+        Get-IMAsset | Where-Object {$_.type -eq 'VIDEO'} | Start-IMVideoTranscode
+
+        Starts transcoding for all video assets in the library.
+    .EXAMPLE
+        @('video1-uuid', 'video2-uuid') | Start-IMVideoTranscode -Confirm:$false
+
+        Starts transcoding for multiple video assets without confirmation.
+    .NOTES
+        This cmdlet supports ShouldProcess and will prompt for confirmation before starting transcoding jobs.
+        Transcoding is a CPU-intensive operation that may take significant time depending on video size and server resources.
+        Only works with video assets; image assets will be ignored.
     #>
 
     [CmdletBinding(SupportsShouldProcess)]

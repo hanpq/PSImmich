@@ -1,28 +1,39 @@
 ﻿function New-IMAlbum
 {
     <#
+    .SYNOPSIS
+        Creates a new Immich album
     .DESCRIPTION
-        Adds a new album
+        Creates a new album in Immich with the specified name and optional properties. Albums can be created with
+        initial assets, descriptions, and shared with other users.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER albumName
-        Defines the name of the new album
-    .PARAMETER assetIds
-        Defines a list of assets to add to the album
-    .PARAMETER description
-        Defines a description for the album
-    .PARAMETER albumUsers
-        Defines a list of user id to share the album to
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER AlbumName
+        The name for the new album. This will be displayed in the Immich interface.
+    .PARAMETER AssetIds
+        An array of asset UUIDs to add to the album during creation.
+    .PARAMETER Description
+        A description for the album to provide additional context about its contents.
+    .PARAMETER AlbumUsers
+        An array of user objects to share the album with. Each object should contain 'userId' and 'role' properties.
     .EXAMPLE
-        New-IMAlbum -albumName 'Las Vegas'
+        New-IMAlbum -AlbumName 'Family Vacation 2024'
 
-        Adds a new an album
+        Creates a new album named 'Family Vacation 2024'.
     .EXAMPLE
-        New-IMAlbum -AlbumName 'Las Vegas' -AlbumUsers @{userId='<userid>';role='editor'}
+        New-IMAlbum -AlbumName 'Wedding Photos' -Description 'Photos from Sarah and John wedding ceremony'
 
-        Adds a new shared album that is shared to a user
+        Creates a new album with a description.
+    .EXAMPLE
+        $assets = @('asset1-uuid', 'asset2-uuid')
+        New-IMAlbum -AlbumName 'Best of 2024' -AssetIds $assets
+
+        Creates a new album and adds specific assets to it.
+    .EXAMPLE
+        $users = @(@{userId='user1-uuid'; role='editor'}, @{userId='user2-uuid'; role='viewer'})
+        New-IMAlbum -AlbumName 'Shared Memories' -AlbumUsers $users
+
+        Creates a new album shared with multiple users with different roles.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Do not agree, new initiates an entity not previously known to the system, that should not cause issues.')]
     [CmdletBinding()]

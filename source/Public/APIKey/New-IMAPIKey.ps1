@@ -1,20 +1,28 @@
 ﻿function New-IMAPIKey
 {
     <#
+    .SYNOPSIS
+        Creates a new Immich API key
     .DESCRIPTION
-        Adds a new an api key
+        Creates a new API key for programmatic access to the Immich server. API keys can be assigned specific
+        permissions to control access to different parts of the API.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER name
-        Defines the name of the new api key
-    .PARAMETER permission
-        Defines the permissions for the API-key
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER Name
+        The name for the new API key. This should be descriptive to help identify the key's purpose.
+    .PARAMETER Permission
+        The permissions to assign to the API key. Defaults to 'all' for full access. Can specify multiple granular permissions
+        such as 'asset.read', 'album.create', etc.
     .EXAMPLE
-        New-IMAPIKey -name 'Automation'
+        New-IMAPIKey -Name 'Automation Script'
 
-        Adds a new an api key
+        Creates a new API key with full permissions named 'Automation Script'.
+    .EXAMPLE
+        New-IMAPIKey -Name 'Read Only Access' -Permission 'asset.read','album.read','library.read'
+
+        Creates a new API key with limited read-only permissions.
+    .NOTES
+        The API key secret is only displayed once upon creation. Store it securely as it cannot be retrieved later.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Do not agree, new initiates an entity not previously known to the system, that should not cause issues.')]
     [CmdletBinding()]

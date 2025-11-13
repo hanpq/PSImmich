@@ -1,28 +1,29 @@
 ﻿function Search-IMAsset
 {
     <#
+    .SYNOPSIS
+        Searches assets using AI content analysis.
     .DESCRIPTION
-        Search for assets using smart search. Do note that this uses the machine learning model find assets based on content so results may vary. If you rather want to search based on metadata use the Find-IMAsset cmdlet.
+        Uses machine learning to find assets by visual content, faces, objects, and OCR text.
+        Results may vary based on model accuracy. For metadata searches, use Find-IMAsset.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER city
-        City filter
-    .PARAMETER country
-        Country filter
-    .PARAMETER createdAfter
-        CreatedAfter filter
-    .PARAMETER createdBefore
-        CreatedBefore filter
-    .PARAMETER deviceId
-        Device Id filter
-    .PARAMETER visibility
-        Asset visibility filter (archive, timeline, hidden, locked)
-    .PARAMETER ocr
-        OCR text search filter
-    .PARAMETER isEncoded
-        Encoded filter
+        Optional session object for multi-instance connections.
+    .PARAMETER City
+        Filter by city name.
+    .PARAMETER Country
+        Filter by country name.
+    .PARAMETER CreatedAfter
+        Include assets created after this date.
+    .PARAMETER CreatedBefore
+        Include assets created before this date.
+    .PARAMETER DeviceId
+        Filter by device identifier.
+    .PARAMETER Visibility
+        Asset visibility: archive, timeline, hidden, or locked.
+    .PARAMETER OCR
+        Search text extracted from images via OCR.
+    .PARAMETER IsEncoded
+        Filter by video encoding status.
     .PARAMETER isFavorite
         Favorite filter
     .PARAMETER isMotion
@@ -79,6 +80,13 @@
         Search-IMAsset -Query 'Road'
 
         Searches for assets matching content Road.
+    .EXAMPLE
+        Search-IMAsset -OCR 'birthday party'
+
+        Finds photos containing 'birthday party' text.
+    .NOTES
+        Requires machine learning models to be enabled and trained.
+
     #>
 
     [CmdletBinding()]

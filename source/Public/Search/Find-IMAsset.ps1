@@ -1,28 +1,29 @@
 ﻿function Find-IMAsset
 {
     <#
+    .SYNOPSIS
+        Searches assets using metadata filters.
     .DESCRIPTION
-        Find assets
+        Finds assets by metadata properties like dates, locations, device info, and technical details.
+        For content-based search, use Search-IMAsset instead.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER checksum
-        Checksum filter
-    .PARAMETER city
-        City filter
-    .PARAMETER country
-        Country filter
-    .PARAMETER createdAfter
-        CreatedAfter filter
-    .PARAMETER createdBefore
-        CreatedBefore filter
-    .PARAMETER deviceAssetId
-        Device Asset Id filter
-    .PARAMETER deviceId
-        Device Id filter
-    .PARAMETER encodedVideoPath
-        Encoded Video path filter
+        Optional session object for multi-instance connections.
+    .PARAMETER Checksum
+        Filter by file checksum for duplicate detection.
+    .PARAMETER City
+        Filter by city name from GPS data.
+    .PARAMETER Country
+        Filter by country from GPS data.
+    .PARAMETER CreatedAfter
+        Include assets created after this date.
+    .PARAMETER CreatedBefore
+        Include assets created before this date.
+    .PARAMETER DeviceAssetId
+        Filter by device-specific asset identifier.
+    .PARAMETER DeviceId
+        Filter by camera/device identifier.
+    .PARAMETER EncodedVideoPath
+        Filter by encoded video file path.
     .PARAMETER id
         Id filter
     .PARAMETER isEncoded
@@ -85,6 +86,13 @@
         Find-IMAsset -createdAfter (Get-Date).AddDays(-30)
 
         Retreives all assets created in the last 30 days
+    .EXAMPLE
+        Find-IMAsset -City 'Paris' -CreatedAfter '2024-01-01'
+
+        Finds assets taken in Paris after January 1, 2024.
+    .NOTES
+        Use metadata-based filtering for precise technical searches.
+
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'list-shared')]

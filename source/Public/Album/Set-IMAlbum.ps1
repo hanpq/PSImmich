@@ -1,36 +1,47 @@
 ﻿function Set-IMAlbum
 {
     <#
-    .DESCRIPTION
+    .SYNOPSIS
         Updates an Immich album
+    .DESCRIPTION
+        Updates various properties of an Immich album including name, description, thumbnail, activity settings,
+        and manages assets within the album. Supports adding and removing assets in a single operation.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines albums to update
-    .PARAMETER albumName
-        Defines a new album name
-    .PARAMETER albumThumbnailAssetId
-        Defines a UUID for a new thumbnail asset
-    .PARAMETER description
-        Defines a new description for the album
-    .PARAMETER isActivityEnabled
-        Defines weather activity feed should be enabled
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER Id
+        The UUID(s) of the album(s) to update. Accepts pipeline input and multiple values.
+    .PARAMETER AlbumName
+        The new name for the album.
+    .PARAMETER AlbumThumbnailAssetId
+        The UUID of an asset to use as the album thumbnail.
+    .PARAMETER Description
+        The new description for the album.
+    .PARAMETER IsActivityEnabled
+        Specifies whether the activity feed should be enabled for the album.
     .PARAMETER AddAssets
-        Defines assets to add to the album
+        An array of asset UUIDs to add to the album.
     .PARAMETER RemoveAssets
-        Defines assets to be removed from the album
+        An array of asset UUIDs to remove from the album.
     .PARAMETER Order
-        Defines the sort order for the album
+        Defines the sort order for assets in the album.
     .EXAMPLE
-        Set-IMAlbum -id <albumid> -description 'Trip to New York'
+        Set-IMAlbum -Id 'album-uuid' -Description 'Family vacation photos from summer 2024'
 
-        Update the description of an Immich album
+        Updates the album description.
     .EXAMPLE
-        Set-IMAlbum -id <albumid> -AddAssets <assetid>,<assetid>
+        Set-IMAlbum -Id 'album-uuid' -AddAssets @('asset1-uuid', 'asset2-uuid')
 
-        Adds to assets to the album
+        Adds two assets to the album.
+    .EXAMPLE
+        Set-IMAlbum -Id 'album-uuid' -AlbumName 'Vacation 2024' -IsActivityEnabled:$true
+
+        Renames the album and enables the activity feed.
+    .EXAMPLE
+        Set-IMAlbum -Id 'album-uuid' -AddAssets @('new-asset') -RemoveAssets @('old-asset')
+
+        Adds one asset and removes another in a single operation.
+    .NOTES
+        This cmdlet supports ShouldProcess and will prompt for confirmation before making changes.
     #>
 
     [CmdletBinding(SupportsShouldProcess)]

@@ -1,18 +1,22 @@
 ﻿function Get-IMTag
 {
     <#
+    .SYNOPSIS
+        Retrieves asset tags.
     .DESCRIPTION
-        Retreives Immich tag
+        Gets tags used for organizing and categorizing assets.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines a specific tag id to be retreived
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        Specific tag ID to retrieve.
     .EXAMPLE
         Get-IMTag
 
-        Retreives Immich tag
+        Gets all available tags.
+    .EXAMPLE
+        Get-IMTag -Id 'tag-id'
+
+        Gets specific tag details.
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'list')]
@@ -27,7 +31,7 @@
         $id
     )
 
-    PROCESS
+    process
     {
         if ($PSCmdlet.ParameterSetName -eq 'id')
         {
@@ -38,7 +42,7 @@
         }
     }
 
-    END
+    end
     {
         if ($PSCmdlet.ParameterSetName -eq 'list')
         {

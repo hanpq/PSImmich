@@ -1,16 +1,16 @@
 ﻿function Get-IMTheme
 {
     <#
+    .SYNOPSIS
+        Retrieves Immich theme CSS.
     .DESCRIPTION
-        Retreives Immich theme CSS
+        Gets current theme CSS styling for Immich interface.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .EXAMPLE
         Get-IMTheme
 
-        Retreives Immich theme CSS
+        Gets current theme CSS.
     #>
 
     [CmdletBinding()]

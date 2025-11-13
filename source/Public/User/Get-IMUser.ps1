@@ -1,22 +1,26 @@
 ﻿function Get-IMUser
 {
     <#
+    .SYNOPSIS
+        Retrieves Immich users.
     .DESCRIPTION
-        Retreives Immich user
+        Gets user accounts and profile information from Immich server.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines a specific user id to be retreived
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        Specific user ID to retrieve.
     .PARAMETER IncludeDeleted
-        Defines if deleted users should be returned.
+        Include deleted users in results.
     .PARAMETER Me
-        Defines that the currently connected users information is retreived.
+        Retrieve current user's information.
     .EXAMPLE
-        Get-IMUser -id <userid>
+        Get-IMUser -Me
 
-        Retreives Immich user
+        Gets current user information.
+    .EXAMPLE
+        Get-IMUser -Id 'user-id'
+
+        Gets specific user details.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP, evaluated as part of parameterset check')]
     [CmdletBinding(DefaultParameterSetName = 'list')]
@@ -39,7 +43,7 @@
         $Me
     )
 
-    PROCESS
+    process
     {
         switch ($PSCmdlet.ParameterSetName)
         {

@@ -1,20 +1,37 @@
 ﻿function Start-IMJob
 {
     <#
+    .SYNOPSIS
+        Starts Immich background jobs
     .DESCRIPTION
-        Start immich job
+        Initiates various background processing jobs in Immich such as thumbnail generation, metadata extraction,
+        face detection, and other system maintenance tasks. Jobs run asynchronously in the background.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
     .PARAMETER Job
-        Defines the job type
+        The type of job to start. Valid values include thumbnailGeneration, metadataExtraction, videoConversion,
+        faceDetection, facialRecognition, smartSearch, duplicateDetection, and others.
     .PARAMETER Force
-        Define force
+        Forces the job to start even if similar jobs are already running or queued.
     .EXAMPLE
-        Start-IMJob -job 'thumbnailGeneration'
+        Start-IMJob -Job 'thumbnailGeneration'
 
-        Start thumbnail generation job
+        Starts thumbnail generation for all assets missing thumbnails.
+    .EXAMPLE
+        Start-IMJob -Job 'faceDetection' -Force
+
+        Forces face detection to run on all applicable assets.
+    .EXAMPLE
+        Start-IMJob -Job 'duplicateDetection'
+
+        Starts duplicate detection analysis across the entire library.
+    .EXAMPLE
+        @('metadataExtraction', 'thumbnailGeneration') | ForEach-Object { Start-IMJob -Job $_ }
+
+        Starts multiple job types sequentially.
+    .NOTES
+        This cmdlet supports ShouldProcess and will prompt for confirmation before starting jobs.
+        Jobs run in the background and progress can be monitored using Get-IMJob.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'FP')]

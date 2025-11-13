@@ -1,30 +1,35 @@
 ﻿function Get-IMActivity
 {
     <#
+    .SYNOPSIS
+        Retrieves activities from an Immich album
     .DESCRIPTION
-        Retreives album activity
+        Retrieves activities (comments and likes) from an Immich album. Can be filtered by asset, activity type,
+        user, or activity level (album vs asset level).
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER albumId
-        Defines the album to retreive activities for.
-    .PARAMETER assetId
-        Defines a asset to retreive activities for.
-    .PARAMETER level
-        Defines the level of activities to retreive, valid values are album or asset.
-    .PARAMETER type
-        Defines the type of activities to retreive, valid values are comment or like.
-    .PARAMETER userId
-        Defines a specific user to retreive activities for.
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER AlbumId
+        The UUID of the album to retrieve activities from. Accepts pipeline input.
+    .PARAMETER AssetId
+        The UUID of a specific asset to retrieve activities for. If specified, only activities related to this asset are returned.
+    .PARAMETER Level
+        The level of activities to retrieve. Valid values are 'album' or 'asset'.
+    .PARAMETER Type
+        The type of activities to retrieve. Valid values are 'comment' or 'like'.
+    .PARAMETER UserId
+        The UUID of a specific user to retrieve activities for. If specified, only activities by this user are returned.
     .EXAMPLE
-        Get-IMActivity -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
-
-        Retreives all activities for an album
+        Get-IMActivity -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+        
+        Retrieves all activities for the specified album.
     .EXAMPLE
-        Get-IMActivity -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -assetId 'a4908e1f-697f-4d7b-9330-93b5eabe3baf'
-
-        Retreives all activities for an album and a specific asset
+        Get-IMActivity -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -AssetId 'a4908e1f-697f-4d7b-9330-93b5eabe3baf'
+        
+        Retrieves all activities for a specific asset within the album.
+    .EXAMPLE
+        Get-IMActivity -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Type 'comment'
+        
+        Retrieves only comment activities for the album.
     #>
 
     [CmdletBinding()]

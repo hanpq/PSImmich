@@ -1,32 +1,48 @@
 ﻿function Import-IMAsset
 {
     <#
+    .SYNOPSIS
+        Imports media files as Immich assets
     .DESCRIPTION
-        Imports an Immich asset
+        Uploads media files (photos and videos) to Immich, creating new assets. Supports cross-platform
+        multipart uploads with various metadata and status options.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
     .PARAMETER FilePath
-        Defines the path to the file to upload. Accepts pipeline input.
+        The path(s) to the media file(s) to upload. Accepts pipeline input and multiple files.
     .PARAMETER Duration
-        Defines the duration if its a video asset
-    .PARAMETER isArchived
-        Defines if the new asset should be archived.
-    .PARAMETER isFavorite
-        Defines if the new asset should be a favorite
-    .PARAMETER isOffline
-        Defines if the new asset should be offline
-    .PARAMETER isReadOnly
-        Defines if the new asset should be read only
-    .PARAMETER isVisible
-        Defines if the new asset should be visible
-    .PARAMETER libraryId
-        Defines which library to upload the asset to
+        The duration for video assets, if applicable.
+    .PARAMETER IsArchived
+        Specifies whether the imported asset should be archived upon upload.
+    .PARAMETER IsFavorite
+        Specifies whether the imported asset should be marked as a favorite.
+    .PARAMETER IsOffline
+        Specifies whether the imported asset should be marked as offline.
+    .PARAMETER IsReadOnly
+        Specifies whether the imported asset should be marked as read-only.
+    .PARAMETER IsVisible
+        Specifies whether the imported asset should be visible in the timeline.
+    .PARAMETER LibraryId
+        The UUID of the library to upload the asset to. If not specified, uses the default library.
     .EXAMPLE
-        Import-IMAsset -FilePath C:\file.jpg
+        Import-IMAsset -FilePath 'C:\Photos\vacation.jpg'
 
-        Uploads image to Immich
+        Imports a single photo to Immich.
+    .EXAMPLE
+        Get-ChildItem '*.jpg' | Import-IMAsset -IsFavorite
+
+        Imports all JPG files in the current directory and marks them as favorites.
+    .EXAMPLE
+        Import-IMAsset -FilePath 'C:\Videos\movie.mp4' -Duration '00:02:30' -LibraryId 'library-uuid'
+
+        Imports a video with specified duration to a specific library.
+    .EXAMPLE
+        @('photo1.jpg', 'photo2.jpg') | Import-IMAsset -IsArchived:$true
+
+        Imports multiple photos and archives them immediately.
+    .NOTES
+        Supports both Windows PowerShell and PowerShell Core with cross-platform multipart upload capabilities.
+        This cmdlet supports ShouldProcess and will prompt for confirmation before uploading files.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP, retreived through PSBoundParameters')]
     [CmdletBinding(SupportsShouldProcess)]

@@ -1,20 +1,33 @@
 ﻿function Resume-IMJob
 {
     <#
+    .SYNOPSIS
+        Resumes suspended Immich background jobs
     .DESCRIPTION
-        Resume immich job
+        Resumes processing of previously suspended job types in Immich. This allows the job queues
+        to continue processing pending items and accept new jobs.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
     .PARAMETER Job
-        Defines the job type
+        The type of job to resume. Valid values include thumbnailGeneration, metadataExtraction,
+        videoConversion, faceDetection, and other background job types.
     .PARAMETER Force
-        Defines force
+        Forces the resumption without additional confirmation.
     .EXAMPLE
-        Resume-IMJob
+        Resume-IMJob -Job 'thumbnailGeneration'
 
-        Resume immich job
+        Resumes thumbnail generation processing.
+    .EXAMPLE
+        Resume-IMJob -Job 'videoConversion' -Force
+
+        Forcibly resumes video conversion jobs.
+    .EXAMPLE
+        Get-IMJob | Where-Object {$_.jobCounts.paused -gt 0} | ForEach-Object { Resume-IMJob -Job $_.name }
+
+        Resumes all job types that have paused jobs.
+    .NOTES
+        Use this cmdlet to resume jobs that were previously suspended with Suspend-IMJob.
+        Monitor job status with Get-IMJob to verify jobs are processing normally after resuming.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP')]
     [CmdletBinding()]

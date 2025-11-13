@@ -1,20 +1,22 @@
 ﻿function Add-IMSharedLinkAsset
 {
     <#
+    .SYNOPSIS
+        Adds assets to an existing shared link.
     .DESCRIPTION
-        Add Immich shared link asset
+        Expands shared link content by adding more assets to it.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines assets to add to the shared link
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        Asset IDs to add to the shared link.
     .PARAMETER SharedLinkId
-        Defines a shared link to add assets to
+        Shared link ID to modify.
     .EXAMPLE
-        Add-IMSharedLinkAsset
+        Add-IMSharedLinkAsset -SharedLinkId 'link-id' -Id 'asset1', 'asset2'
 
-        Add Immich shared link asset
+        Adds assets to existing shared link.
+    .NOTES
+        Supports -WhatIf and -Confirm for safety.
     #>
 
     [CmdletBinding(SupportsShouldProcess)]
@@ -34,19 +36,19 @@
         $SharedLinkId
     )
 
-    BEGIN
+    begin
     {
         $AssetIDs = [System.Collections.Generic.List[string]]::New()
     }
 
-    PROCESS
+    process
     {
         $id | ForEach-Object {
             $AssetIDs.Add($PSItem)
         }
     }
 
-    END
+    end
     {
         $Body = @{
             assetIds = $AssetIDs

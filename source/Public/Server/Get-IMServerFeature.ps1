@@ -1,16 +1,16 @@
 ﻿function Get-IMServerFeature
 {
     <#
+    .SYNOPSIS
+        Retrieves server feature availability.
     .DESCRIPTION
-        Retreives Immich server feature
+        Gets enabled features and capabilities of the Immich server.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .EXAMPLE
         Get-IMServerFeature
 
-        Retreives Immich server feature
+        Lists available server features.
     #>
 
     [CmdletBinding()]

@@ -1,20 +1,29 @@
 ﻿function Export-IMAssetThumbnail
 {
     <#
+    .SYNOPSIS
+        Exports Immich asset thumbnails
     .DESCRIPTION
-        Retreives the asset thumbnail
+        Downloads and saves thumbnail images for Immich assets to a local directory. Thumbnails are saved
+        as JPEG files with the asset UUID as the filename.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
     .PARAMETER Id
-        Defines the asset ID to query
+        The UUID of the asset to export the thumbnail for. Accepts pipeline input.
     .PARAMETER Path
-        Defines the directory for the output file
+        The local directory where the thumbnail file will be saved. The file will be named using the asset UUID with a .jpeg extension.
     .EXAMPLE
-        Get-IMAssetThumbnail
+        Export-IMAssetThumbnail -Id 'asset-uuid' -Path 'C:\Thumbnails'
 
-        Retreives asset thumbnails
+        Exports the thumbnail for the specified asset to the C:\Thumbnails directory.
+    .EXAMPLE
+        Get-IMAsset -Random -Count 10 | Export-IMAssetThumbnail -Path 'C:\RandomThumbnails'
+
+        Exports thumbnails for 10 random assets using pipeline input.
+    .EXAMPLE
+        Get-IMAsset -TagId 'portrait-tag' | Export-IMAssetThumbnail -Path 'C:\Portraits\Thumbs'
+
+        Exports thumbnails for all assets tagged as portraits.
     #>
 
     [CmdletBinding()]
@@ -33,7 +42,7 @@
         $Path
     )
 
-    PROCESS
+    process
     {
         $Id | ForEach-Object {
             $CurrentID = $PSItem

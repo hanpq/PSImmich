@@ -1,22 +1,22 @@
 ﻿function New-IMPerson
 {
     <#
+    .SYNOPSIS
+        Creates a new person record.
     .DESCRIPTION
-        Adds a new Immich person
+        Manually creates a person entry for face recognition training and organization.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER birthDate
-        Defines a birthdate for the person
-    .PARAMETER isHidden
-        Defines if the person is hidden
-    .PARAMETER name
-        Defines the name of the person
+        Optional session object for multi-instance connections.
+    .PARAMETER BirthDate
+        Person's birth date for timeline context.
+    .PARAMETER IsHidden
+        Set to $true to hide person from main interface.
+    .PARAMETER Name
+        Display name for the person.
     .EXAMPLE
-        New-IMPerson -Name 'John Smith'
+        New-IMPerson -Name 'John Smith' -BirthDate '1990-01-01'
 
-        Adds a new Immich person
+        Creates a new person with name and birth date.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'FP')]
     [CmdletBinding()]

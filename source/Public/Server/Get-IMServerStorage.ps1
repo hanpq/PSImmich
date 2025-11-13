@@ -1,16 +1,16 @@
 ﻿function Get-IMServerStorage
 {
     <#
+    .SYNOPSIS
+        Retrieves server storage information.
     .DESCRIPTION
-        Retreives Immich server config
+        Gets storage usage details and disk space information from Immich server.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .EXAMPLE
-        Get-IMServerConfig
+        Get-IMServerStorage
 
-        Retreives Immich server config
+        Gets server storage usage information.
     #>
 
     [CmdletBinding()]

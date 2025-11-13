@@ -1,16 +1,22 @@
 ﻿function Get-IMAlbumStatistic
 {
     <#
+    .SYNOPSIS
+        Retrieves Immich album statistics
     .DESCRIPTION
-        Retreives Immich album statistics
+        Retrieves statistical information about albums in the Immich server, such as total number of albums,
+        shared albums, and other aggregate data.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
     .EXAMPLE
-        Get-IMAlbumStatistics
-
-        Retreives Immich album statistics
+        Get-IMAlbumStatistic
+        
+        Retrieves comprehensive album statistics for the current user.
+    .EXAMPLE
+        $stats = Get-IMAlbumStatistic
+        Write-Host "Total albums: $($stats.totalAlbums)"
+        
+        Retrieves statistics and displays the total number of albums.
     #>
 
     [CmdletBinding()]

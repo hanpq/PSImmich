@@ -1,20 +1,31 @@
 ﻿function Rename-IMAlbum
 {
     <#
+    .SYNOPSIS
+        Renames Immich albums
     .DESCRIPTION
-        Renames an Immich album
+        Changes the name of one or more Immich albums. This is a convenient wrapper around Set-IMAlbum
+        specifically for renaming operations.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines albums to update
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER Id
+        The UUID(s) of the album(s) to rename. Accepts pipeline input and multiple values.
     .PARAMETER NewName
-        Defines a new album name
+        The new name for the album(s).
     .EXAMPLE
-        Rename-IMAlbum -id <albumid> -NewName 'New York 2024'
+        Rename-IMAlbum -Id 'album-uuid' -NewName 'Family Vacation 2024'
 
-        Renames the album
+        Renames the specified album.
+    .EXAMPLE
+        Get-IMAlbum -SearchString 'temp*' | Rename-IMAlbum -NewName 'Archived Photos'
+
+        Renames all albums with names starting with 'temp' to 'Archived Photos'.
+    .EXAMPLE
+        Rename-IMAlbum -Id 'album-uuid' -NewName 'Wedding Photos' -Confirm:$false
+
+        Renames the album without confirmation prompt.
+    .NOTES
+        This cmdlet supports ShouldProcess and will prompt for confirmation before renaming albums.
     #>
 
     [CmdletBinding(SupportsShouldProcess)]

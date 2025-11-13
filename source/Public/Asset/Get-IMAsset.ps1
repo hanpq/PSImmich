@@ -1,40 +1,49 @@
 ﻿function Get-IMAsset
 {
     <#
+    .SYNOPSIS
+        Retrieves Immich assets
     .DESCRIPTION
-        Retrieves Immich assets using different parameter sets for various use cases
+        Retrieves assets from the Immich server using various criteria. Supports retrieving specific assets by ID,
+        random assets, assets by device, person, or tag associations, and general asset searches.
     .PARAMETER Session
         Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
-
-        -Session $Session
     .PARAMETER Id
-        Defines a specific asset ID to be retrieved. Used with the 'id' parameter set.
+        The UUID of a specific asset to retrieve. Accepts pipeline input.
     .PARAMETER Key
-        Defines an optional key parameter for asset retrieval. Used with the 'id' parameter set.
+        An optional API key for shared link access when retrieving assets.
     .PARAMETER Slug
-        Defines an optional slug parameter for asset retrieval. Used with the 'id' parameter set.
+        An optional slug for shared link access when retrieving assets.
     .PARAMETER DeviceID
-        Defines a device ID to retrieve assets for a specific device. Uses the 'deviceid' parameter set.
+        The device ID to retrieve assets from a specific device.
     .PARAMETER PersonId
-        Defines a person ID to retrieve assets associated with a specific person. Uses the 'personid' parameter set.
+        The UUID of a person to retrieve associated assets.
     .PARAMETER TagId
-        Defines a tag ID to retrieve assets with a specific tag. Uses the 'tagid' parameter set.
+        The UUID of a tag to retrieve assets with that tag.
     .PARAMETER Random
-        Specifies that random assets should be retrieved. Uses the 'random' parameter set.
+        Specifies that random assets should be retrieved instead of a specific asset.
     .PARAMETER Count
-        Defines how many random assets should be returned when using -Random. Default is 1, maximum is 1000.
+        The number of random assets to return when using -Random. Default is 1, maximum is 1000.
+    .EXAMPLE
+        Get-IMAsset
+
+        Retrieves all assets using the default search.
     .EXAMPLE
         Get-IMAsset -Id '550e8400-e29b-41d4-a716-446655440000'
 
-        Retrieves a specific asset by its ID
+        Retrieves a specific asset by its UUID.
     .EXAMPLE
         Get-IMAsset -Random -Count 5
 
-        Retrieves 5 random assets
+        Retrieves 5 random assets from the library.
     .EXAMPLE
         Get-IMAsset -PersonId '550e8400-e29b-41d4-a716-446655440001'
 
-        Retrieves all assets associated with a specific person
+        Retrieves all assets associated with a specific person.
+    .EXAMPLE
+        Get-IMAsset -TagId 'tag-uuid'
+
+        Retrieves all assets tagged with the specified tag.
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'list')]

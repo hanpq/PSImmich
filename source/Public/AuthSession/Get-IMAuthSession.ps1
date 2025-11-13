@@ -1,18 +1,28 @@
 ﻿function Get-IMAuthSession
 {
     <#
+    .SYNOPSIS
+        Retrieves authenticated sessions from Immich
     .DESCRIPTION
-        Get authenticated sessions
+        Retrieves information about all currently active authenticated sessions in Immich. This includes
+        sessions from web browsers, mobile apps, and API clients.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
     .EXAMPLE
-        Get-IMAuthDevice
+        Get-IMAuthSession
 
-        Get authorized devices
+        Retrieves all active authenticated sessions.
+    .EXAMPLE
+        $sessions = Get-IMAuthSession
+        $sessions | Where-Object {$_.deviceType -eq 'mobile'}
+
+        Retrieves sessions and filters for mobile device sessions.
+    .EXAMPLE
+        Get-IMAuthSession | Format-Table deviceType, createdAt, current
+
+        Displays session information in a formatted table.
     .NOTES
-        Due to Get-IMSession already being used by the PSImmich module, cmdlets within the session namespace is prefixed with "Auth".
+        Due to Get-IMSession already being used by the PSImmich module, cmdlets within the session namespace are prefixed with 'Auth'.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
     [CmdletBinding(DefaultParameterSetName = 'list')]

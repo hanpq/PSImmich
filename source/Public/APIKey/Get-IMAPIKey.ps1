@@ -1,18 +1,27 @@
 ﻿function Get-IMAPIKey
 {
     <#
+    .SYNOPSIS
+        Retrieves Immich API keys
     .DESCRIPTION
-        Retreives api keys
+        Retrieves one or more API keys from the Immich server. Can retrieve all API keys or specific keys by ID.
+        API keys are used for programmatic access to the Immich API.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines an api key id to get
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER Id
+        The UUID(s) of specific API key(s) to retrieve. Accepts pipeline input and multiple values.
     .EXAMPLE
         Get-IMAPIKey
 
-        Retreives all api keys
+        Retrieves all API keys for the current user.
+    .EXAMPLE
+        Get-IMAPIKey -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+
+        Retrieves a specific API key by its ID.
+    .EXAMPLE
+        'key1-uuid','key2-uuid' | Get-IMAPIKey
+
+        Retrieves multiple API keys by piping their IDs.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
     [CmdletBinding(DefaultParameterSetName = 'list')]

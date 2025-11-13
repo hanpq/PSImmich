@@ -1,42 +1,57 @@
 ﻿function Set-IMAsset
 {
     <#
+    .SYNOPSIS
+        Updates Immich asset properties and associations
     .DESCRIPTION
-        Updates an Immich asset
+        Updates various properties of Immich assets including metadata, location, favorites status, and manages
+        associations with albums, tags, faces, and memories. Supports batch operations on multiple assets.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines the asset to update
-    .PARAMETER dateTimeOriginal
-        Defines the assets taken date
-    .PARAMETER isFavorite
-        Defines if the asset should be set as favorite
-    .PARAMETER latitude
-        Set location latitude
-    .PARAMETER longitude
-        Set location longitude
-    .PARAMETER description
-        Defines a description
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER Id
+        The UUID(s) of the asset(s) to update. Accepts pipeline input and multiple values.
+    .PARAMETER DateTimeOriginal
+        The original date and time when the asset was created/taken.
+    .PARAMETER IsFavorite
+        Specifies whether the asset should be marked as a favorite.
+    .PARAMETER Latitude
+        The latitude coordinate for the asset's location.
+    .PARAMETER Longitude
+        The longitude coordinate for the asset's location.
+    .PARAMETER Description
+        A description or caption for the asset.
     .PARAMETER AddToAlbum
-        Defines if the asset should be added to an album
+        The UUID of an album to add the asset(s) to.
     .PARAMETER RemoveFromAlbum
-        Defines if the asset should be removed from an album
+        The UUID of an album to remove the asset(s) from.
     .PARAMETER AddTag
-        Defines if a tag should be added to the asset
+        The UUID of a tag to add to the asset(s).
     .PARAMETER RemoveTag
-        Defines if a tag should be removed from the asset
+        The UUID of a tag to remove from the asset(s).
     .PARAMETER AddToFace
-        Defines if the asset should be assign to a face
+        The UUID of a face to associate the asset(s) with.
     .PARAMETER AddToMemory
-        Defines if the asset should be added to a memory
+        The UUID of a memory to add the asset(s) to.
     .PARAMETER RemoveFromMemory
-        Defines if the asset should be removed from a memory
+        The UUID of a memory to remove the asset(s) from.
     .EXAMPLE
-        Set-IMAsset -id <assetid> -AddTag <tagid>
+        Set-IMAsset -Id 'asset-uuid' -IsFavorite:$true
 
-        Adds a tag to an asset
+        Marks the specified asset as a favorite.
+    .EXAMPLE
+        Set-IMAsset -Id 'asset-uuid' -AddTag 'tag-uuid'
+
+        Adds a tag to the specified asset.
+    .EXAMPLE
+        Set-IMAsset -Id 'asset-uuid' -Latitude 40.7128 -Longitude -74.0060 -Description 'New York City'
+
+        Updates the location and description for the asset.
+    .EXAMPLE
+        @('asset1-uuid', 'asset2-uuid') | Set-IMAsset -AddToAlbum 'album-uuid'
+
+        Adds multiple assets to an album via pipeline.
+    .NOTES
+        This cmdlet supports ShouldProcess and will prompt for confirmation before making changes.
     #>
 
     [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'batch')]

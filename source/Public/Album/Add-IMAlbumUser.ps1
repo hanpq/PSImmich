@@ -1,22 +1,33 @@
 ﻿function Add-IMAlbumUser
 {
     <#
+    .SYNOPSIS
+        Adds users to an Immich album
     .DESCRIPTION
-        Add user to album
+        Adds one or more users to an Immich album with specified roles. This enables album sharing and collaboration.
+        Users can be assigned as either editors (can modify) or viewers (read-only access).
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER albumId
-        Defines album to add the user to
-    .PARAMETER userId
-        Defines the user to add to the album
-    .PARAMETER role
-        Defines the user role
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER AlbumId
+        The UUID of the album to add users to.
+    .PARAMETER UserId
+        The UUID(s) of the user(s) to add to the album. Accepts pipeline input and multiple values.
+    .PARAMETER Role
+        The role to assign to the user(s). Valid values are 'editor' (can modify album) or 'viewer' (read-only access).
     .EXAMPLE
-        Add-IMAlbumUser -albumid <albumid> -userid <userid> -role editor
+        Add-IMAlbumUser -AlbumId 'album-uuid' -UserId 'user-uuid' -Role 'editor'
 
-        Add user to album
+        Adds a user to the album with editor permissions.
+    .EXAMPLE
+        @('user1-uuid', 'user2-uuid') | Add-IMAlbumUser -AlbumId 'album-uuid' -Role 'viewer'
+
+        Adds multiple users to the album with viewer permissions via pipeline.
+    .EXAMPLE
+        Get-IMUser | Where-Object {$_.name -like 'family*'} | Add-IMAlbumUser -AlbumId 'album-uuid' -Role 'viewer'
+
+        Adds all users with names starting with 'family' to the album as viewers.
+    .NOTES
+        This cmdlet supports ShouldProcess and will prompt for confirmation before adding users to albums.
     #>
 
     [CmdletBinding(SupportsShouldProcess)]

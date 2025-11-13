@@ -1,14 +1,14 @@
 ﻿function Export-IMProfilePicture
 {
     <#
+    .SYNOPSIS
+        Exports user profile picture to file.
     .DESCRIPTION
-        Export Immich profile picture
+        Downloads and saves user's profile picture to local file system.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines the user id to retreive the profile picture for
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        User ID to export profile picture for.
     .PARAMETER Path
         Defines the directory for the output file
     .EXAMPLE
@@ -33,7 +33,7 @@
         $Path
     )
 
-    PROCESS
+    process
     {
         $id | ForEach-Object {
             $CurrentID = $PSItem

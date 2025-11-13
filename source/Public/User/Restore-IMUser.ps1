@@ -1,18 +1,18 @@
 ﻿function Restore-IMUser
 {
     <#
+    .SYNOPSIS
+        Restores a deleted user account.
     .DESCRIPTION
-        Restore Immich user
+        Recovers user account from trash within the 7-day retention period.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines the user id to update
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        User ID to restore from trash.
     .EXAMPLE
-        Restore-IMUser -id <userid>
+        Restore-IMUser -Id 'user-id'
 
-        Restore Immich user
+        Restores user from trash.
     #>
 
     [CmdletBinding()]
@@ -28,7 +28,7 @@
     )
 
 
-    PROCESS
+    process
     {
         $id | ForEach-Object {
             InvokeImmichRestMethod -Method POST -RelativePath "/admin/users/$PSItem/restore" -ImmichSession:$Session

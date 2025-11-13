@@ -1,23 +1,23 @@
 ﻿function Get-IMTimeBucket
 {
     <#
+    .SYNOPSIS
+        Retrieves timeline time buckets.
     .DESCRIPTION
-        Retreives timebucket objects
+        Gets time-based groupings of assets for timeline display and navigation.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER albumId
-        Albumid filter
-    .PARAMETER isFavorite
-        Favorite filter
-    .PARAMETER isTrashed
-        Trashed filter
-    .PARAMETER order
-        Defines sort order
-    .PARAMETER personId
-        PersonId filter
-    .PARAMETER timeBucket
+        Optional session object for multi-instance connections.
+    .PARAMETER AlbumId
+        Filter by album ID.
+    .PARAMETER IsFavorite
+        Filter by favorite status.
+    .PARAMETER IsTrashed
+        Filter by trash status.
+    .PARAMETER Order
+        Sort order for results.
+    .PARAMETER PersonId
+        Filter by person ID.
+    .PARAMETER TimeBucket
         Timebucket
     .PARAMETER userId
         UserId filter

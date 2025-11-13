@@ -1,22 +1,26 @@
 ﻿function Get-IMConfig
 {
     <#
+    .SYNOPSIS
+        Retrieves Immich server configuration.
     .DESCRIPTION
-        Retreives Immich config
+        Gets current or default server configuration settings, optionally as raw JSON.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER Default
-        Retreives default config instead of current applied
+        Retrieves default configuration instead of current settings.
     .PARAMETER ReturnRawJSON
-        This is useful if you want to alter the current config and pass it on to Set-IMConfig
+        Returns configuration as raw JSON for modification and use with Set-IMConfig.
     .PARAMETER StorageTemplate
-        Specifies that storage template configuration should be returned.
+        Returns storage template configuration settings.
     .EXAMPLE
         Get-IMConfig
 
-        Retreives Immich config
+        Gets current server configuration.
+    .EXAMPLE
+        Get-IMConfig -ReturnRawJSON
+
+        Gets configuration as JSON for editing.
     #>
 
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP')]

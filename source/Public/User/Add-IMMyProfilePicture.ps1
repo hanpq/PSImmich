@@ -1,14 +1,14 @@
 ﻿function Add-IMMyProfilePicture
 {
     <#
+    .SYNOPSIS
+        Sets current user's profile picture.
     .DESCRIPTION
-        Adds an Immich user profile picture
+        Uploads and sets profile picture for the currently authenticated user.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER FilePath
-        Defines the image file path for the profile picture. Supports common image formats (JPG, PNG, GIF).
+        Path to image file for profile picture. Supports JPG, PNG, GIF formats.
     .EXAMPLE
         Add-IMMyProfilePicture -FilePath C:\avatar.jpg
 

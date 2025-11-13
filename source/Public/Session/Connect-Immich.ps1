@@ -1,22 +1,26 @@
 ﻿function Connect-Immich
 {
     <#
+    .SYNOPSIS
+        Establishes connection to Immich server.
     .DESCRIPTION
-        Connect to a Immich instance
+        Creates authenticated session using access token or credentials for API access.
     .PARAMETER BaseURL
-        Defines the base URL to the immich instance
-
-        -BaseURL 'https://immich.domain.com'
+        Immich server URL (e.g., 'https://immich.example.com').
     .PARAMETER AccessToken
-        Connects to immich using a access token. This AccessToken can be generated from the Immich Web GUI.
-
-        -AccessToken 'ABoR54bB1NUc4aNY0F2PhppP1tVDu2Husr3vEbPUsw5'
+        API access token generated from Immich web interface.
     .PARAMETER Credential
-        Connect to immich using username and password. Parameter accepts a PSCredentials object
-
-        -Credential (Get-Credential)
+        Username/password credentials as PSCredential object.
     .PARAMETER PassThru
-        This parameter will cause the function to return a ImmichSession object that can be stored in a variable and referensed with the -Session parameter on most cmdlets.
+        Returns ImmichSession object for explicit session management.
+    .EXAMPLE
+        Connect-Immich -BaseURL 'https://immich.example.com' -AccessToken 'your-token'
+
+        Connects using access token authentication.
+    .EXAMPLE
+        $session = Connect-Immich -BaseURL 'https://immich.example.com' -Credential (Get-Credential) -PassThru
+
+        Connects with credentials and returns session object.
 
         -PassThru
     .EXAMPLE

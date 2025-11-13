@@ -1,20 +1,20 @@
 ﻿function Export-IMPersonThumbnail
 {
     <#
+    .SYNOPSIS
+        Exports person thumbnail image to file.
     .DESCRIPTION
-        Export Immich person thumbnail
+        Downloads the thumbnail image for a person identified by face recognition.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines the person id to retreive the thumbnail for
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        Person ID to export thumbnail for.
     .PARAMETER Path
-        Defines the directory for the output file
+        Directory path for saving the thumbnail file.
     .EXAMPLE
-        Export-IMPersonThumbnail -id <personid> -Path C:\download
+        Export-IMPersonThumbnail -Id 'bf973405-3f2a-48d2-a687-2ed4167164be' -Path 'C:\Downloads'
 
-        Export person thumbnail
+        Exports person thumbnail to Downloads folder.
     #>
 
     [CmdletBinding()]
@@ -33,7 +33,7 @@
         $Path
     )
 
-    PROCESS
+    process
     {
         $id | ForEach-Object {
             $CurrentID = $PSItem

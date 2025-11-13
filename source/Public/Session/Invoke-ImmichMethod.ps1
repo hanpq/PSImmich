@@ -1,22 +1,22 @@
 ﻿function Invoke-ImmichMethod
 {
     <#
+    .SYNOPSIS
+        Invokes custom Immich API methods.
     .DESCRIPTION
-        Invokes command
+        Makes direct API calls to Immich endpoints with custom parameters and headers.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER Headers
-        Headers
+        Custom HTTP headers for the request.
     .PARAMETER QueryParameters
-        Query parameters
+        URL query parameters as hashtable.
     .PARAMETER BodyParameters
-        Body parameters
+        Request body parameters.
     .PARAMETER Method
-        Method
+        HTTP method (GET, POST, PUT, DELETE, etc.).
     .PARAMETER RelativeURI
-        RelativePath
+        API endpoint path relative to server URL.
     .PARAMETER ContentType
         ContentType
     .PARAMETER OutFilePath

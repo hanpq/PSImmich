@@ -1,18 +1,20 @@
 ﻿function Remove-IMStack
 {
     <#
+    .SYNOPSIS
+        Removes asset stacks.
     .DESCRIPTION
-        Removes Immich stack(s)
+        Deletes stacks and ungroups the contained assets. Assets remain in library.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER Id
-        The stack ID(s) to remove. Can accept multiple IDs for bulk deletion.
+        Stack ID(s) to remove. Supports multiple IDs for bulk deletion.
     .PARAMETER Force
-        Suppress confirmation prompt
+        Suppresses confirmation prompt when specified.
     .EXAMPLE
-        Remove-IMStack -Id <stackId>
+        Remove-IMStack -Id 'stack-id'
+
+        Removes stack after confirmation.
 
         Removes the specified stack
     .EXAMPLE

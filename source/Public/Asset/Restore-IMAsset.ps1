@@ -1,24 +1,36 @@
 ﻿function Restore-IMAsset
 {
     <#
+    .SYNOPSIS
+        Restores Immich assets from trash
     .DESCRIPTION
-        Restore asset from trash
+        Restores one or more assets from the Immich trash back to the active library. Assets in trash
+        can be restored individually by ID or all trash items can be restored at once.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines an asset id to restore
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER Id
+        The UUID(s) of specific asset(s) to restore from trash. Accepts pipeline input and multiple values.
     .PARAMETER All
-        Defines that all assets in trash should be restored.
+        Restores all assets currently in trash back to the active library.
     .EXAMPLE
-        Restore-IMAsset -id <assetid>
+        Restore-IMAsset -Id 'asset-uuid'
 
-        Restore asset from trash
+        Restores a specific asset from trash with confirmation prompt.
+    .EXAMPLE
+        @('asset1-uuid', 'asset2-uuid') | Restore-IMAsset
+
+        Restores multiple specific assets from trash via pipeline.
     .EXAMPLE
         Restore-IMAsset -All
 
-        Restores all assets from trash
+        Restores all assets currently in trash.
+    .EXAMPLE
+        Restore-IMAsset -Id 'asset-uuid' -Confirm:$false
+
+        Restores an asset without confirmation prompt.
+    .NOTES
+        This cmdlet supports ShouldProcess and will prompt for confirmation before restoring assets.
+        Use Get-IMTrash to view assets currently in trash before restoring.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP')]
     [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'id')]

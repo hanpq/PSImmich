@@ -1,18 +1,18 @@
 ﻿function Remove-IMTag
 {
     <#
+    .SYNOPSIS
+        Removes an asset tag.
     .DESCRIPTION
-        Remove Immich tag
+        Deletes a tag and removes it from all associated assets.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines a specific tag id to be retreived
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        Tag ID to remove.
     .EXAMPLE
-        Remove-IMTag -id <tagid>
+        Remove-IMTag -Id 'tag-id'
 
-        Remove Immich tag
+        Removes tag and all associations.
     #>
 
     [CmdletBinding(SupportsShouldProcess)]
@@ -27,7 +27,7 @@
         $id
     )
 
-    PROCESS
+    process
     {
         $id | ForEach-Object {
             $CurrentID = $PSItem

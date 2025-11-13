@@ -1,18 +1,18 @@
 ﻿function Add-IMPartner
 {
     <#
+    .SYNOPSIS
+        Adds a user as a sharing partner.
     .DESCRIPTION
-        Add immich partner
+        Creates a partnership relationship allowing asset sharing between users.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Define the id of the partner to add
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        User ID to add as partner. Must be valid GUID format.
     .EXAMPLE
-        Add-IMPartner -id <userid>
+        Add-IMPartner -Id 'bf973405-3f2a-48d2-a687-2ed4167164be'
 
-        Add immich partner
+        Adds the specified user as a sharing partner.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
     [CmdletBinding()]

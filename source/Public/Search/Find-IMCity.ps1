@@ -1,16 +1,16 @@
 ﻿function Find-IMCity
 {
     <#
+    .SYNOPSIS
+        Retrieves all cities from asset GPS metadata.
     .DESCRIPTION
-        Find cities
+        Gets list of cities extracted from photo GPS data for location-based searches.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .EXAMPLE
         Find-IMCity
 
-        Retreives all cities
+        Lists all cities found in asset metadata.
     #>
 
     [CmdletBinding()]

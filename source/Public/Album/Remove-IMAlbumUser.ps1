@@ -1,20 +1,31 @@
 ﻿function Remove-IMAlbumUser
 {
     <#
+    .SYNOPSIS
+        Removes users from an Immich album
     .DESCRIPTION
-        Remove user from album
+        Removes one or more users from an Immich album, revoking their access to the shared album.
+        This action cannot be undone and the users will lose access immediately.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER albumId
-        Defines album to remove users from
-    .PARAMETER userId
-        Defines the user to remove from the album
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER AlbumId
+        The UUID of the album to remove users from.
+    .PARAMETER UserId
+        The UUID(s) of the user(s) to remove from the album. Accepts pipeline input and multiple values.
     .EXAMPLE
-        Remove-IMAlbumUser -albumid <albumid> -userid <userid>
+        Remove-IMAlbumUser -AlbumId 'album-uuid' -UserId 'user-uuid'
 
-        Remove user from album
+        Removes a specific user from the album with confirmation prompt.
+    .EXAMPLE
+        @('user1-uuid', 'user2-uuid') | Remove-IMAlbumUser -AlbumId 'album-uuid'
+
+        Removes multiple users from the album via pipeline.
+    .EXAMPLE
+        Remove-IMAlbumUser -AlbumId 'album-uuid' -UserId 'user-uuid' -Confirm:$false
+
+        Removes the user without confirmation prompt.
+    .NOTES
+        This cmdlet supports ShouldProcess and will prompt for confirmation before removing users from albums.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'albumId', Justification = 'FP')]

@@ -1,20 +1,22 @@
 ﻿function Set-IMPartner
 {
     <#
+    .SYNOPSIS
+        Updates partner sharing settings.
     .DESCRIPTION
-        Set immich partner
+        Configures how partner's assets appear in your timeline and interface.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Define the id of the partner to update
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        Partner user ID to update. Must be valid GUID format.
     .PARAMETER EnableTimeline
-        Defines that the partners assets should be displayed within the main timeline
+        When specified, shows partner's assets in your main timeline view.
     .EXAMPLE
-        Set-IMPartner -id <userid> -EnableTimeline
+        Set-IMPartner -Id 'bf973405-3f2a-48d2-a687-2ed4167164be' -EnableTimeline
 
-        Set immich partner
+        Enables timeline integration for the specified partner.
+    .NOTES
+        Supports -WhatIf and -Confirm for safety.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP')]
     [CmdletBinding(SupportsShouldProcess)]

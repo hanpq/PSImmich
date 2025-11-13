@@ -1,22 +1,24 @@
 ﻿function Set-IMStack
 {
     <#
+    .SYNOPSIS
+        Updates stack configuration.
     .DESCRIPTION
-        Updates an existing Immich stack
+        Modifies stack properties, such as changing the primary asset.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER Id
-        The stack ID to update
+        Stack ID to update.
     .PARAMETER PrimaryAssetId
-        The asset ID to set as the primary asset for this stack
+        Asset ID to set as the new primary asset.
     .EXAMPLE
-        Set-IMStack -Id <stackId> -PrimaryAssetId <assetId>
+        Set-IMStack -Id 'stack-id' -PrimaryAssetId 'asset-id'
+
+        Changes stack primary asset.
 
         Updates the stack to use the specified asset as the primary asset
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions','', Justification='Do not agree that -set- alters system state')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Do not agree that -set- alters system state')]
     [CmdletBinding()]
     param(
         [Parameter()]
@@ -34,14 +36,14 @@
         $PrimaryAssetId
     )
 
-    BEGIN
+    begin
     {
         $BodyParameters = @{
             primaryAssetId = $PrimaryAssetId
         }
     }
 
-    PROCESS
+    process
     {
         InvokeImmichRestMethod -Method Put -RelativePath "/stacks/$Id" -ImmichSession:$Session -Body $BodyParameters | AddCustomType IMStack
     }

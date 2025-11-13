@@ -1,20 +1,32 @@
 ﻿function Update-IMAssetMetadata
 {
     <#
+    .SYNOPSIS
+        Updates Immich asset metadata
     .DESCRIPTION
-        Update IM asset metadata
+        Triggers a metadata refresh job for one or more assets, causing Immich to re-extract and update
+        metadata information such as EXIF data, location, and other file properties.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines the asset ids that metadata should be refreshed for. Accepts pipeline input.
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER Id
+        The UUID(s) of the asset(s) to refresh metadata for. Accepts pipeline input and multiple values.
     .EXAMPLE
-        Update-IMAssetMetadata -id <assetid>
+        Update-IMAssetMetadata -Id 'asset-uuid'
 
-        Update IM asset metadata
+        Triggers metadata refresh for the specified asset with confirmation prompt.
+    .EXAMPLE
+        @('asset1-uuid', 'asset2-uuid') | Update-IMAssetMetadata
+
+        Refreshes metadata for multiple assets via pipeline.
+    .EXAMPLE
+        Get-IMAsset -TagId 'needs-update' | Update-IMAssetMetadata -Confirm:$false
+
+        Refreshes metadata for all assets with a specific tag without confirmation.
+    .NOTES
+        This cmdlet supports ShouldProcess and will prompt for confirmation before updating metadata.
+        The operation creates a background job that may take time to complete for large numbers of assets.
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','', Justification='FP')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '', Justification = 'FP')]
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter()]
@@ -27,7 +39,7 @@
         $Id
     )
 
-    BEGIN
+    begin
     {
         $BodyParameters = @{
             assetIds = @()
@@ -35,14 +47,14 @@
         }
     }
 
-    PROCESS
+    process
     {
         $Id | ForEach-Object {
             $BodyParameters.assetIds += $psitem
         }
     }
 
-    END
+    end
     {
         if ($PSCmdlet.ShouldProcess(($BodyParameters.assetIds -join ','), 'Update metadata'))
         {

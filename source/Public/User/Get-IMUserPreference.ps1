@@ -1,18 +1,18 @@
 ﻿function Get-IMUserPreference
 {
     <#
+    .SYNOPSIS
+        Retrieves user preferences.
     .DESCRIPTION
-        Retreives Immich user preference
+        Gets user interface and behavior preferences for a specific user.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines a specific user id to be retreived
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        User ID to get preferences for.
     .EXAMPLE
-        Get-IMUserPreference -id <userid>
+        Get-IMUserPreference -Id 'user-id'
 
-        Retreives Immich user preferences
+        Gets user preferences.
     .EXAMPLE
         Get-IMUserPreference
 
@@ -31,7 +31,7 @@
         $id
     )
 
-    PROCESS
+    process
     {
         switch ($PSCmdlet.ParameterSetName)
         {

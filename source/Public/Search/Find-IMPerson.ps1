@@ -1,20 +1,20 @@
 ﻿function Find-IMPerson
 {
     <#
+    .SYNOPSIS
+        Searches for people by name or visibility.
     .DESCRIPTION
-        Find people
+        Finds person records using name filtering and hidden status options.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER Name
-        Name filter
+        Search by person name (supports partial matches).
     .PARAMETER WithHidden
-        Filter hidden
+        Include hidden people when $true, exclude when $false.
     .EXAMPLE
-        Find-IMPerson -Name 'Jim Carrey'
+        Find-IMPerson -Name 'John'
 
-        Search for persons named Jim Carrey
+        Searches for people with 'John' in their name.
     #>
 
     [CmdletBinding()]

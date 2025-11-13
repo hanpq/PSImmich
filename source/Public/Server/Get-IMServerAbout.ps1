@@ -1,16 +1,16 @@
 ﻿function Get-IMServerAbout
 {
     <#
+    .SYNOPSIS
+        Retrieves server about information.
     .DESCRIPTION
-        Retreives Immich server about
+        Gets basic server details and identification information.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .EXAMPLE
         Get-IMServerAbout
 
-        Retreives Immich server about
+        Gets server about information.
     #>
 
     [CmdletBinding()]

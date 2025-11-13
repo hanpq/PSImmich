@@ -1,14 +1,14 @@
 ﻿function Set-IMUserPreference
 {
     <#
+    .SYNOPSIS
+        Updates user interface preferences.
     .DESCRIPTION
-        Set Immich user preference
+        Modifies user preferences for interface behavior and appearance.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines the user id to update
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        User ID to update preferences for.
     .PARAMETER AvatarColor
         Select the avatar color to use. Valid values are primary, pink, red, yellow, blue, green, purple, orange, gray, amber.
     .PARAMETER DownloadArchiveSize
@@ -84,7 +84,7 @@
         $ShowSupportBadge
     )
 
-    BEGIN
+    begin
     {
         # Use enhanced ConvertTo-ApiParameters with dot-notation support for nested objects
         $BodyParameters = @{}
@@ -97,10 +97,11 @@
         }
     }
 
-    PROCESS
+    process
     {
         $id | ForEach-Object {
-            if ($PSCmdlet.ShouldProcess($PSItem,'Set')) {
+            if ($PSCmdlet.ShouldProcess($PSItem, 'Set'))
+            {
                 InvokeImmichRestMethod -Method PUT -RelativePath "/admin/users/$PSItem/preferences" -ImmichSession:$Session -Body $BodyParameters
             }
         }

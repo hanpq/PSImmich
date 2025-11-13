@@ -1,18 +1,22 @@
 ﻿function Get-IMServerVersion
 {
     <#
+    .SYNOPSIS
+        Retrieves Immich server version information.
     .DESCRIPTION
-        Retreives Immich server version
+        Gets current server version or version history details.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER History
-        Defines that version history should be return instead of the current version
+        Returns version history instead of current version when specified.
     .EXAMPLE
         Get-IMServerVersion
 
-        Retreives Immich server version
+        Gets current server version.
+    .EXAMPLE
+        Get-IMServerVersion -History
+
+        Gets server version history.
     #>
 
     [CmdletBinding()]
@@ -22,11 +26,13 @@
         [Parameter()][switch]$History
     )
 
-    if ($History) {
+    if ($History)
+    {
         $Result = InvokeImmichRestMethod -noauth -Method Get -RelativePath '/server/version-history' -ImmichSession:$Session
         return $Result
     }
-    else {
+    else
+    {
         $Result = InvokeImmichRestMethod -noauth -Method Get -RelativePath '/server/version' -ImmichSession:$Session
         return [pscustomobject]@{
             version = "$($Result.Major).$($Result.Minor).$($Result.Patch)"

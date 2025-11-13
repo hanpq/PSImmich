@@ -1,16 +1,16 @@
 ﻿function Get-IMSupportedMediaType
 {
     <#
+    .SYNOPSIS
+        Retrieves supported media file types.
     .DESCRIPTION
-        Retreives Immich supported media type
+        Gets list of media file formats supported by Immich server for import.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .EXAMPLE
         Get-IMSupportedMediaType
 
-        Retreives Immich supported media type
+        Lists supported media file types.
     #>
 
     [CmdletBinding()]

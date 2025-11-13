@@ -1,27 +1,30 @@
 ﻿function Remove-IMServerLicense
 {
     <#
+    .SYNOPSIS
+        Removes Immich server license.
     .DESCRIPTION
-        Removes Immich server license
+        Deactivates and removes the current server license.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .EXAMPLE
         Remove-IMServerLicense
 
-        Removes Immich server license
+        Removes current server license.
+    .NOTES
+        Supports -WhatIf and -Confirm for safety.
     #>
 
-    [CmdletBinding(SupportsShouldProcess,DefaultParameterSetName = 'list')]
+    [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'list')]
     param(
         [Parameter()]
         [ImmichSession]
         $Session = $null
     )
 
-    if ($PSCmdlet.ShouldProcess('Service license', 'remove')) {
-        InvokeImmichRestMethod -Method Delete -RelativePath "/server/license" -ImmichSession:$Session
+    if ($PSCmdlet.ShouldProcess('Service license', 'remove'))
+    {
+        InvokeImmichRestMethod -Method Delete -RelativePath '/server/license' -ImmichSession:$Session
     }
 
 }

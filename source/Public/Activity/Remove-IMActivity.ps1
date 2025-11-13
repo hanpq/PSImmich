@@ -1,18 +1,25 @@
 ﻿function Remove-IMActivity
 {
     <#
+    .SYNOPSIS
+        Removes an activity from an Immich album
     .DESCRIPTION
-        Removes an activity
+        Removes a specific activity (comment or like) from an Immich album. This action is permanent and cannot be undone.
+        Supports confirmation prompts through ShouldProcess.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
     .PARAMETER Id
-        Defines the activity to remove
+        The UUID of the activity to remove. Accepts pipeline input.
     .EXAMPLE
-        Remove-IMActivity -id 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+        Remove-IMActivity -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
 
-        Removes the activity
+        Removes the specified activity with confirmation prompt.
+    .EXAMPLE
+        Remove-IMActivity -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Confirm:$false
+
+        Removes the specified activity without confirmation prompt.
+    .NOTES
+        This cmdlet supports ShouldProcess and will prompt for confirmation before removing activities.
     #>
 
     [CmdletBinding(SupportsShouldProcess)]

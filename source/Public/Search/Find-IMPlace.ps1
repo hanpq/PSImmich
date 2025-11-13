@@ -1,18 +1,18 @@
 ﻿function Find-IMPlace
 {
     <#
+    .SYNOPSIS
+        Searches for places by name.
     .DESCRIPTION
-        Find places
+        Finds geographic locations from asset GPS metadata by name.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER Name
-        Name filter
+        Place name to search for (supports partial matches).
     .EXAMPLE
-        Find-IMPlace -Name 'Stockholm'
+        Find-IMPlace -Name 'Paris'
 
-        Search for places named Stockholm
+        Searches for places containing 'Paris' in the name.
     #>
 
     [CmdletBinding()]

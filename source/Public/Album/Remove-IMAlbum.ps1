@@ -1,18 +1,30 @@
 ﻿function Remove-IMAlbum
 {
     <#
+    .SYNOPSIS
+        Removes Immich albums
     .DESCRIPTION
-        Removes an Immich album
+        Removes one or more albums from the Immich server. This action is permanent and cannot be undone.
+        All assets in the album will remain in the library but will no longer be organized in the deleted album.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER albumId
-        Defines the album that should be removed. Accepts pipeline input.
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER AlbumId
+        The UUID(s) of the album(s) to remove. Accepts pipeline input and multiple values.
     .EXAMPLE
-        Remove-IMAlbum -albumid <albumid>
+        Remove-IMAlbum -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
 
-        Removes an album
+        Removes the specified album with confirmation prompt.
+    .EXAMPLE
+        Get-IMAlbum -SearchString 'temp*' | Remove-IMAlbum
+
+        Removes all albums with names starting with 'temp'.
+    .EXAMPLE
+        Remove-IMAlbum -AlbumId 'album-uuid' -Confirm:$false
+
+        Removes the album without confirmation prompt.
+    .NOTES
+        This cmdlet supports ShouldProcess and will prompt for confirmation before removing albums.
+        Assets within the album are not deleted, only the album container is removed.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
     [CmdletBinding(SupportsShouldProcess)]

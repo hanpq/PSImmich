@@ -1,18 +1,18 @@
 ﻿function New-IMUser
 {
     <#
+    .SYNOPSIS
+        Creates a new Immich user account.
     .DESCRIPTION
-        New Immich user
+        Adds new user with email, name, and notification preferences.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER email
-        Defines a specific user id to be retreived
+        Optional session object for multi-instance connections.
+    .PARAMETER Email
+        User email address for login.
     .PARAMETER Notify
-        Should the user be notified. Enabled by default
+        Send notification to user about account creation. Enabled by default.
     .PARAMETER Name
-        Defines the name of the user
+        Display name for the user account.
     .PARAMETER Password
         Defines the password for the user
     .PARAMETER QuotaSizeInBytes
@@ -27,7 +27,7 @@
 
         Creates new Immich user
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions','', Justification='FP')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'FP')]
     [CmdletBinding()]
     param(
         [Parameter()]

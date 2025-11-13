@@ -1,20 +1,25 @@
 ﻿function Get-IMActivityStatistic
 {
     <#
+    .SYNOPSIS
+        Retrieves activity statistics for an Immich album
     .DESCRIPTION
-        Retreives album activity
+        Retrieves statistical information about activities in an Immich album, such as the number of comments
+        and likes. Can provide statistics for the entire album or for a specific asset.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER albumId
-        Defines an album to retreive activity statistics for.
-    .PARAMETER assetId
-        Defines a specific asset to retreive activities for.
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER AlbumId
+        The UUID of the album to retrieve activity statistics for. Accepts pipeline input.
+    .PARAMETER AssetId
+        The UUID of a specific asset to retrieve activity statistics for. If specified, returns statistics only for this asset.
     .EXAMPLE
-        Get-IMActivityStatistic -albumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
-
-        Retreives activity statistics for the album
+        Get-IMActivityStatistic -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+        
+        Retrieves activity statistics for the entire album.
+    .EXAMPLE
+        Get-IMActivityStatistic -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -AssetId 'a4908e1f-697f-4d7b-9330-93b5eabe3baf'
+        
+        Retrieves activity statistics for a specific asset within the album.
     #>
 
     [CmdletBinding()]

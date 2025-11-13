@@ -1,14 +1,16 @@
 ﻿function Remove-IMMyProfilePicture
 {
     <#
+    .SYNOPSIS
+        Removes current user's profile picture.
     .DESCRIPTION
-        Remove the profile picture of the connected user
+        Deletes profile picture for the currently authenticated user.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .EXAMPLE
         Remove-IMMyProfilePicture
+
+        Removes your profile picture.
 
         Remove the profile picture of the connected user
     #>
@@ -20,7 +22,8 @@
         $Session = $null
     )
 
-    if ($PSCmdlet.ShouldProcess('Remove profile picture')) {
+    if ($PSCmdlet.ShouldProcess('Remove profile picture'))
+    {
         InvokeImmichRestMethod -Method DELETE -RelativePath '/users/profile-image' -ImmichSession:$Session
     }
 

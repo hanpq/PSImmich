@@ -1,18 +1,20 @@
 ﻿function Remove-IMSharedLink
 {
     <#
+    .SYNOPSIS
+        Removes a shared link.
     .DESCRIPTION
-        Remove Immich shared link
+        Deletes shared link and revokes external access to associated assets.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines a specific shared link id to be removed
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        Shared link ID to remove.
     .EXAMPLE
-        Remove-IMSharedLink -id <sharedlinkid>
+        Remove-IMSharedLink -Id 'link-id'
 
-        Remove Immich shared link
+        Removes shared link and revokes access.
+    .NOTES
+        Supports -WhatIf and -Confirm for safety.
     #>
 
     [CmdletBinding(SupportsShouldProcess)]
@@ -27,7 +29,7 @@
         $id
     )
 
-    PROCESS
+    process
     {
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'DELETE'))

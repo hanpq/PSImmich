@@ -1,18 +1,18 @@
 ﻿function Set-IMTag
 {
     <#
+    .SYNOPSIS
+        Assigns tags to assets.
     .DESCRIPTION
-        Add Immich asset tag
+        Associates tags with assets for organization and categorization.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines an asset id to tag
-    .PARAMETER tagId
-        Defines a tag id to assign to assets
-    .PARAMETER tagName
-        Defines a tag name to assign to assets. Note that the Immich API does support filtering on tagName so all tags will be retreived and then filtered. This means that if there is a very large amount of tags this method might be slow.
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        Asset ID(s) to tag.
+    .PARAMETER TagId
+        Tag ID to assign to assets.
+    .PARAMETER TagName
+        Tag name to assign. Slower than TagId for large tag collections.
     .PARAMETER AddAssets
         Defines the assets to tag
     .PARAMETER RemoveAssets
@@ -55,7 +55,7 @@
         $Color
     )
 
-    BEGIN
+    begin
     {
         if ($PSCmdlet.ParameterSetName -eq 'tagName')
         {
@@ -71,19 +71,22 @@
         }
     }
 
-    PROCESS
+    process
     {
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($id, 'Update tag'))
             {
-                if ($PSBoundParameters.Keys -contains 'AddAssets') {
-                    InvokeImmichRestMethod -Method PUT -RelativePath "/tags/$PSitem/assets" -ImmichSession:$Session -Body:@{ids = ($AddAssets -as [string[]])}
+                if ($PSBoundParameters.Keys -contains 'AddAssets')
+                {
+                    InvokeImmichRestMethod -Method PUT -RelativePath "/tags/$PSitem/assets" -ImmichSession:$Session -Body:@{ids = ($AddAssets -as [string[]]) }
                 }
-                if ($PSBoundParameters.Keys -contains 'RemoveAssets') {
-                    InvokeImmichRestMethod -Method DELETE -RelativePath "/tags/$PSitem/assets" -ImmichSession:$Session -Body:@{ids = ($RemoveAssets -as [string[]])}
+                if ($PSBoundParameters.Keys -contains 'RemoveAssets')
+                {
+                    InvokeImmichRestMethod -Method DELETE -RelativePath "/tags/$PSitem/assets" -ImmichSession:$Session -Body:@{ids = ($RemoveAssets -as [string[]]) }
                 }
-                if ($PSBoundParameters.Keys -contains 'Color') {
-                    InvokeImmichRestMethod -Method PUT -RelativePath "/tags/$PSitem" -ImmichSession:$Session -Body:@{color = $Color}
+                if ($PSBoundParameters.Keys -contains 'Color')
+                {
+                    InvokeImmichRestMethod -Method PUT -RelativePath "/tags/$PSitem" -ImmichSession:$Session -Body:@{color = $Color }
                 }
             }
         }

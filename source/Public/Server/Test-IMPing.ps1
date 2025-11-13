@@ -1,16 +1,16 @@
 ﻿function Test-IMPing
 {
     <#
+    .SYNOPSIS
+        Tests connectivity to Immich server.
     .DESCRIPTION
-        Ping Immich instance
+        Verifies server availability and response by sending a ping request.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .EXAMPLE
         Test-IMPing
 
-        Ping Immich instance
+        Tests connectivity to the current Immich instance.
     #>
 
     [CmdletBinding()]

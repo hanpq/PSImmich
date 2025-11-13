@@ -1,24 +1,29 @@
 ﻿function Add-IMActivity
 {
     <#
+    .SYNOPSIS
+        Adds a new activity to an Immich album
     .DESCRIPTION
-        Adds a new activity to an album
+        Adds a new activity (comment or like) to an Immich album or specific asset within an album.
+        Activities provide a way to interact with and comment on media in shared albums.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER albumId
-        Defines which album to add the activity to.
-    .PARAMETER assetId
-        Defines a specific assetid to add activities for.
-    .PARAMETER comment
-        Defines the comment to add.
-    .PARAMETER type
-        Defines the type of activity to add, valid values are comment or like.
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER AlbumId
+        The UUID of the album to add the activity to. Accepts pipeline input.
+    .PARAMETER AssetId
+        The UUID of a specific asset to add the activity to. If not specified, the activity applies to the album level.
+    .PARAMETER Comment
+        The comment text to add. Required when Type is 'comment'.
+    .PARAMETER Type
+        The type of activity to add. Valid values are 'comment' or 'like'.
     .EXAMPLE
-        Add-IMActivity -AlbumId <albumid> -AssetId <assetid> -Comment 'Great picture!' -Type comment
-
-        Adds a new comment to an asset in the specified album
+        Add-IMActivity -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Comment 'Amazing sunset!' -Type 'comment'
+        
+        Adds a comment to the specified album.
+    .EXAMPLE
+        Add-IMActivity -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -AssetId 'a4908e1f-697f-4d7b-9330-93b5eabe3baf' -Type 'like'
+        
+        Adds a like to a specific asset within the album.
     #>
 
     [CmdletBinding()]

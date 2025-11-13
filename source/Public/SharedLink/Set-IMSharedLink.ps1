@@ -1,18 +1,18 @@
 ﻿function Set-IMSharedLink
 {
     <#
+    .SYNOPSIS
+        Updates shared link settings.
     .DESCRIPTION
-        Set Immich shared link
+        Modifies permissions and properties of an existing shared link.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER Id
-        Defines the asset ids to share
+        Shared link ID to update.
     .PARAMETER AllowDownload
-        Defines if downloading of assets are permitted.
+        Permits downloading assets through the shared link.
     .PARAMETER AllowUpload
-        Defines if uploads of assets are permitted.
+        Permits uploading assets through the shared link.
     .PARAMETER Description
         Defines a description of the shared link
     .PARAMETER ExpiresAt
@@ -69,13 +69,13 @@
         $Password
     )
 
-    BEGIN
+    begin
     {
         $BodyParameters = @{}
         $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
     }
 
-    PROCESS
+    process
     {
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Update'))

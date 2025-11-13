@@ -1,20 +1,23 @@
 ﻿function Merge-IMPerson
 {
     <#
+    .SYNOPSIS
+        Merges duplicate person records.
     .DESCRIPTION
-        Merges two people
+        Combines multiple person entries when face recognition creates duplicates.
+        The target person persists while source persons are merged into it.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
+        Optional session object for multi-instance connections.
     .PARAMETER ToPersonID
-        Defines the person to merge to
+        Target person ID that will remain after merge.
     .PARAMETER FromPersonID
-        Defines the id of the person to merge from
+        Source person ID(s) to merge into target. Supports multiple IDs.
     .EXAMPLE
-        Merge-IMPerson -ToPersonID <personid> -FromPersonID <personid>,<personid>
+        Merge-IMPerson -ToPersonID 'bf973405-3f2a-48d2-a687-2ed4167164be' -FromPersonID '9c4e0006-3a2b-4967-94b6-7e8bb8490a12'
 
-        Merges three persons. ToPersonID will persist
+        Merges source person into target person.
+    .NOTES
+        Supports -WhatIf and -Confirm for safety.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP')]
     [CmdletBinding(SupportsShouldProcess)]

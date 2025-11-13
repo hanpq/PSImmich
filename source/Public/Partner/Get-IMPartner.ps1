@@ -1,18 +1,18 @@
 ﻿function Get-IMPartner
 {
     <#
+    .SYNOPSIS
+        Retrieves sharing partners.
     .DESCRIPTION
-        Get immich partner
+        Gets users who share assets with you or users you share with.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER direction
-        Defines the direction of the partnership
+        Optional session object for multi-instance connections.
+    .PARAMETER Direction
+        Partnership direction: 'shared-by' (partners sharing with you) or 'shared-with' (partners you share with).
     .EXAMPLE
-        Get-IMPartner -direction 'shared-with'
+        Get-IMPartner -Direction 'shared-with'
 
-        Get immich partner
+        Gets users you are sharing assets with.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
     [CmdletBinding()]
@@ -29,7 +29,7 @@
 
     )
 
-    PROCESS
+    process
     {
         $QueryParameters = @{}
         $QueryParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name

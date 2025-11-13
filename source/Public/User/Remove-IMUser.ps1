@@ -1,18 +1,24 @@
 ﻿function Remove-IMUser
 {
     <#
+    .SYNOPSIS
+        Removes an Immich user account.
     .DESCRIPTION
-        Remove Immich user
+        Deletes user account. By default, moves to trash for 7 days before permanent removal.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines the user id to update
-    .PARAMETER force
-        Defines that the user should be removed immediatly. By default the user remains in trash for 7 days before assets are removed.
+        Optional session object for multi-instance connections.
+    .PARAMETER Id
+        User ID to remove.
+    .PARAMETER Force
+        Forces immediate permanent deletion, bypassing 7-day trash period.
     .EXAMPLE
-        Remove-IMUser -id <userid> -force
+        Remove-IMUser -Id 'user-id'
+
+        Removes user to trash for 7 days.
+    .EXAMPLE
+        Remove-IMUser -Id 'user-id' -Force
+
+        Immediately deletes user permanently.
 
         Remove Immich user
     #>
@@ -34,13 +40,13 @@
         $Force
     )
 
-    BEGIN
+    begin
     {
         $BodyParameters = @{}
         $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
     }
 
-    PROCESS
+    process
     {
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'DELETE'))

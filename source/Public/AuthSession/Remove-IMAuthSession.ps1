@@ -1,18 +1,36 @@
 ﻿function Remove-IMAuthSession
 {
     <#
+    .SYNOPSIS
+        Removes authenticated sessions from Immich
     .DESCRIPTION
-        Remove one or many auth sessions. Not that if id is not specified all but the current auth session will be purged.
+        Removes one or more authenticated sessions from Immich. When no specific session ID is provided,
+        all sessions except the current one will be removed. This is useful for security purposes or
+        when cleaning up old sessions.
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
-
-        -Session $Session
-    .PARAMETER id
-        Defines a uuid of an auth session that should be removed
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
+    .PARAMETER Id
+        The UUID(s) of specific authenticated session(s) to remove. Accepts pipeline input and multiple values.
+        If not specified, all sessions except the current one will be removed.
     .EXAMPLE
         Remove-IMAuthSession
 
-        Remove all auth session (except current)
+        Removes all authenticated sessions except the current one with confirmation prompt.
+    .EXAMPLE
+        Remove-IMAuthSession -Id 'session-uuid'
+
+        Removes a specific authenticated session with confirmation prompt.
+    .EXAMPLE
+        Get-IMAuthSession | Where-Object {$_.deviceType -eq 'mobile'} | Remove-IMAuthSession
+
+        Removes all mobile device sessions via pipeline.
+    .EXAMPLE
+        Remove-IMAuthSession -Confirm:$false
+
+        Removes all sessions except current without confirmation prompt.
+    .NOTES
+        This cmdlet supports ShouldProcess and will prompt for confirmation before removing sessions.
+        The current session cannot be removed and will be preserved even when removing all sessions.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Session', Justification = 'FP')]
     [CmdletBinding(DefaultParameterSetName = 'list', SupportsShouldProcess)]
@@ -28,7 +46,7 @@
 
     )
 
-    PROCESS
+    process
     {
         $id | ForEach-Object {
             $CurrentID = $PSItem
