@@ -20,15 +20,15 @@
         The UUID of a specific user to retrieve activities for. If specified, only activities by this user are returned.
     .EXAMPLE
         Get-IMActivity -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
-        
+
         Retrieves all activities for the specified album.
     .EXAMPLE
         Get-IMActivity -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -AssetId 'a4908e1f-697f-4d7b-9330-93b5eabe3baf'
-        
+
         Retrieves all activities for a specific asset within the album.
     .EXAMPLE
         Get-IMActivity -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Type 'comment'
-        
+
         Retrieves only comment activities for the album.
     #>
 

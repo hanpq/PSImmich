@@ -18,11 +18,11 @@
         The type of activity to add. Valid values are 'comment' or 'like'.
     .EXAMPLE
         Add-IMActivity -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Comment 'Amazing sunset!' -Type 'comment'
-        
+
         Adds a comment to the specified album.
     .EXAMPLE
         Add-IMActivity -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -AssetId 'a4908e1f-697f-4d7b-9330-93b5eabe3baf' -Type 'like'
-        
+
         Adds a like to a specific asset within the album.
     #>
 

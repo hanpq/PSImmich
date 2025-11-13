@@ -14,11 +14,11 @@
         The UUID of a specific asset to retrieve activity statistics for. If specified, returns statistics only for this asset.
     .EXAMPLE
         Get-IMActivityStatistic -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
-        
+
         Retrieves activity statistics for the entire album.
     .EXAMPLE
         Get-IMActivityStatistic -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -AssetId 'a4908e1f-697f-4d7b-9330-93b5eabe3baf'
-        
+
         Retrieves activity statistics for a specific asset within the album.
     #>
 

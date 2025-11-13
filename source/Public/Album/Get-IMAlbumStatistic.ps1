@@ -10,12 +10,12 @@
         Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
     .EXAMPLE
         Get-IMAlbumStatistic
-        
+
         Retrieves comprehensive album statistics for the current user.
     .EXAMPLE
         $stats = Get-IMAlbumStatistic
         Write-Host "Total albums: $($stats.totalAlbums)"
-        
+
         Retrieves statistics and displays the total number of albums.
     #>
 
