@@ -29,20 +29,12 @@
         [Parameter(Mandatory, ParameterSetName = 'id', ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string[]]
-        $id,
-
-        [Parameter()]
-        [boolean]
-        $refreshAllFiles = $false,
-
-        [Parameter()]
-        [boolean]
-        $refreshModifiedFiles = $true
+        $Id
     )
 
     PROCESS
     {
-        $id | ForEach-Object {
+        $Id | ForEach-Object {
             $CurrentID = $PSItem
             InvokeImmichRestMethod -Method POST -RelativePath "/libraries/$CurrentID/scan" -ImmichSession:$Session
         }

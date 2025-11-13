@@ -39,41 +39,40 @@
         $Id,
 
         [Parameter()]
+        [ApiParameter('allowDownload')]
         [switch]
         $AllowDownload,
 
         [Parameter()]
+        [ApiParameter('allowUpload')]
         [switch]
         $AllowUpload,
 
         [Parameter()]
+        [ApiParameter('description')]
         [string]
         $Description,
 
         [Parameter()]
+        [ApiParameter('expiresAt')]
         [datetime]
         $ExpiresAt,
 
         [Parameter()]
+        [ApiParameter('showMetadata')]
         [switch]
         $ShowMetadata,
 
         [Parameter()]
+        [ApiParameter('password')]
         [securestring]
         $Password
     )
 
     BEGIN
     {
-        $Body = @{}
-        $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'AllowDownload', 'AllowUpload', 'Description', 'ExpiresAt', 'ShowMetadata', 'Password' -NameMapping @{
-                AllowDownload = 'allowDownload'
-                AllowUpload   = 'allowUpload'
-                Description   = 'description'
-                ExpiresAt     = 'expiresAt'
-                ShowMetadata  = 'showMetadata'
-                Password      = 'password'
-            })
+        $BodyParameters = @{}
+        $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
     }
 
     PROCESS
@@ -81,7 +80,7 @@
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Update'))
             {
-                InvokeImmichRestMethod -Method PATCH -RelativePath "/shared-links/$PSItem" -ImmichSession:$Session -Body $Body
+                InvokeImmichRestMethod -Method PATCH -RelativePath "/shared-links/$PSItem" -ImmichSession:$Session -Body $BodyParameters
             }
         }
     }

@@ -5,9 +5,11 @@ This directory contains tools for analyzing PSImmich API coverage against OpenAP
 ## Files
 
 - **`Analyze-PSImmichAPI.ps1`** - Advanced API coverage analysis script
+- **`Compare-OpenApiSpecs.ps1`** - Compares two OpenAPI specifications and generates markdown summary
 - **`exclusions.json`** - Configuration file for excluding web-frontend specific APIs
 - **`api.2.2.0.json`** - OpenAPI specification for Immich v2.2.0 (target version)
 - **`api.1.128.json`** - OpenAPI specification for Immich v1.128 (current version)
+- **`RunComparison.ps1`** - Quick runner for comparing latest API versions
 
 ## Usage
 
@@ -28,6 +30,30 @@ This directory contains tools for analyzing PSImmich API coverage against OpenAP
 # Use custom exclusion configuration
 .\Analyze-PSImmichAPI.ps1 -ApiSpecFile "api.2.2.0.json" -ExclusionConfigFile "my-exclusions.json"
 ```
+
+## OpenAPI Specification Comparison
+
+### Compare Two API Versions
+```powershell
+# Basic comparison (console output)
+.\Compare-OpenApiSpecs.ps1 -OldSpecPath "api.1.128.json" -NewSpecPath "api.2.2.0.json"
+
+# Generate markdown report
+.\Compare-OpenApiSpecs.ps1 -OldSpecPath "api.1.128.json" -NewSpecPath "api.2.2.0.json" -OutputPath "api-changes.md"
+
+# Include schema changes in the report
+.\Compare-OpenApiSpecs.ps1 -OldSpecPath "api.1.128.json" -NewSpecPath "api.2.2.0.json" -OutputPath "api-changes.md" -IncludeSchemas
+
+# Quick comparison using runner script
+.\RunComparison.ps1
+```
+
+### Comparison Features
+- **Added/Removed Paths**: Shows new and deprecated API endpoints
+- **Parameter Changes**: Tracks added, removed, and modified parameters for each endpoint
+- **Method Changes**: Identifies new HTTP methods added to existing paths
+- **Schema Changes**: Optional inclusion of component schema modifications
+- **Markdown Output**: Clean, readable format suitable for documentation or release notes
 
 ## Script Features
 

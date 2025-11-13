@@ -25,13 +25,13 @@
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [Alias('id')]
         [string[]]
-        $albumId
+        $AlbumId
     )
 
-    PROCESS
+    process
     {
         # We loop through IDs because ids can be provided as an array to the parameter in which case the process block only gets called once.
-        $albumId | ForEach-Object {
+        $AlbumId | ForEach-Object {
             $CurrentID = $PSItem
             if ($PSCmdlet.ShouldProcess($CurrentID, 'DELETE'))
             {

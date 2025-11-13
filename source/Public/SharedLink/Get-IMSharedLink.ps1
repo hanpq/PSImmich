@@ -9,12 +9,8 @@
         -Session $Session
     .PARAMETER id
         Defines a specific shared link id to be retreived
-    .PARAMETER password
-        ...
-    .PARAMETER token
-        ...
-    .PARAMETER Me
-        Defines that the currently connected users information is retreived.
+    .PARAMETER AlbumId
+        AlbumId filter
     .EXAMPLE
         Get-IMSharedLink
 
@@ -32,29 +28,22 @@
         [string[]]
         $id,
 
-        [Parameter(ParameterSetName = 'me')]
-        [securestring]
-        $password,
-
-        [Parameter(ParameterSetName = 'me')]
-        [string]
-        $token,
-
-        [Parameter(Mandatory, ParameterSetName = 'me')]
-        [switch]
-        $Me
+        [Parameter(ParameterSetName = 'list')]
+        [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [ApiParameter('albumId')]
+        $AlbumId
     )
 
-    BEGIN
+    begin
     {
         if ($PSCmdlet.ParameterSetName -eq 'list')
         {
             $QueryParameters = @{}
-            $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'password', 'token')
+            $QueryParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
         }
     }
 
-    PROCESS
+    process
     {
         switch ($PSCmdlet.ParameterSetName)
         {
@@ -67,10 +56,6 @@
                 $id | ForEach-Object {
                     InvokeImmichRestMethod -Method Get -RelativePath "/shared-links/$PSItem" -ImmichSession:$Session
                 }
-            }
-            'me'
-            {
-                InvokeImmichRestMethod -Method Get -RelativePath '/shared-links/me' -ImmichSession:$Session
             }
         }
     }

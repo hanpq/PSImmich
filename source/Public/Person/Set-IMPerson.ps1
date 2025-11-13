@@ -17,6 +17,10 @@
         Defines if the person should be hidden
     .PARAMETER Name
         Defines the name of the person
+    .PARAMETER Color
+        Defines the color associated with the person
+    .PARAMETER IsFavorite
+        Defines if the person is marked as favorite
     .EXAMPLE
         Set-IMPerson -id <personid> -Name 'John Smith'
 
@@ -35,19 +39,33 @@
         $Id,
 
         [Parameter()]
+        [ApiParameter('birthDate')]
         [datetime]
         $BirthDate,
 
         [Parameter()]
+        [ApiParameter('color')]
+        [string]
+        $Color,
+
+        [Parameter()]
+        [ApiParameter('isFavorite')]
+        [boolean]
+        $IsFavorite,
+
+        [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [ApiParameter('featureFaceAssetId')]
         [string]
         $FaceAssetId,
 
         [Parameter()]
+        [ApiParameter('isHidden')]
         [boolean]
         $IsHidden,
 
         [Parameter()]
+        [ApiParameter('name')]
         [string]
         $Name
 
@@ -63,13 +81,8 @@
         $id | ForEach-Object {
             $CurrentID = $PSItem
             $BodyParameters = @{}
-            $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'BirthDate', 'FaceAssetId', 'IsHidden', 'Name' -NameMapping @{
-                    BirthDate   = 'birthDate'
-                    FaceAssetId = 'featureFaceAssetId'
-                    IsHidden    = 'isHidden'
-                    Name        = 'name'
-                })
-            $BodyParameters += @{id = $CurrentID }
+            $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
+            $BodyParameters.id = $CurrentID
             $ObjectArray += $BodyParameters
         }
     }

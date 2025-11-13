@@ -26,7 +26,7 @@
         [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $id,
+        $Id,
 
         [Parameter()]
         [System.IO.DirectoryInfo]
@@ -35,7 +35,7 @@
 
     PROCESS
     {
-        $id | ForEach-Object {
+        $Id | ForEach-Object {
             $CurrentID = $PSItem
             $OutputPath = Join-Path -Path $Path -ChildPath "$($CurrentID).jpeg"
             if ($PSVersionTable.PSEdition -eq 'Desktop')
@@ -43,7 +43,7 @@
                 $SavedProgressPreference = $global:ProgressPreference
                 $global:ProgressPreference = 'SilentlyContinue'
             }
-            InvokeImmichRestMethod -Method Get -RelativePath "/assets/$id/thumbnail" -ImmichSession:$Session -ContentType 'application/octet-stream' -OutFilePath $OutputPath
+            InvokeImmichRestMethod -Method Get -RelativePath "/assets/$Id/thumbnail" -ImmichSession:$Session -ContentType 'application/octet-stream' -OutFilePath $OutputPath
             if ($PSVersionTable.PSEdition -eq 'Desktop')
             {
                 $global:ProgressPreference = $SavedProgressPreference

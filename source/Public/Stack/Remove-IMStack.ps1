@@ -29,13 +29,15 @@
 
         [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidateScript({
-            foreach ($stackId in $_) {
-                if ($stackId -notmatch '^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$') {
-                    throw "Invalid GUID format: $stackId"
+                foreach ($stackId in $_)
+                {
+                    if ($stackId -notmatch '^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')
+                    {
+                        throw "Invalid GUID format: $stackId"
+                    }
                 }
-            }
-            $true
-        })]
+                $true
+            })]
         [string[]]
         $Id,
 
@@ -44,34 +46,34 @@
         $Force
     )
 
-    BEGIN
+    begin
     {
         if ($Force)
         {
             $ConfirmPreference = 'None'
         }
+        $BodyParameters = @{
+            ids = @()
+        }
     }
 
-    PROCESS
+    process
     {
-        if ($Id.Count -eq 1)
-        {
-            # Single stack deletion using individual endpoint
-            if ($PSCmdlet.ShouldProcess("Stack $($Id[0])", "Remove"))
-            {
-                InvokeImmichRestMethod -Method Delete -RelativePath "/stacks/$($Id[0])" -ImmichSession:$Session
-            }
+        $Id | ForEach-Object {
+            $BodyParameters.ids += $psitem
         }
-        else
+    }
+
+    end
+    {
+        if ($BodyParameters.ids.Count -eq 0)
         {
-            # Multiple stacks deletion using bulk endpoint
-            if ($PSCmdlet.ShouldProcess("$($Id.Count) stacks", "Remove"))
-            {
-                $BodyParameters = @{
-                    ids = $Id
-                }
-                InvokeImmichRestMethod -Method Delete -RelativePath "/stacks" -ImmichSession:$Session -Body $BodyParameters
-            }
+            return
+        }
+
+        if ($PSCmdlet.ShouldProcess("Stacks: $($BodyParameters.ids -join ',')", 'DELETE'))
+        {
+            InvokeImmichRestMethod -Method Delete -RelativePath '/stacks' -ImmichSession:$Session -Body:$BodyParameters
         }
     }
 }

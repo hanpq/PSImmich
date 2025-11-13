@@ -23,6 +23,7 @@
 
         [Parameter(Mandatory)]
         [ValidateSet('shared-by', 'shared-with')]
+        [ApiParameter('direction')]
         [string]
         $Direction
 
@@ -30,9 +31,8 @@
 
     PROCESS
     {
-        $QueryParameters = @{
-            direction = $Direction
-        }
+        $QueryParameters = @{}
+        $QueryParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
         InvokeImmichRestMethod -Method GET -RelativePath '/partners' -ImmichSession:$Session -QueryParameters:$QueryParameters
     }
 }

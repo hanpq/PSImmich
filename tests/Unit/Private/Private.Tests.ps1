@@ -202,13 +202,14 @@ InModuleScope $ProjectName {
                 # Should use custom API names from attributes
                 $result['customApiName'] | Should -Be 'value1'
                 $result['anotherCustomName'] | Should -Be 'value2'
-                # Should use camelCase for parameters without attributes
-                $result['simpleParam'] | Should -Be 'value3'
+                # Should NOT include parameters without ApiParameter attributes
+                $result.ContainsKey('simpleParam') | Should -Be $false
+                $result.ContainsKey('SimpleParam') | Should -Be $false
                 # Should exclude Session and common parameters
                 $result.ContainsKey('Session') | Should -Be $false
             }
 
-            It 'Should use camelCase conversion for parameters without ApiParameter attributes' {
+            It 'Should NOT process parameters without ApiParameter attributes' {
                 $boundParams = @{
                     'FirstParam'  = 'value1'
                     'SecondParam' = 'value2'
@@ -216,8 +217,10 @@ InModuleScope $ProjectName {
 
                 $result = ConvertTo-ApiParameters -BoundParameters $boundParams -CmdletName 'Test-CmdletNoAttributes'
 
-                $result['firstParam'] | Should -Be 'value1'
-                $result['secondParam'] | Should -Be 'value2'
+                # Should return empty result since no parameters have [ApiParameter] attributes
+                $result.Keys.Count | Should -Be 0
+                $result.ContainsKey('firstParam') | Should -Be $false
+                $result.ContainsKey('secondParam') | Should -Be $false
             }
 
             It 'Should exclude common PowerShell parameters' {
@@ -233,9 +236,8 @@ InModuleScope $ProjectName {
 
                 $result = ConvertTo-ApiParameters -BoundParameters $boundParams -CmdletName 'Test-CmdletNoAttributes'
 
-                # Should only include the actual parameter
-                $result.Keys.Count | Should -Be 1
-                $result['firstParam'] | Should -Be 'value1'
+                # Should return empty result since FirstParam doesn't have [ApiParameter] attribute
+                $result.Keys.Count | Should -Be 0
 
                 # Should exclude all common parameters
                 $result.ContainsKey('Verbose') | Should -Be $false
@@ -248,20 +250,21 @@ InModuleScope $ProjectName {
         Context 'Caching Behavior' {
             It 'Should cache parameter mappings to avoid repeated reflection' {
                 $boundParams = @{
-                    'FirstParam' = 'value1'
+                    'ParamWithAttribute' = 'value1'
                 }
 
                 # First call - should invoke Get-Command
-                $result1 = ConvertTo-ApiParameters -BoundParameters $boundParams -CmdletName 'Test-CmdletNoAttributes'
+                $result1 = ConvertTo-ApiParameters -BoundParameters $boundParams -CmdletName 'Test-CmdletWithAttributes'
 
                 # Second call - should use cache
-                $result2 = ConvertTo-ApiParameters -BoundParameters $boundParams -CmdletName 'Test-CmdletNoAttributes'
+                $result2 = ConvertTo-ApiParameters -BoundParameters $boundParams -CmdletName 'Test-CmdletWithAttributes'
 
                 # Should have been called only once due to caching
-                Should -Invoke Get-Command -Times 1 -ParameterFilter { $Name -eq 'Test-CmdletNoAttributes' }
+                Should -Invoke Get-Command -Times 1 -ParameterFilter { $Name -eq 'Test-CmdletWithAttributes' }
 
                 # Results should be identical
-                $result1['firstParam'] | Should -Be $result2['firstParam']
+                $result1['customApiName'] | Should -Be $result2['customApiName']
+                $result1.Keys.Count | Should -Be $result2.Keys.Count
             }
         }
 
@@ -295,9 +298,9 @@ InModuleScope $ProjectName {
 
                 $result = ConvertTo-ApiParameters -BoundParameters $boundParams -CmdletName 'Test-CmdletNoAttributes'
 
-                # Should only include known parameters
-                $result.Keys.Count | Should -Be 1
-                $result['firstParam'] | Should -Be 'value1'
+                # Should return empty result since no parameters have [ApiParameter] attributes
+                $result.Keys.Count | Should -Be 0
+                $result.ContainsKey('firstParam') | Should -Be $false
                 $result.ContainsKey('UnknownParam') | Should -Be $false
             }
         }
@@ -316,21 +319,23 @@ InModuleScope $ProjectName {
             }
         }
 
-        Context 'PascalCase to camelCase Conversion' {
-            It 'Should correctly convert PascalCase to camelCase' {
+        Context 'ApiParameter Attribute Only Processing' {
+            It 'Should only process parameters with ApiParameter attributes' {
                 $boundParams = @{
-                    'MyParameterName'  = 'value1'
-                    'AnotherParameter' = 'value2'
-                    'XMLHttpRequest'   = 'value3'  # Edge case
-                    'ID'               = 'value4'  # Single letter + uppercase
+                    'MyParameterName'  = 'value1'  # No [ApiParameter] attribute
+                    'AnotherParameter' = 'value2'  # No [ApiParameter] attribute
+                    'XMLHttpRequest'   = 'value3'  # No [ApiParameter] attribute
+                    'ID'               = 'value4'  # No [ApiParameter] attribute
                 }
 
                 $result = ConvertTo-ApiParameters -BoundParameters $boundParams -CmdletName 'Test-CmdletNoAttributes'
 
-                $result['myParameterName'] | Should -Be 'value1'
-                $result['anotherParameter'] | Should -Be 'value2'
-                $result['xMLHttpRequest'] | Should -Be 'value3'
-                $result['iD'] | Should -Be 'value4'
+                # Should return empty result since no parameters have [ApiParameter] attributes
+                $result.Keys.Count | Should -Be 0
+                $result.ContainsKey('myParameterName') | Should -Be $false
+                $result.ContainsKey('anotherParameter') | Should -Be $false
+                $result.ContainsKey('xMLHttpRequest') | Should -Be $false
+                $result.ContainsKey('iD') | Should -Be $false
             }
         }
 

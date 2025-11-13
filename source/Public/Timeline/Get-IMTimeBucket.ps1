@@ -9,8 +9,6 @@
         -Session $Session
     .PARAMETER albumId
         Albumid filter
-    .PARAMETER isArchived
-        Archived filter
     .PARAMETER isFavorite
         Favorite filter
     .PARAMETER isTrashed
@@ -19,8 +17,6 @@
         Defines sort order
     .PARAMETER personId
         PersonId filter
-    .PARAMETER size
-        Defines size, DAY or MONTH
     .PARAMETER timeBucket
         Timebucket
     .PARAMETER userId
@@ -42,62 +38,62 @@
         $Session = $null,
 
         [Parameter()]
+        [ApiParameter('albumId')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
         $albumId,
 
         [Parameter()]
-        [boolean]
-        $isArchived,
-
-        [Parameter()]
+        [ApiParameter('isFavorite')]
         [boolean]
         $isFavorite,
 
         [Parameter()]
+        [ApiParameter('isTrashed')]
         [boolean]
         $isTrashed,
 
         [Parameter()]
+        [ApiParameter('order')]
         [ValidateSet('asc', 'desc')]
         [string]
         $order = 'asc',
 
         [Parameter()]
+        [ApiParameter('personId')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
         $personId,
 
-        [Parameter(Mandatory)]
-        [ValidateSet('DAY', 'MONTH')]
-        [string]
-        $size,
-
-        [Parameter(ParameterSetName = 'timebucket')]
+        [Parameter(Mandatory, ParameterSetName = 'timebucket')]
+        [ApiParameter('timeBucket')]
         [string]
         $timeBucket,
 
         [Parameter()]
+        [ApiParameter('userId')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
         $userId,
 
         [Parameter()]
+        [ApiParameter('withPartners')]
         [boolean]
         $withPartners,
 
         [Parameter()]
+        [ApiParameter('withStacked')]
         [boolean]
         $withStacked
     )
 
-    BEGIN
+    begin
     {
         $QueryParameters = @{}
-        $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'albumId', 'isArchived', 'isFavorite', 'isTrashed', 'order', 'personId', 'size', 'timeBucket', 'userId', 'withPartners', 'withStacked')
+        $QueryParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
     }
 
-    PROCESS
+    process
     {
         switch ($PSCmdlet.ParameterSetName)
         {

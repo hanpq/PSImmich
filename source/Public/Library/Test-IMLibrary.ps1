@@ -7,11 +7,11 @@
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
-    .PARAMETER id
+    .PARAMETER Id
         Defines libraries to validate
-    .PARAMETER exclusionPatterns
+    .PARAMETER ExclusionPatterns
         Defines exlusion patterns
-    .PARAMETER importPaths
+    .PARAMETER ImportPaths
         Defines import paths
     .EXAMPLE
         Test-IMLibrary -id <libraryid>
@@ -28,26 +28,28 @@
         [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string[]]
-        $id,
+        $Id,
 
         [Parameter()]
+        [ApiParameter('exclusionPatterns')]
         [string[]]
-        $exclusionPatterns,
+        $ExclusionPatterns,
 
         [Parameter()]
+        [ApiParameter('importPaths')]
         [string[]]
-        $importPaths
+        $ImportPaths
     )
 
     BEGIN
     {
         $BodyParameters = @{}
-        $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'exclusionPatterns', 'importPaths')
+        $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
     }
 
     PROCESS
     {
-        $id | ForEach-Object {
+        $Id | ForEach-Object {
             InvokeImmichRestMethod -Method POST -RelativePath "/libraries/$PSItem/validate" -ImmichSession:$Session -Body:$BodyParameters
         }
     }

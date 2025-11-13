@@ -325,12 +325,12 @@ Describe 'Asset' -Tag 'Integration' {
             }
             $NewAlbum = New-IMAlbum -AlbumName $AlbumName
             if (-not (Get-IMTag | where name -eq 'TestTag')) {
-                $NewTag = New-IMTag -Name 'TestTag' -Type 'OBJECT'
+                $NewTag = New-IMTag -Name 'TestTag'
             }
             else
             {
                 Get-IMTag | where name -eq 'TestTag' | Remove-IMTag
-                $NewTag = New-IMTag -Name 'TestTag' -Type 'OBJECT'
+                $NewTag = New-IMTag -Name 'TestTag'
             }
 
         }
@@ -358,6 +358,12 @@ Describe 'Asset' -Tag 'Integration' {
         }
         It 'Should add tag to asset' {
             $Result = Set-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb' -AddTag $NewTag.id
+            # Seems to be a delay in the tag being added to the asset. Adding a retry loop to wait for the tag to be added.
+            $retrycounter = 0
+            while ((Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb').tags.id -notcontains $NewTag.id -and $retrycounter -lt 5) {
+                start-sleep -seconds 2
+                $retrycounter++
+            }
             $Asset = Get-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $Asset.tags.id | Should -Contain $newtag.id
         }
@@ -385,17 +391,17 @@ Describe 'Asset' -Tag 'Integration' {
         }
     }
     # Import-IMAsset is excluded from testing on Windows Powershell because the
-    # current rutine to post formdata is not nativly supported. Until a seperate
+    # current routine to post formdata is not nativly supported. Until a seperate
     # routine is defined, this test is excluded.
-    Context -Name 'Import-IMAsset' -Skip:($PSVersionTable.PSEdition -eq 'Desktop') {
+    Context -Name 'Import-IMAsset' {
         It -Name 'Should upload the file' {
             $Result = Import-IMAsset -FilePath "$PSScriptRoot\Immich.png"
             $Result | Should -HaveCount 1
             $Result.DeviceAssetID | Should -Be 'Immich.png'
             Remove-IMAsset -Id $Result.Id -force
         }
-    }
-    Context -Name 'Restore-IMAsset' -Skip:($PSVersionTable.PSEdition -eq 'Desktop') {
+    } #-Skip:($PSVersionTable.PSEdition -eq 'Desktop')
+    Context -Name 'Restore-IMAsset' {
         It -Name 'Should restore single asset' {
             $Result = Import-IMAsset -FilePath "$PSScriptRoot\Immich.png"
             $Result | Should -HaveCount 1
@@ -421,13 +427,13 @@ Describe 'Asset' -Tag 'Integration' {
             $Restore.isTrashed | Should -BeFalse
             Remove-IMAsset -Id $Result.Id -force
         }
-    }
-    Context 'Remove-IMAsset' -Skip:($PSVersionTable.PSEdition -eq 'Desktop') {
+    } #-Skip:($PSVersionTable.PSEdition -eq 'Desktop')
+    Context 'Remove-IMAsset' {
         It -Name 'Should remove the file' {
             $Result = Import-IMAsset -FilePath "$PSScriptRoot\Immich.png"
             { Remove-IMAsset -Id $Result.Id -force } | Should -Not -Throw
         }
-    }
+    } #-Skip:($PSVersionTable.PSEdition -eq 'Desktop')
     Context 'Save-IMAsset' {
         It -Name 'Should download file to disk' {
             Save-IMAsset -id '025665c6-d874-46a2-bbc6-37250ddcb2eb' -Path ((Get-PSDrive TestDrive).Root)
@@ -1115,14 +1121,14 @@ Describe 'Tag' -Tag 'Integration' {
     }
     Context 'New-IMTag' {
         It 'Should create a new tag' {
-            $Result = New-IMTag -Name 'TestTag' -Type 'OBJECT'
+            $Result = New-IMTag -Name 'TestTag'
             $Result | Should -HaveCount 1
             Remove-IMTag -Id $Result.id
         }
     }
     Context 'Get-IMTag' {
         It 'Should return tag' {
-            $New = New-IMTag -Name 'TestTag' -Type 'OBJECT'
+            $New = New-IMTag -Name 'TestTag'
             $Result = Get-IMTag -id $New.id
             $Result | Should -HaveCount 1
         }
@@ -1136,14 +1142,14 @@ Describe 'Tag' -Tag 'Integration' {
     }
     Context 'Remove-IMTag' {
         It 'Should remove tag' {
-            $New = New-IMTag -Name 'TestTag' -Type 'OBJECT'
+            $New = New-IMTag -Name 'TestTag'
             Remove-IMTag -Id $New.id
             { Get-IMTag -id $New.id } | Should -Throw
         }
     }
     Context 'Set-IMTag' {
         BeforeAll {
-            $NewTag = New-IMTag -Name 'TestTag' -Type 'OBJECT'
+            $NewTag = New-IMTag -Name 'TestTag'
         }
         AfterAll {
             Remove-IMTag -id $NewTag.id
@@ -1186,11 +1192,11 @@ Describe 'Timeline' -Tag 'Integration' {
     }
     Context 'Get-IMTimeBucket' {
         It -Name 'Should return 3 objects' {
-            $Result = Get-IMTimeBucket -size 'MONTH'
+            $Result = Get-IMTimeBucket
             $Result | Should -HaveCount 3
         }
         It -Name 'Should return 1 object' {
-            $Result = Get-IMTimeBucket -timeBucket '2024-03-01 00:00:00' -size MONTH
+            $Result = Get-IMTimeBucket -timeBucket '2024-03-01 00:00:00'
             $Result.id | Should -HaveCount 12
         }
     }
@@ -1391,7 +1397,6 @@ Describe 'SharedLink' -Tag 'Integration' {
 Describe 'Stack' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
-        # Clean up any existing stacks from previous test runs
         Get-IMStack | Remove-IMStack -Force -ErrorAction SilentlyContinue
     }
 

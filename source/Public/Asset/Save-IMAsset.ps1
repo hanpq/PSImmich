@@ -2,23 +2,25 @@
 {
     <#
     .DESCRIPTION
-        Save Immich asset
+        Downloads and saves Immich assets to a local directory
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
 
         -Session $Session
-    .PARAMETER id
-        Defines a specific asset id to be retreived
-    .PARAMETER isThumb
-        Defines if faviorites should be returned or not. Do not specify if either should be returned.
-    .PARAMETER isWeb
-        Defines if archvied assets should be returned or not. Do not specify if either should be returned.
+    .PARAMETER Id
+        Defines a specific asset ID to be downloaded. Accepts pipeline input.
+    .PARAMETER Key
+        Defines an optional key parameter.
     .PARAMETER Path
-        Defines the directory for the output file
+        Defines the directory where the downloaded file will be saved. The file will retain its original filename.
     .EXAMPLE
-        Save-IMAsset -id <assetid> -Path C:\download
+        Save-IMAsset -Id '550e8400-e29b-41d4-a716-446655440000' -Path 'C:\Downloads'
 
-        Save asset
+        Downloads the specified asset to the C:\Downloads directory
+    .EXAMPLE
+        Get-IMAsset -Random -Count 5 | Save-IMAsset -Path 'C:\RandomAssets'
+
+        Downloads 5 random assets to the C:\RandomAssets directory using pipeline input
     #>
 
     [CmdletBinding()]
@@ -30,32 +32,29 @@
         [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $id,
+        $Id,
 
         [Parameter()]
-        [switch]
-        $isThumb,
-
-        [Parameter()]
-        [switch]
-        $isWeb,
+        [ApiParameter('key')]
+        [string]
+        $Key,
 
         [Parameter()]
         [System.IO.DirectoryInfo]
         $Path
     )
 
-    BEGIN
+    begin
     {
         $QueryParameters = @{}
-        $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'isThumb', 'isWeb')
+        $QueryParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
     }
 
-    PROCESS
+    process
     {
-        $id | ForEach-Object {
+        $Id | ForEach-Object {
             $CurrentID = $PSItem
-            $AssetObject = Get-IMAsset -Id $CurrentID
+            $AssetObject = Get-IMAsset -id $CurrentID
             $OutputPath = Join-Path -Path $Path -ChildPath $AssetObject.originalFileName
             if ($PSVersionTable.PSEdition -eq 'Desktop')
             {

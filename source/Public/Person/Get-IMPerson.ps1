@@ -31,8 +31,9 @@
         $id,
 
         [Parameter(ParameterSetName = 'list')]
+        [ApiParameter('withHidden')]
         [switch]
-        $withHidden,
+        $WithHidden,
 
         [Parameter(ParameterSetName = 'id')]
         [switch]
@@ -44,7 +45,7 @@
         if ($PSCmdlet.ParameterSetName -eq 'list')
         {
             $QueryParameters = @{}
-            $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'withHidden')
+            $QueryParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
         }
     }
 

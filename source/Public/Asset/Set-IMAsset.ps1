@@ -11,18 +11,12 @@
         Defines the asset to update
     .PARAMETER dateTimeOriginal
         Defines the assets taken date
-    .PARAMETER isArchived
-        Defines if the asset should archived
     .PARAMETER isFavorite
         Defines if the asset should be set as favorite
     .PARAMETER latitude
         Set location latitude
     .PARAMETER longitude
         Set location longitude
-    .PARAMETER removeParent
-        Defines if stack parent should be removed
-    .PARAMETER stackParentId
-        Defines a parent asset
     .PARAMETER description
         Defines a description
     .PARAMETER AddToAlbum
@@ -56,18 +50,13 @@
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [Alias('ids')]
         [string[]]
-        $id,
+        $Id,
 
         [Parameter(ParameterSetName = 'batch')]
         [Parameter(ParameterSetName = 'id')]
         [ApiParameter('dateTimeOriginal')]
         [string]
         $DateTimeOriginal,
-
-        [Parameter(ParameterSetName = 'batch')]
-        [ApiParameter('isArchived')]
-        [boolean]
-        $IsArchived,
 
         [Parameter(ParameterSetName = 'batch')]
         [Parameter(ParameterSetName = 'id')]
@@ -86,17 +75,6 @@
         [ApiParameter('longitude')]
         [int32]
         $Longitude,
-
-        [Parameter(ParameterSetName = 'batch')]
-        [ApiParameter('removeParent')]
-        [switch]
-        $RemoveParent,
-
-        [Parameter(ParameterSetName = 'batch')]
-        [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [ApiParameter('stackParentId')]
-        [string]
-        $StackParentId,
 
         [Parameter(ParameterSetName = 'id')]
         [ApiParameter('description')]
@@ -161,13 +139,13 @@
         {
             'batch'
             {
-                $id | ForEach-Object {
+                $Id | ForEach-Object {
                     $BodyParameters.ids += $psitem
                 }
             }
             'id'
             {
-                foreach ($object in $id)
+                foreach ($object in $Id)
                 {
                     if ($PSCmdlet.ShouldProcess($object, 'PUT'))
                     {

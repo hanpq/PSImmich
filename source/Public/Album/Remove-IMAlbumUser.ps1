@@ -27,21 +27,21 @@
         [Parameter(Mandatory)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $albumId,
+        $AlbumId,
 
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [Alias('id')]
         [string[]]
-        $userId
+        $UserId
     )
 
-    PROCESS
+    process
     {
-        $userId | ForEach-Object {
+        $UserId | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'DELETE'))
             {
-                InvokeImmichRestMethod -Method DELETE -RelativePath "/albums/$albumId/user/$psitem" -ImmichSession:$Session
+                InvokeImmichRestMethod -Method DELETE -RelativePath "/albums/$AlbumId/user/$psitem" -ImmichSession:$Session
             }
         }
     }

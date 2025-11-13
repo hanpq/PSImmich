@@ -17,18 +17,30 @@
         Sets Immich server license
     #>
 
-    [CmdletBinding(SupportsShouldProcess,DefaultParameterSetName = 'list')]
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter()]
         [ImmichSession]
-        $Session = $null
+        $Session = $null,
+
+        [Parameter(Mandatory)]
+        [ApiParameter('activationKey')]
+        [string]
+        $ActivationKey,
+
+        [Parameter(Mandatory)]
+        [ValidatePattern('IM(SV|CL)(-[\dA-Za-z]{4}){8}')]
+        [ApiParameter('licenseKey')]
+        [string]
+        $LicenseKey
     )
 
     $BodyParameters = @{}
-    $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'ActivationKey', 'LicenseKey' -namemapping @{ActivationKey = 'activationKey'; LicenseKey = 'licenseKey'} )
+    $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
 
-    if ($PSCmdlet.ShouldProcess('Service license', 'set')) {
-        InvokeImmichRestMethod -Method Put -RelativePath "/server/license" -ImmichSession:$Session -Body:$BodyParameters
+    if ($PSCmdlet.ShouldProcess('Service license', 'set'))
+    {
+        InvokeImmichRestMethod -Method Put -RelativePath '/server/license' -ImmichSession:$Session -Body:$BodyParameters
     }
 
 }

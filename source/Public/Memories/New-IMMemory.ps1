@@ -31,50 +31,51 @@
 
         [Parameter()]
         [ValidateRange(1, [int]::MaxValue)]
-        [boolean]
+        [int]
         $Year,
 
         [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [ApiParameter('assetIds')]
         [string[]]
         $AssetIds,
 
         [Parameter(Mandatory)]
+        [ApiParameter('memoryAt')]
         [datetime]
         $MemoryAt,
 
         [Parameter()]
+        [ApiParameter('seenAt')]
         [datetime]
         $SeenAt,
 
         [Parameter()]
         [ValidateSet('on_this_day')]
+        [ApiParameter('type')]
         [string]
         $Type = 'on_this_day'
     )
 
-    BEGIN
+    begin
     {
-        $BodyParameters = @{}
-        $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'MemoryAt', 'SeenAt', 'Type' -NameMapping @{
-                MemoryAt = 'memoryAt'
-                SeenAt   = 'seenAt'
-                Type     = 'type'
-            })
-        $BodyParameters.assetIds += [string[]]@()
-        $BodyParameters.data += [hashtable]@{
-            year = $year
+        $BodyParameters = @{
+            assetIds = @()
+            data     = @{
+                year = $Year
+            }
         }
+        $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
     }
 
-    PROCESS
+    process
     {
         $AssetIds | ForEach-Object {
             $BodyParameters.assetIds += $PSItem
         }
     }
 
-    END
+    end
     {
         InvokeImmichRestMethod -Method Post -RelativePath '/memories' -ImmichSession:$Session -Body $BodyParameters
     }

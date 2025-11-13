@@ -46,61 +46,61 @@
         $AlbumId,
 
         [Parameter()]
+        [ApiParameter('allowDownload')]
         [switch]
         $AllowDownload,
 
         [Parameter()]
+        [ApiParameter('allowUpload')]
         [switch]
         $AllowUpload,
 
         [Parameter()]
+        [ApiParameter('description')]
         [string]
         $Description,
 
         [Parameter()]
+        [ApiParameter('expiresAt')]
         [datetime]
         $ExpiresAt,
 
         [Parameter()]
+        [ApiParameter('showMetadata')]
         [switch]
         $ShowMetadata,
 
         [Parameter()]
+        [ApiParameter('password')]
         [securestring]
         $Password
     )
 
-    BEGIN
+    begin
     {
-        $Body = @{}
-        $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'AllowDownload', 'AllowUpload', 'Description', 'ExpiresAt', 'ShowMetadata', 'Password' -NameMapping @{
-                AllowDownload = 'allowDownload'
-                AllowUpload   = 'allowUpload'
-                Description   = 'description'
-                ExpiresAt     = 'expiresAt'
-                ShowMetadata  = 'showMetadata'
-                Password      = 'password'
-            })
+        $BodyParameters = @{}
+        $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
+
         if ($PSCmdlet.ParameterSetName -eq 'asset')
         {
-            $Body.assetIds = [string[]]@()
-            $Body.type = 'INDIVIDUAL'
+            $BodyParameters.assetIds = [string[]]@()
+            $BodyParameters.type = 'INDIVIDUAL'
         }
     }
 
-    PROCESS
+    process
     {
         switch ($PSCmdlet.ParameterSetName)
         {
             'asset'
             {
                 $AssetId | ForEach-Object {
-                    $Body.assetIds += $PSItem
+                    $BodyParameters.assetIds += $PSItem
                 }
             }
             'album'
             {
-                $Body += @{
+                $BodyParameters += @{
                     type    = 'ALBUM'
                     albumId = $AlbumId
                 }
@@ -108,9 +108,9 @@
         }
     }
 
-    END
+    end
     {
-        InvokeImmichRestMethod -Method POST -RelativePath '/shared-links' -ImmichSession:$Session -Body $Body
+        InvokeImmichRestMethod -Method POST -RelativePath '/shared-links' -ImmichSession:$Session -Body $BodyParameters
     }
 }
 #endregion

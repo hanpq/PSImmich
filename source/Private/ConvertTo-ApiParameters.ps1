@@ -2,12 +2,20 @@
 {
     <#
     .DESCRIPTION
-        Converts PowerShell cmdlet bound parameters to API parameter format using ApiParameter attributes or camelCase convention
+        Converts PowerShell cmdlet bound parameters to API parameter format using ApiParameter attributes.
+        Supports dot-notation for nested parameter structures (e.g., 'avatar.color', 'transport.host').
     .PARAMETER BoundParameters
         The $PSBoundParameters from the calling cmdlet
     .PARAMETER CmdletName
         The name of the calling cmdlet (used for caching reflection data)
     .EXAMPLE
+        # Simple parameters
+        [ApiParameter('name')] $UserName -> { "name": "value" }
+
+        # Nested parameters using dot-notation
+        [ApiParameter('avatar.color')] $AvatarColor -> { "avatar": { "color": "value" } }
+        [ApiParameter('transport.host')] $SmtpHost -> { "transport": { "host": "value" } }
+
         $Body = ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '', Justification = 'Ignored, internal function')]
@@ -59,13 +67,7 @@
                 $mapping[$paramName] = $apiAttr.Name
                 Write-Debug "Parameter $paramName maps to API parameter: $($apiAttr.Name)"
             }
-            else
-            {
-                # Default to camelCase conversion
-                $apiName = $paramName.Substring(0, 1).ToLower() + $paramName.Substring(1)
-                $mapping[$paramName] = $apiName
-                Write-Debug "Parameter $paramName maps to API parameter: $apiName (camelCase)"
-            }
+            # Only process parameters with [ApiParameter] attribute - skip others
         }
 
         $script:ApiParameterMappings[$CmdletName] = $mapping
@@ -80,8 +82,36 @@
         if ($mapping.ContainsKey($param.Key))
         {
             $apiParamName = $mapping[$param.Key]
-            $apiParams[$apiParamName] = $param.Value
-            Write-Debug "Converting parameter: $($param.Key) -> $apiParamName = $($param.Value)"
+
+            # Handle dot-notation for nested parameters
+            if ($apiParamName -like '*.*')
+            {
+                # Split the parameter name by dots to create nested structure
+                $parts = $apiParamName -split '\.'
+                $currentLevel = $apiParams
+
+                # Navigate/create nested structure for all parts except the last
+                for ($i = 0; $i -lt $parts.Count - 1; $i++)
+                {
+                    $part = $parts[$i]
+                    if (-not $currentLevel.ContainsKey($part))
+                    {
+                        $currentLevel[$part] = @{}
+                    }
+                    $currentLevel = $currentLevel[$part]
+                }
+
+                # Set the final value at the deepest level
+                $finalKey = $parts[-1]
+                $currentLevel[$finalKey] = $param.Value
+                Write-Debug "Converting nested parameter: $($param.Key) -> $apiParamName = $($param.Value)"
+            }
+            else
+            {
+                # Handle simple (non-nested) parameters
+                $apiParams[$apiParamName] = $param.Value
+                Write-Debug "Converting parameter: $($param.Key) -> $apiParamName = $($param.Value)"
+            }
         }
     }
 

@@ -43,7 +43,7 @@
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [Alias('ids', 'albumId')]
         [string[]]
-        $id,
+        $Id,
 
         [Parameter()]
         [string[]]
@@ -54,37 +54,42 @@
         $RemoveAssets,
 
         [Parameter()]
+        [ApiParameter('albumName')]
         [string]
-        $albumName,
+        $AlbumName,
 
         [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [ApiParameter('albumThumbnailAssetId')]
         [string]
-        $albumThumbnailAssetId,
+        $AlbumThumbnailAssetId,
 
         [Parameter()]
+        [ApiParameter('description')]
         [string]
-        $description,
+        $Description,
 
         [Parameter()]
+        [ApiParameter('isActivityEnabled')]
         [boolean]
-        $isActivityEnabled,
+        $IsActivityEnabled,
 
         [Parameter()]
+        [ApiParameter('order')]
         [string]
         [ValidateSet('asc', 'desc')]
         $Order
     )
 
-    BEGIN
+    begin
     {
         $BodyParameters = @{}
-        $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'AlbumName', 'albumThumbnailAssetId', 'description', 'isActivityEnabled', 'Order' -namemapping @{AlbumName = 'albumName'; albumThumbnailAssetId = 'albumThumbnailAssetId'; isActivityEnabled = 'isActivityEnabled'; Order = 'order' })
+        $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
     }
 
-    PROCESS
+    process
     {
-        $id | ForEach-Object {
+        $Id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Update'))
             {
                 InvokeImmichRestMethod -Method PATCH -RelativePath "/albums/$PSItem" -ImmichSession:$Session -Body:$BodyParameters

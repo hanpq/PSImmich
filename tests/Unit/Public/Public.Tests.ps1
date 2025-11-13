@@ -6,7 +6,7 @@ BeforeDiscovery {
     }
     $ProjectPath = $RootItem.FullName
     $ProjectName = (Get-ChildItem $ProjectPath\*\*.psd1 | Where-Object {
-        ($_.Directory.Name -eq 'source') -and
+            ($_.Directory.Name -eq 'source') -and
             $(try
                 {
                     Test-ModuleManifest $_.FullName -ErrorAction Stop
@@ -316,49 +316,54 @@ InModuleScope $ProjectName {
                 param($Method, $RelativePath, $ImmichSession)
 
                 # Mock responses based on RelativePath
-                switch -Regex ($RelativePath) {
-                    '^/libraries$' {
+                switch -Regex ($RelativePath)
+                {
+                    '^/libraries$'
+                    {
                         # Mock response for listing all libraries
                         return @(
                             @{
-                                id = '11111111-1111-1111-1111-111111111111'
-                                name = 'Library 1'
+                                id      = '11111111-1111-1111-1111-111111111111'
+                                name    = 'Library 1'
                                 ownerId = '22222222-2222-2222-2222-222222222222'
-                                type = 'UPLOAD'
+                                type    = 'UPLOAD'
                             },
                             @{
-                                id = '33333333-3333-3333-3333-333333333333'
-                                name = 'Library 2'
+                                id      = '33333333-3333-3333-3333-333333333333'
+                                name    = 'Library 2'
                                 ownerId = '44444444-4444-4444-4444-444444444444'
-                                type = 'EXTERNAL'
+                                type    = 'EXTERNAL'
                             }
                         )
                     }
-                    '^/libraries/11111111-1111-1111-1111-111111111111$' {
+                    '^/libraries/11111111-1111-1111-1111-111111111111$'
+                    {
                         # Mock response for specific library
                         return @{
-                            id = '11111111-1111-1111-1111-111111111111'
-                            name = 'Library 1'
+                            id      = '11111111-1111-1111-1111-111111111111'
+                            name    = 'Library 1'
                             ownerId = '22222222-2222-2222-2222-222222222222'
-                            type = 'UPLOAD'
+                            type    = 'UPLOAD'
                         }
                     }
-                    '^/libraries/33333333-3333-3333-3333-333333333333$' {
+                    '^/libraries/33333333-3333-3333-3333-333333333333$'
+                    {
                         # Mock response for specific library
                         return @{
-                            id = '33333333-3333-3333-3333-333333333333'
-                            name = 'Library 2'
+                            id      = '33333333-3333-3333-3333-333333333333'
+                            name    = 'Library 2'
                             ownerId = '44444444-4444-4444-4444-444444444444'
-                            type = 'EXTERNAL'
+                            type    = 'EXTERNAL'
                         }
                     }
-                    '^/libraries/.*/statistics$' {
+                    '^/libraries/.*/statistics$'
+                    {
                         # Mock response for library statistics
                         return @{
                             assetCount = 150
                             videoCount = 25
                             imageCount = 125
-                            totalSize = 1073741824
+                            totalSize  = 1073741824
                         }
                     }
                 }
@@ -583,13 +588,7 @@ InModuleScope $ProjectName {
             }
         }
     }
-    Describe 'Get-IMMapStyle' -Tag 'Unit', 'Get-IMMapStyle' {
-        Context 'Default' {
-            It 'Should be true' {
-                $true | Should -BeTrue
-            }
-        }
-    }
+
     Describe 'Get-IMMemory' -Tag 'Unit', 'Get-IMMemory' {
         Context 'Default' {
             It 'Should be true' {
@@ -1050,4 +1049,3 @@ InModuleScope $ProjectName {
         }
     }
 }
-

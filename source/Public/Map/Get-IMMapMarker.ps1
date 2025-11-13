@@ -32,44 +32,43 @@
         $Session = $null,
 
         [Parameter()]
+        [ApiParameter('fileCreatedAfter')]
         [datetime]
         $CreatedAfter,
 
         [Parameter()]
+        [ApiParameter('fileCreatedBefore')]
         [datetime]
         $CreatedBefore,
 
         [Parameter()]
+        [ApiParameter('isArchived')]
         [boolean]
         $IsArchived,
 
         [Parameter()]
+        [ApiParameter('isFavorite')]
         [boolean]
         $IsFavorite,
 
         [Parameter()]
+        [ApiParameter('withPartners')]
         [boolean]
         $WithPartners,
 
         [Parameter()]
+        [ApiParameter('withSharedAlbums')]
         [boolean]
         $WithSharedAlbums
     )
 
-    BEGIN
+    begin
     {
         $QueryParameters = @{}
-        $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'CreatedAfter', 'CreatedBefore', 'IsArchived', 'IsFavorite', 'WithPartners', 'WithSharedAlbums' -NameMapping @{
-                CreatedAfter     = 'fileCreatedAfter'
-                CreatedBefore    = 'fileCreatedBefore'
-                IsArchived       = 'isArchived'
-                IsFavorite       = 'isFavorite'
-                WithPartners     = 'withPartners'
-                WithSharedAlbums = 'withSharedAlbums'
-            })
+        $QueryParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
     }
 
-    PROCESS
+    process
     {
         InvokeImmichRestMethod -Method Get -RelativePath '/map/markers' -ImmichSession:$Session -QueryParameters $QueryParameters
     }

@@ -29,16 +29,17 @@
         $id,
 
         [Parameter()]
+        [ApiParameter('inTimeline')]
         [switch]
         $EnableTimeline
     )
 
     if ($PSCmdlet.ShouldProcess($id, 'Update'))
     {
-        $Body = @{}
-        $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'EnableTimeline' -NameMapping @{EnableTimeline = 'inTimeline' })
+        $BodyParameters = @{}
+        $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
 
-        InvokeImmichRestMethod -Method PUT -RelativePath "/partners/$id" -ImmichSession:$Session -Body:$Body
+        InvokeImmichRestMethod -Method PUT -RelativePath "/partners/$id" -ImmichSession:$Session -Body:$BodyParameters
     }
 }
 #endregion

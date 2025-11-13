@@ -50,6 +50,7 @@
         $FailedOnly,
 
         [Parameter()]
+        [ApiParameter('force')]
         [switch]
         $Force
     )
@@ -57,7 +58,6 @@
     $Job | ForEach-Object {
         $CurrentJob = $PSItem
         $Body = @{}
-        $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'Force')
         if ($FailedOnly)
         {
             $Body += @{command = 'clear-failed' }
@@ -66,6 +66,7 @@
         {
             $Body += @{command = 'empty' }
         }
+        $Body += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
         InvokeImmichRestMethod -Method PUT -RelativePath "/jobs/$CurrentJob" -ImmichSession:$Session -Body:$Body
     }
 }

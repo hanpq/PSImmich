@@ -2,21 +2,29 @@
 {
     <#
     .DESCRIPTION
-        Retreives asset statistic
+        Retrieves asset statistics with optional filtering
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
 
         -Session $Session
-    .PARAMETER isArchived
-        Archived filter
-    .PARAMETER isFavorite
-        Favorite filter
-    .PARAMETER isTrashed
-        Trashed filter
+    .PARAMETER IsFavorite
+        Filter statistics to include only favorite assets (true) or exclude favorites (false). If not specified, includes both.
+    .PARAMETER IsTrashed
+        Filter statistics to include only trashed assets (true) or exclude trashed assets (false). If not specified, includes both.
+    .PARAMETER Visibility
+        Filter statistics by asset visibility. Valid values are 'archive', 'timeline', 'hidden', 'locked'.
     .EXAMPLE
         Get-IMAssetStatistic
 
-        Retreives asset statistic
+        Retrieves all asset statistics without filtering
+    .EXAMPLE
+        Get-IMAssetStatistic -IsFavorite $true
+
+        Retrieves statistics for favorite assets only
+    .EXAMPLE
+        Get-IMAssetStatistic -IsTrashed $false -Visibility 'timeline'
+
+        Retrieves statistics for non-trashed timeline assets
     #>
 
     [CmdletBinding()]
@@ -26,25 +34,29 @@
         $Session = $null,
 
         [Parameter()]
+        [ApiParameter('isFavorite')]
         [boolean]
-        $isArchived,
+        $IsFavorite,
 
         [Parameter()]
+        [ApiParameter('isTrashed')]
         [boolean]
-        $isFavorite,
+        $IsTrashed,
 
         [Parameter()]
-        [boolean]
-        $isTrashed
+        [ValidateSet('archive', 'timeline', 'hidden', 'locked')]
+        [ApiParameter('visibility')]
+        [string]
+        $Visibility
     )
 
-    BEGIN
+    begin
     {
         $QueryParameters = @{}
-        $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'isArchived', 'isFavorite', 'isTrashed')
+        $QueryParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
     }
 
-    PROCESS
+    process
     {
         InvokeImmichRestMethod -Method Get -RelativePath '/assets/statistics' -ImmichSession:$Session -QueryParameters $QueryParameters
     }

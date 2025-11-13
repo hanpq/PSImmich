@@ -24,19 +24,18 @@
         $Session = $null,
 
         [Parameter(Mandatory)]
+        [ApiParameter('lat')]
         [double]
         $Latitude,
 
         [Parameter(Mandatory)]
+        [ApiParameter('lon')]
         [double]
         $Longitude
     )
 
     $QueryParameters = @{}
-    $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'Latitude', 'Longitude' -NameMapping @{
-            Latitude  = 'lat'
-            Longitude = 'lon'
-        })
+    $QueryParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
 
     InvokeImmichRestMethod -Method Get -RelativePath '/map/reverse-geocode' -ImmichSession:$Session -QueryParameters $QueryParameters
 

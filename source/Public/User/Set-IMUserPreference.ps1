@@ -43,70 +43,65 @@
         $id,
 
         [Parameter()]
+        [ApiParameter('avatar.color')]
         [ValidateSet('primary', 'pink', 'red', 'yellow', 'blue', 'green', 'purple', 'orange', 'gray', 'amber')]
         [string]
         $AvatarColor,
 
         [Parameter()]
+        [ApiParameter('download.archiveSize')]
         [int]
         $DownloadArchiveSize,
 
         [Parameter()]
+        [ApiParameter('emailNotifications.albumInvite')]
         [boolean]
         $EmailNotificationForAlbumInvite,
 
         [Parameter()]
+        [ApiParameter('emailNotifications.albumUpdate')]
         [boolean]
         $EmailNotificationForAlbumUpdate,
 
         [Parameter()]
+        [ApiParameter('emailNotifications.enabled')]
         [boolean]
         $EmailNotificationEnabled,
 
         [Parameter()]
+        [ApiParameter('memories.enabled')]
         [boolean]
         $MemoriesEnabled,
 
         [Parameter()]
+        [ApiParameter('purchase.hideBuyButtonUntil')]
         [datetime]
         $HideBuyButtonUntil,
 
         [Parameter()]
+        [ApiParameter('purchase.showSupportBadge')]
         [boolean]
         $ShowSupportBadge
     )
 
     BEGIN
     {
-        $Body = @{}
-        $Body.avatar += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'AvatarColor' -NameMapping @{
-                AvatarColor = 'color'
-        })
-        $Body.download += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'DownloadArchiveSize' -NameMapping @{
-                DownloadArchiveSize = 'archiveSize'
-        })
-        $Body.emailNotifications += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'EmailNotificationForAlbumInvite','EmailNotificationForAlbumUpdate','EmailNotificationEnabled' -NameMapping @{
-                EmailNotificationForAlbumInvite = 'albumInvite'
-                EmailNotificationForAlbumUpdate = 'albumUpdate'
-                EmailNotificationEnabled = 'enabled'
-        })
-        $Body.memories += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'MemoriesEnabled' -NameMapping @{
-                MemoriesEnabled = 'enabled'
-        })
-        $Body.purchase += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'HideBuyButtonUntil','ShowSupportBadge' -NameMapping @{
-                HideBuyButtonUntil = 'hideBuyButtonUntil'
-                ShowSupportBadge = 'showSupportBadge'
-        })
+        # Use enhanced ConvertTo-ApiParameters with dot-notation support for nested objects
+        $BodyParameters = @{}
+        $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
 
-        # The above body keys are added regardless of if they are actually populated. Therefor remove empty ones.
-        $Body.Clone().Keys | foreach-object {if ($Body.$PSItem.Count -eq 0) {$Body.Remove($PSItem)}}
+        # Handle special datetime formatting for purchase.hideBuyButtonUntil
+        if ($PSBoundParameters.ContainsKey('HideBuyButtonUntil') -and $BodyParameters.ContainsKey('purchase'))
+        {
+            $BodyParameters.purchase.hideBuyButtonUntil = $HideBuyButtonUntil.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
+        }
     }
 
     PROCESS
     {
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem,'Set')) {
-                InvokeImmichRestMethod -Method PUT -RelativePath "/admin/users/$PSItem/preferences" -ImmichSession:$Session -Body $Body
+                InvokeImmichRestMethod -Method PUT -RelativePath "/admin/users/$PSItem/preferences" -ImmichSession:$Session -Body $BodyParameters
             }
         }
     }

@@ -39,6 +39,7 @@
 
         [Parameter(ParameterSetName = 'list')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [ApiParameter('assetId')]
         [string]
         $AssetId,
 
@@ -48,6 +49,7 @@
         $IncludeAssets,
 
         [Parameter(ParameterSetName = 'list')]
+        [ApiParameter('shared')]
         [boolean]
         $Shared,
 
@@ -60,15 +62,14 @@
         $SearchString
     )
 
-    BEGIN
+    begin
     {
         switch ($PSCmdlet.ParameterSetName)
         {
             'list'
             {
                 $QueryParameters = @{}
-                $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'Shared' -NameMapping @{'Shared' = 'shared' })
-                $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'AssetId' -NameMapping @{'AssetId' = 'assetId' })
+                $QueryParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
             }
             'id'
             {
@@ -78,7 +79,7 @@
         }
     }
 
-    PROCESS
+    process
     {
         switch ($PSCmdlet.ParameterSetName)
         {
@@ -107,7 +108,7 @@
             }
             'id'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/albums/$albumId" -ImmichSession:$Session -QueryParameters $QueryParameters | AddCustomType IMAlbum
+                InvokeImmichRestMethod -Method Get -RelativePath "/albums/$AlbumId" -ImmichSession:$Session -QueryParameters $QueryParameters | AddCustomType IMAlbum
             }
         }
     }

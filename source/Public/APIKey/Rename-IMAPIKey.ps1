@@ -26,23 +26,24 @@
         [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $id,
+        $Id,
 
         [Parameter(Mandatory)]
+        [ApiParameter('name')]
         [string]
-        $name
+        $Name
 
     )
 
-    BEGIN
+    begin
     {
         $BodyParameters = @{}
-        $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'name')
+        $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
     }
 
-    PROCESS
+    process
     {
-        InvokeImmichRestMethod -Method PUT -RelativePath "/api-keys/$id" -ImmichSession:$Session -Body $BodyParameters
+        InvokeImmichRestMethod -Method PUT -RelativePath "/api-keys/$Id" -ImmichSession:$Session -Body $BodyParameters
     }
 
 }

@@ -35,37 +35,42 @@
 
         [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [ApiParameter('albumId')]
         [string]
-        $albumId,
+        $AlbumId,
 
         [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [ApiParameter('assetId')]
         [string]
-        $assetId,
+        $AssetId,
 
         [Parameter()]
         [ValidateSet('album', 'asset')]
+        [ApiParameter('level')]
         [string]
-        $level,
+        $Level,
 
         [Parameter()]
         [ValidateSet('comment', 'like')]
+        [ApiParameter('type')]
         [string]
-        $type,
+        $Type,
 
         [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [ApiParameter('userId')]
         [string]
-        $userId
+        $UserId
     )
 
-    BEGIN
+    begin
     {
         $QueryParameters = @{}
-        $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'albumId', 'assetId', 'level', 'type', 'userId')
+        $QueryParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
     }
 
-    PROCESS
+    process
     {
         InvokeImmichRestMethod -Method Get -RelativePath '/activities' -ImmichSession:$Session -QueryParameters $QueryParameters | AddCustomType IMActivity
     }

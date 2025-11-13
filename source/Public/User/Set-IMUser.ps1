@@ -45,48 +45,47 @@
         $id,
 
         [Parameter()]
+        [ApiParameter('email')]
         [string]
         $Email,
 
         [Parameter()]
+        [ApiParameter('name')]
         [string]
         $Name,
 
         [Parameter()]
+        [ApiParameter('password')]
         [securestring]
         $Password,
 
         [Parameter()]
+        [ApiParameter('quotaSizeInBytes')]
         [int64]
         $QuotaSizeInBytes,
 
         [Parameter()]
+        [ApiParameter('shouldChangePassword')]
         [boolean]
         $ShouldChangePassword,
 
         [Parameter()]
+        [ApiParameter('storageLabel')]
         [string]
         $StorageLabel
     )
 
     BEGIN
     {
-        $Body = @{}
-        $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'Email', 'Name', 'Password', 'QuotaSizeInBytes', 'ShouldChangePassword', 'StorageLabel' -NameMapping @{
-                Email                = 'email'
-                Name                 = 'name'
-                Password             = 'password'
-                QuotaSizeInBytes     = 'quotaSizeInBytes'
-                ShouldChangePassword = 'shouldChangePassword'
-                StorageLabel         = 'storageLabel'
-            })
+        $BodyParameters = @{}
+        $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
     }
 
     PROCESS
     {
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem,'Set')) {
-                InvokeImmichRestMethod -Method PUT -RelativePath "/admin/users/$PSItem" -ImmichSession:$Session -Body $Body
+                InvokeImmichRestMethod -Method PUT -RelativePath "/admin/users/$PSItem" -ImmichSession:$Session -Body $BodyParameters
             }
         }
     }

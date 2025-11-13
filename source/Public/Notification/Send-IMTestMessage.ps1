@@ -36,54 +36,62 @@
         $Session = $null,
 
         [Parameter()]
+        [ApiParameter('enabled')]
         [boolean]
         $enabled = $true,
 
         [Parameter(Mandatory)]
+        [ApiParameter('from')]
         [string]
         $from,
 
         [Parameter(Mandatory)]
+        [ApiParameter('replyTo')]
         [string]
         $replyto,
 
         [Parameter(Mandatory)]
+        [ApiParameter('transport.host')]
         [string]
         $hostname,
 
         [Parameter()]
+        [ApiParameter('transport.ignoreCert')]
         [boolean]
         $ignoreCert = $false,
 
         [Parameter(Mandatory)]
+        [ApiParameter('transport.password')]
         [securestring]
         $Password,
 
         [Parameter()]
+        [ApiParameter('transport.port')]
         [int]
         $port = 25,
 
         [Parameter()]
+        [ApiParameter('transport.username')]
         [string]
         $username = ''
     )
 
-    BEGIN
+    begin
     {
+        # Use enhanced ConvertTo-ApiParameters with dot-notation support for nested objects
         $BodyParameters = @{}
-        $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'enabled', 'from', 'replyTo')
-        $BodyParameters.transport = [hashtable]@{
-            host       = $hostname
-            ignoreCert = $ignoreCert
-            password   = $password
-            port       = $port
-            username   = $username
+        $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
+
+        # Handle special SecureString conversion for transport.password
+        if ($PSBoundParameters.ContainsKey('Password') -and $BodyParameters.ContainsKey('transport'))
+        {
+            $BodyParameters.transport.password = $Password | ConvertFromSecureString
         }
     }
 
-    PROCESS
+    process
     {
-        InvokeImmichRestMethod -Method Post -RelativePath '/notifications/test-email' -ImmichSession:$Session -Body $BodyParameters
+        InvokeImmichRestMethod -Method Post -RelativePath '/admin/notifications/test-email' -ImmichSession:$Session -Body $BodyParameters
     }
 
 }

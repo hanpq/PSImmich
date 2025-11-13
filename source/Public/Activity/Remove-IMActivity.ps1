@@ -24,14 +24,14 @@
         [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $id
+        $Id
     )
 
-    PROCESS
+    process
     {
-        if ($PSCmdlet.ShouldProcess($id, 'DELETE'))
+        if ($PSCmdlet.ShouldProcess($Id, 'DELETE'))
         {
-            InvokeImmichRestMethod -Method DELETE -RelativePath "/activities/$id" -ImmichSession:$Session
+            InvokeImmichRestMethod -Method DELETE -RelativePath "/activities/$Id" -ImmichSession:$Session
         }
     }
 

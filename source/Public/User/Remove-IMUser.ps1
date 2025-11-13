@@ -29,16 +29,15 @@
         $id,
 
         [Parameter()]
+        [ApiParameter('force')]
         [switch]
         $Force
     )
 
     BEGIN
     {
-        $Body = @{}
-        $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'Force' -NameMapping @{
-                Force = 'force'
-            })
+        $BodyParameters = @{}
+        $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
     }
 
     PROCESS
@@ -46,7 +45,7 @@
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'DELETE'))
             {
-                InvokeImmichRestMethod -Method DELETE -RelativePath "/admin/users/$PSItem" -ImmichSession:$Session -Body $Body
+                InvokeImmichRestMethod -Method DELETE -RelativePath "/admin/users/$PSItem" -ImmichSession:$Session -Body $BodyParameters
             }
         }
     }

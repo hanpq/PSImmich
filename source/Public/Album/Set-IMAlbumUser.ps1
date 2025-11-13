@@ -28,31 +28,31 @@
         [Parameter(Mandatory)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $albumId,
+        $AlbumId,
 
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [Alias('id')]
         [string[]]
-        $userId,
+        $UserId,
 
         [Parameter(Mandatory)]
         [ValidateSet('editor','viewer')]
+        [ApiParameter('role')]
         [string]
         $Role
     )
 
     BEGIN
     {
-        $BodyParameters = @{
-            role = $Role
-        }
+        $BodyParameters = @{}
+        $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
     }
 
     PROCESS
     {
-        $userId | ForEach-Object {
-            InvokeImmichRestMethod -Method PUT -RelativePath "/albums/$albumid/user/$PSItem" -ImmichSession:$Session -Body:$BodyParameters
+        $UserId | ForEach-Object {
+            InvokeImmichRestMethod -Method PUT -RelativePath "/albums/$AlbumId/user/$PSItem" -ImmichSession:$Session -Body:$BodyParameters
         }
     }
 }

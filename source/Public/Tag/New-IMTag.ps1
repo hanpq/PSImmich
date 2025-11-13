@@ -25,16 +25,14 @@
         $Session = $null,
 
         [Parameter(Mandatory)]
+        [ApiParameter('name')]
         [string]
-        $name,
-
-        [Parameter(Mandatory)]
-        [string]
-        $type
+        $Name
     )
 
     $BodyParameters = @{}
-    $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'name', 'type')
+    $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
+
     InvokeImmichRestMethod -Method Post -RelativePath '/tags' -ImmichSession:$Session -Body:$BodyParameters
 
 }

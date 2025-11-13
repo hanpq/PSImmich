@@ -8,7 +8,7 @@
 
         -Session $Session
     .PARAMETER FilePath
-        Defines the asset ids that should be removed. Accepts pipeline input.
+        Defines the image file path for the profile picture. Supports common image formats (JPG, PNG, GIF).
     .EXAMPLE
         Add-IMMyProfilePicture -FilePath C:\avatar.jpg
 

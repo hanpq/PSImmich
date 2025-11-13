@@ -7,15 +7,15 @@
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
-    .PARAMETER id
+    .PARAMETER Id
         Defines library to update
-    .PARAMETER exclusionPatterns
+    .PARAMETER ExclusionPatterns
         Defines exclusion patterns
-    .PARAMETER importPaths
+    .PARAMETER ImportPaths
         Defines import paths
-    .PARAMETER isVisible
+    .PARAMETER IsVisible
         Defines if the library should be visible
-    .PARAMETER name
+    .PARAMETER Name
         Defines the name of the library
     .EXAMPLE
         Set-IMLibrary -id <libraryid> -Name 'NewName'
@@ -32,34 +32,33 @@
         [Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string[]]
-        $id,
+        $Id,
 
         [Parameter()]
+        [ApiParameter('exclusionPatterns')]
         [string[]]
-        $exclusionPatterns,
+        $ExclusionPatterns,
 
         [Parameter()]
+        [ApiParameter('importPaths')]
         [string[]]
-        $importPaths,
+        $ImportPaths,
 
         [Parameter()]
-        [boolean]
-        $isVisible,
-
-        [Parameter()]
+        [ApiParameter('name')]
         [string]
-        $name
+        $Name
     )
 
     BEGIN
     {
         $BodyParameters = @{}
-        $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'exclusionPatterns', 'importPaths', 'isVisible', 'name')
+        $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
     }
 
     PROCESS
     {
-        $id | ForEach-Object {
+        $Id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Update'))
             {
                 InvokeImmichRestMethod -Method PUT -RelativePath "/libraries/$PSItem" -ImmichSession:$Session -Body:$BodyParameters

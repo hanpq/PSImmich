@@ -2,41 +2,39 @@
 {
     <#
     .DESCRIPTION
-        Retreives Immich asset
+        Retrieves Immich assets using different parameter sets for various use cases
     .PARAMETER Session
-        Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
+        Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
 
         -Session $Session
-    .PARAMETER id
-        Defines a specific asset id to be retreived
-    .PARAMETER isFavorite
-        Defines if faviorites should be returned or not. Do not specify if either should be returned.
-    .PARAMETER isArchived
-        Defines if archvied assets should be returned or not. Do not specify if either should be returned.
-    .PARAMETER skip
-        Defines skip
-    .PARAMETER take
-        Defines take
-    .PARAMETER updatedAfter
-        Deinfes updatedAfter
-    .PARAMETER updatedBefore
-        Defines updatedBefore
-    .PARAMETER userId
-        Defines userId
-    .PARAMETER deviceId
-        Defines a device id
-    .PARAMETER personId
-        Defines a personId to retreive assets for
-    .PARAMETER tagId
-        Defines a tagid to retreive assets for
+    .PARAMETER Id
+        Defines a specific asset ID to be retrieved. Used with the 'id' parameter set.
+    .PARAMETER Key
+        Defines an optional key parameter for asset retrieval. Used with the 'id' parameter set.
+    .PARAMETER Slug
+        Defines an optional slug parameter for asset retrieval. Used with the 'id' parameter set.
+    .PARAMETER DeviceID
+        Defines a device ID to retrieve assets for a specific device. Uses the 'deviceid' parameter set.
+    .PARAMETER PersonId
+        Defines a person ID to retrieve assets associated with a specific person. Uses the 'personid' parameter set.
+    .PARAMETER TagId
+        Defines a tag ID to retrieve assets with a specific tag. Uses the 'tagid' parameter set.
     .PARAMETER Random
-        Defines that random assets should be retreived. Unless -count is also specified one random asset is returned.
+        Specifies that random assets should be retrieved. Uses the 'random' parameter set.
     .PARAMETER Count
-        Defines how many random assets should be returned. Required -Random
+        Defines how many random assets should be returned when using -Random. Default is 1, maximum is 1000.
     .EXAMPLE
-        Get-IMAsset -isFavorite:$true
+        Get-IMAsset -Id '550e8400-e29b-41d4-a716-446655440000'
 
-        Retreives all favorites
+        Retrieves a specific asset by its ID
+    .EXAMPLE
+        Get-IMAsset -Random -Count 5
+
+        Retrieves 5 random assets
+    .EXAMPLE
+        Get-IMAsset -PersonId '550e8400-e29b-41d4-a716-446655440001'
+
+        Retrieves all assets associated with a specific person
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'list')]
@@ -50,63 +48,73 @@
         $Random,
 
         [Parameter(ParameterSetName = 'random')]
-        [ValidateRange(1,1000)]
+        [ValidateRange(1, 1000)]
         [int]
         $Count = 1,
 
         [Parameter(Mandatory, ParameterSetName = 'deviceid')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $deviceID,
+        $DeviceID,
 
         [Parameter(Mandatory, ParameterSetName = 'personid')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $personId,
+        $PersonId,
 
         [Parameter(Mandatory, ParameterSetName = 'tagid')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $tagId,
+        $TagId,
 
         [Parameter(Mandatory, ParameterSetName = 'id', ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $id
+        $Id,
+
+        [Parameter(ParameterSetName = 'id')]
+        [ApiParameter('key')]
+        [string]
+        $Key,
+
+        [Parameter(ParameterSetName = 'id')]
+        [ApiParameter('slug')]
+        [string]
+        $Slug
     )
 
-    BEGIN
+    begin
     {
         switch ($PSCmdlet.ParameterSetName)
         {
             'id'
             {
                 $QueryParameters = @{}
-                $QueryParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'isFavorite', 'isArchived', 'skip', 'take', 'updatedAfter', 'updatedBefore', 'userId', 'key')
+                $QueryParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
             }
         }
     }
 
-    PROCESS
+    process
     {
         switch ($PSCmdlet.ParameterSetName)
         {
             'id'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/assets/$id" -ImmichSession:$Session -QueryParameters $QueryParameters | AddCustomType IMAsset
+                InvokeImmichRestMethod -Method Get -RelativePath "/assets/$Id" -ImmichSession:$Session -QueryParameters $QueryParameters | AddCustomType IMAsset
             }
             'deviceid'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/assets/device/$deviceid" -ImmichSession:$Session | Get-IMAsset
+                InvokeImmichRestMethod -Method Get -RelativePath "/assets/device/$DeviceID" -ImmichSession:$Session | Get-IMAsset
             }
             'personId'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/people/$personid/assets" -ImmichSession:$Session | Get-IMAsset
+                Find-IMAsset -personIds $PersonId -Session:$Session
             }
             'tagid'
             {
                 $Body = @{
-                    tagIds = @($tagid)
+                    tagIds = @($TagId)
                 }
 
                 $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/metadata' -ImmichSession:$Session -Body $Body | Select-Object -ExpandProperty assets

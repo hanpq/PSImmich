@@ -7,13 +7,13 @@
         Optionally define a immich session object to use. This is useful when you are connected to more than one immich instance.
 
         -Session $Session
-    .PARAMETER name
+    .PARAMETER Name
         Defines the name of the library
-    .PARAMETER exclusionPatterns
+    .PARAMETER ExclusionPatterns
         Defines an exclusion pattern
-    .PARAMETER importPaths
+    .PARAMETER ImportPaths
         Defines the import paths
-    .PARAMETER ownerId
+    .PARAMETER OwnerId
         Defines the owner of library
     .EXAMPLE
         New-IMLibrary -Name 'NAS' -ImportPaths '/mnt/media/pictures'
@@ -28,27 +28,31 @@
         $Session = $null,
 
         [Parameter(Mandatory)]
+        [ApiParameter('name')]
         [string]
-        $name,
+        $Name,
 
         [Parameter()]
+        [ApiParameter('exclusionPatterns')]
         [string[]]
-        $exclusionPatterns,
+        $ExclusionPatterns,
 
         [Parameter()]
+        [ApiParameter('importPaths')]
         [string[]]
-        $importPaths,
+        $ImportPaths,
 
         [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [ApiParameter('ownerId')]
         [string]
-        $ownerId
+        $OwnerId
     )
 
     BEGIN
     {
         $BodyParameters = @{}
-        $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'name', 'exclusionPatterns', 'importPaths', 'isVisible', 'isWatched', 'ownerId', 'type')
+        $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
 
     }
 

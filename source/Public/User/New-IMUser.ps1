@@ -35,46 +35,45 @@
         $Session = $null,
 
         [Parameter(Mandatory)]
+        [ApiParameter('email')]
         [string]
         $Email,
 
         [Parameter()]
+        [ApiParameter('notify')]
         [boolean]
         $Notify = $true,
 
         [Parameter(Mandatory)]
+        [ApiParameter('name')]
         [string]
         $Name,
 
         [Parameter(Mandatory)]
+        [ApiParameter('password')]
         [securestring]
         $Password,
 
         [Parameter()]
+        [ApiParameter('quotaSizeInBytes')]
         [int64]
         $QuotaSizeInBytes,
 
         [Parameter()]
+        [ApiParameter('shouldChangePassword')]
         [boolean]
         $ShouldChangePassword,
 
         [Parameter()]
+        [ApiParameter('storageLabel')]
         [string]
         $StorageLabel
     )
 
-    $Body = @{}
-    $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'Email', 'Notify', 'Name', 'Password', 'QuotaSizeInBytes', 'ShouldChangePassword', 'StorageLabel' -NameMapping @{
-            Email                = 'email'
-            Notify               = 'notify'
-            Name                 = 'name'
-            Password             = 'password'
-            QuotaSizeInBytes     = 'quotaSizeInBytes'
-            ShouldChangePassword = 'shouldChangePassword'
-            StorageLabel         = 'storageLabel'
-        })
+    $BodyParameters = @{}
+    $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
 
-    InvokeImmichRestMethod -Method POST -RelativePath '/admin/users' -ImmichSession:$Session -Body $Body
+    InvokeImmichRestMethod -Method POST -RelativePath '/admin/users' -ImmichSession:$Session -Body $BodyParameters
 
 }
 #endregion

@@ -40,36 +40,43 @@
         $FilePath,
 
         [Parameter()]
+        [ApiParameter('duration')]
         [string]
         $Duration,
 
         [Parameter()]
+        [ApiParameter('isArchived')]
         [switch]
         $isArchived,
 
         [Parameter()]
+        [ApiParameter('isFavorite')]
         [switch]
         $isFavorite ,
 
         [Parameter()]
+        [ApiParameter('isOffline')]
         [switch]
         $isOffline ,
 
         [Parameter()]
+        [ApiParameter('isReadOnly')]
         [switch]
         $isReadOnly,
 
         [Parameter()]
+        [ApiParameter('isVisible')]
         [switch]
         $isVisible,
 
         [Parameter()]
+        [ApiParameter('libraryId')]
         [string]
         $libraryId
 
     )
 
-    BEGIN
+    begin
     {
         # Do not run on Windows Powershell
         if ($PSVersionTable.PSEdition -eq 'Desktop')
@@ -79,7 +86,7 @@
         }
     }
 
-    PROCESS
+    process
     {
         $FilePath | ForEach-Object {
             $FileInfo = Get-Item -Path $PSItem.FullName
@@ -89,7 +96,7 @@
                 'x-api-key' = ConvertFromSecureString -SecureString $ImmichSession.AccessToken
             }
             $Form = @{}
-            $Form += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'Duration', 'isArchived', 'isFavorite', 'isOffline', 'isReadOnly', 'isVisible', 'libraryId')
+            $Form += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
             $Form += @{
                 deviceAssetId  = $FileInfo.Name
                 deviceId       = 'PSImmich'

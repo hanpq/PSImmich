@@ -26,20 +26,23 @@
         $Session = $null,
 
         [Parameter(Mandatory)]
+        [ApiParameter('name')]
         [string]
         $Name,
 
         [Parameter()]
+        [ApiParameter('isHidden')]
         [switch]
         $IsHidden,
 
         [Parameter()]
+        [ApiParameter('birthDate')]
         [datetime]
         $BirthDate
     )
 
-    $Body = @{}
-    $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'BirthDate', 'IsHidden', 'Name' -namemapping @{BirthDate = 'birthDate'; IsHidden = 'isHidden'; Name = 'name' })
-    InvokeImmichRestMethod -Method Post -RelativePath '/people' -ImmichSession:$Session -Body:$Body
+    $BodyParameters = @{}
+    $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
+    InvokeImmichRestMethod -Method Post -RelativePath '/people' -ImmichSession:$Session -Body:$BodyParameters
 }
 #endregion

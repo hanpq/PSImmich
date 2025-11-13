@@ -25,12 +25,8 @@
         Encoded Video path filter
     .PARAMETER id
         Id filter
-    .PARAMETER isArchived
-        Archvied filter
     .PARAMETER isEncoded
         Encoded filter
-    .PARAMETER isExternal
-        External filter
     .PARAMETER isFavorite
         Favorite filter
     .PARAMETER isMotion
@@ -39,8 +35,6 @@
         Not in Album filter
     .PARAMETER isOffline
         Offline filter
-    .PARAMETER isReadOnly
-        Read only filter
     .PARAMETER isVisible
         Visible filter
     .PARAMETER lensModel
@@ -59,8 +53,6 @@
         Original path filter
     .PARAMETER personIds
         Person id filter
-    .PARAMETER resizePath
-        Resize path filter
     .PARAMETER size
         Size of rest call page
     .PARAMETER state
@@ -79,10 +71,6 @@
         Updated after filter
     .PARAMETER updatedBefore
         Updated before filter
-    .PARAMETER webpPath
-        Webp path filter
-    .PARAMETER withArchived
-        Archived filter
     .PARAMETER withDeleted
         Deleted filter
     .PARAMETER withExif
@@ -91,6 +79,8 @@
         With people filter
     .PARAMETER withStacked
         Stacked filter
+    .PARAMETER Visibility
+        Asset visibility filter (archive, timeline, hidden, locked)
     .EXAMPLE
         Find-IMAsset -createdAfter (Get-Date).AddDays(-30)
 
@@ -103,148 +93,167 @@
         [ImmichSession]$Session = $null,
 
         [Parameter()]
-        [string]$checksum,
+        [ApiParameter('checksum')]
+        [string]$Checksum,
 
         [Parameter()]
-        [string]$city,
+        [ApiParameter('city')]
+        [string]$City,
 
         [Parameter()]
-        [string]$country,
+        [ApiParameter('country')]
+        [string]$Country,
 
         [Parameter()]
-        [datetime]$createdAfter,
+        [ApiParameter('createdAfter')]
+        [datetime]$CreatedAfter,
 
         [Parameter()]
-        [datetime]$createdBefore,
-
-        [Parameter()]
-        [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [string]$deviceAssetId,
-
-        [Parameter()]
-        [string]$deviceId,
-
-        [Parameter()]
-        [string]$encodedVideoPath,
+        [ApiParameter('createdBefore')]
+        [datetime]$CreatedBefore,
 
         [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [string]$id,
+        [ApiParameter('deviceAssetId')]
+        [string]$DeviceAssetId,
 
         [Parameter()]
-        [boolean]$isArchived,
+        [ApiParameter('deviceId')]
+        [string]$DeviceId,
 
         [Parameter()]
+        [ApiParameter('encodedVideoPath')]
+        [string]$EncodedVideoPath,
+
+        [Parameter()]
+        [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [ApiParameter('id')]
+        [string]$Id,
+
+        [Parameter()]
+        [ApiParameter('isEncoded')]
         [boolean]$isEncoded,
 
         [Parameter()]
-        [boolean]$isExternal,
-
-        [Parameter()]
+        [ApiParameter('isFavorite')]
         [boolean]$isFavorite,
 
         [Parameter()]
+        [ApiParameter('isMotion')]
         [boolean]$isMotion,
 
         [Parameter()]
+        [ApiParameter('isNotInAlbum')]
         [boolean]$isNotInAlbum,
 
         [Parameter()]
+        [ApiParameter('isOffline')]
         [boolean]$isOffline,
 
         [Parameter()]
-        [boolean]$isReadOnly,
+        [ValidateSet('archive', 'timeline', 'hidden', 'locked')]
+        [ApiParameter('visibility')]
+        [string]$Visibility,
 
         [Parameter()]
-        [boolean]$isVisible,
-
-        [Parameter()]
-        [string]$lensModel,
+        [ApiParameter('lensModel')]
+        [string]$LensModel,
 
         [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [string]$libraryId,
+        [ApiParameter('libraryId')]
+        [string]$LibraryId,
 
         [Parameter()]
-        [string]$make,
+        [ApiParameter('make')]
+        [string]$Make,
 
         [Parameter()]
-        [string]$model,
+        [ApiParameter('model')]
+        [string]$Model,
 
         [Parameter()]
         [ValidateSet('asc', 'desc')]
-        [string]$order,
+        [ApiParameter('order')]
+        [string]$Order,
 
         [Parameter()]
-        [string]$originalFileName,
+        [ApiParameter('originalFileName')]
+        [string]$OriginalFileName,
 
         [Parameter()]
-        [string]$originalPath,
+        [ApiParameter('originalPath')]
+        [string]$OriginalPath,
 
         [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [string[]]$personIds,
+        [ApiParameter('personIds')]
+        [string[]]$PersonIds,
 
         [Parameter()]
-        [string]$resizePath,
+        [ApiParameter('size')]
+        [int]$Size,
 
         [Parameter()]
-        [int]$size,
+        [ApiParameter('state')]
+        [string]$State,
 
         [Parameter()]
-        [string]$state,
+        [ApiParameter('takenAfter')]
+        [datetime]$TakenAfter,
 
         [Parameter()]
-        [datetime]$takenAfter,
+        [ApiParameter('takenBefore')]
+        [datetime]$TakenBefore,
 
         [Parameter()]
-        [datetime]$takenBefore,
+        [ApiParameter('trashedAfter')]
+        [datetime]$TrashedAfter,
 
         [Parameter()]
-        [datetime]$trashedAfter,
-
-        [Parameter()]
-        [datetime]$trashedBefore,
+        [ApiParameter('trashedBefore')]
+        [datetime]$TrashedBefore,
 
         [Parameter()]
         [ValidateSet('IMAGE', 'VIDEO', 'AUDIO', 'OTHER')]
-        [string]$type,
+        [ApiParameter('type')]
+        [string]$Type,
 
         [Parameter()]
-        [datetime]$updatedAfter,
+        [ApiParameter('updatedAfter')]
+        [datetime]$UpdatedAfter,
 
         [Parameter()]
-        [datetime]$updatedBefore,
+        [ApiParameter('updatedBefore')]
+        [datetime]$UpdatedBefore,
 
         [Parameter()]
-        [string]$webpPath,
+        [ApiParameter('withDeleted')]
+        [boolean]$WithDeleted,
 
         [Parameter()]
-        [boolean]$withArchived,
+        [ApiParameter('withExif')]
+        [boolean]$WithExif,
 
         [Parameter()]
-        [boolean]$withDeleted,
+        [ApiParameter('withPeople')]
+        [boolean]$WithPeople,
 
         [Parameter()]
-        [boolean]$withExif,
-
-        [Parameter()]
-        [boolean]$withPeople,
-
-        [Parameter()]
-        [boolean]$withStacked
+        [ApiParameter('withStacked')]
+        [boolean]$WithStacked
     )
 
-    $Body = @{}
-    $Body += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'checksum', 'city', 'country', 'createdAfter', 'createdBefore', 'deviceAssetId', 'deviceId', 'encodedVideoPath', 'id', 'isArchived', 'isEncoded', 'isExternal', 'isFavorite', 'isMotion', 'isNotInAlbum', 'isOffline', 'isReadOnly', 'isVisible', 'lensModel', 'libraryId', 'make', 'model', 'order', 'originalFileName', 'originalPath', 'page', 'personIds', 'resizePath', 'size', 'state', 'takenAfter', 'takenBefore', 'trashedAfter', 'trashedBefore', 'type', 'updatedAfter', 'updatedBefore', 'webpPath', 'withArchived', 'withDeleted', 'withExif', 'withPeople', 'withStacked')
+    $BodyParameters = @{}
+    $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
 
-    $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/metadata' -ImmichSession:$Session -Body $Body | Select-Object -ExpandProperty assets
+    $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/metadata' -ImmichSession:$Session -Body $BodyParameters | Select-Object -ExpandProperty assets
     $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
 
     while ($Result.NextPage)
     {
-        $Body.page = $Result.NextPage
-        $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/metadata' -ImmichSession:$Session -Body $Body | Select-Object -ExpandProperty assets
+        $BodyParameters.page = $Result.NextPage
+        $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/metadata' -ImmichSession:$Session -Body $BodyParameters | Select-Object -ExpandProperty assets
         $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
     }
 

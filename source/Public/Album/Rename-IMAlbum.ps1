@@ -27,24 +27,23 @@
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [Alias('ids', 'albumId')]
         [string[]]
-        $id,
+        $Id,
 
         [Parameter(Mandatory)]
+        [ApiParameter('albumName')]
         [string]
         $NewName
     )
 
-    BEGIN
+    begin
     {
         $BodyParameters = @{}
-        $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'NewName' -NameMapping @{
-                NewName = 'albumName'
-            })
+        $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
     }
 
-    PROCESS
+    process
     {
-        $id | ForEach-Object {
+        $Id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Update'))
             {
                 InvokeImmichRestMethod -Method PATCH -RelativePath "/albums/$PSItem" -ImmichSession:$Session -Body:$BodyParameters

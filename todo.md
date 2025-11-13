@@ -1,0 +1,3 @@
+- Extract multipart form data upload logic to private function for reuse by Import-IMAsset and Add-IMMyProfilePicture
+- Improve help on all cmdlets
+- Write unit tests for all cmdlets

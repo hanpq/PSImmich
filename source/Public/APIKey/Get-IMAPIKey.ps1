@@ -24,12 +24,12 @@
         [Parameter(Mandatory, ParameterSetName = 'id', ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string[]]
-        $id
+        $Id
     )
 
-    PROCESS
+    process
     {
-        $id | ForEach-Object {
+        $Id | ForEach-Object {
             $CurrentID = $PSItem
             switch ($PSCmdlet.ParameterSetName)
             {

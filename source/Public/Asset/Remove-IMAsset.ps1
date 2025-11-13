@@ -27,11 +27,12 @@
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string[]]
         [Alias('id')]
-        $ids,
+        $Ids,
 
         [Parameter()]
+        [ApiParameter('force')]
         [switch]
-        $force
+        $Force
     )
 
     BEGIN
@@ -39,12 +40,12 @@
         $BodyParameters = @{
             ids = @()
         }
-        $BodyParameters += (SelectBinding -Binding $PSBoundParameters -SelectProperty 'force')
+        $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
     }
 
     PROCESS
     {
-        $ids | ForEach-Object {
+        $Ids | ForEach-Object {
             $BodyParameters.ids += $psitem
         }
     }

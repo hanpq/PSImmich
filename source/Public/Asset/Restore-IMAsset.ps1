@@ -31,14 +31,14 @@
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [Alias('assetId')]
         [string[]]
-        $id,
+        $Id,
 
         [Parameter(Mandatory, ParameterSetName = 'all')]
         [switch]
         $All
     )
 
-    BEGIN
+    begin
     {
         if ($PSCmdlet.ParameterSetName -eq 'id')
         {
@@ -46,17 +46,17 @@
         }
     }
 
-    PROCESS
+    process
     {
         if ($PSCmdlet.ParameterSetName -eq 'id')
         {
-            $id | ForEach-Object {
+            $Id | ForEach-Object {
                 $AssetIDs.Add($PSItem)
             }
         }
     }
 
-    END
+    end
     {
         switch ($PSCMdlet.ParameterSetName)
         {

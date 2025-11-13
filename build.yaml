@@ -41,6 +41,10 @@ BuildWorkflow:
     - build
     - package_module_nupkg
 
+  testonly:
+    - Import_Pester
+    - Invoke_Pester_Tests_v5
+
   test:
     - Import_Pester
     - Invoke_Pester_Tests_v5
