@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Comprehensively improved PowerShell help documentation for all cmdlets
+- Enhanced API parameter handling with support for nested parameter structures using dot-notation
+
+### Removed
+
+- Removed Get-IMMapStyle cmdlet (endpoint no longer available in Immich API)
 
 ## [2.2.1] - 2025-11-06
 
