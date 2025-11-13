@@ -76,36 +76,89 @@
 
     )
 
-    begin
-    {
-        # Do not run on Windows Powershell
-        if ($PSVersionTable.PSEdition -eq 'Desktop')
-        {
-            Write-Warning -Message 'Import-IMAsset is not currently supported on Windows Powershell, please use Powershell Core instead.'
-            break
-        }
-    }
-
     process
     {
         $FilePath | ForEach-Object {
             $FileInfo = Get-Item -Path $PSItem.FullName
             $Uri = "$($ImmichSession.ApiUri)/assets"
-            $Header = @{
-                'Accept'    = 'application/json'
-                'x-api-key' = ConvertFromSecureString -SecureString $ImmichSession.AccessToken
-            }
-            $Form = @{}
-            $Form += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-            $Form += @{
+
+            # Prepare form data
+            $FormData = @{}
+            $FormData += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
+            $FormData += @{
                 deviceAssetId  = $FileInfo.Name
                 deviceId       = 'PSImmich'
                 fileCreatedAt  = $FileInfo.CreationTime.ToString('yyyy-MM-ddTHH:mm:ss')
                 fileModifiedAt = $FileInfo.LastWriteTime.ToString('yyyy-MM-ddTHH:mm:ss')
-                assetData      = $FileInfo
             }
-            $Result = Invoke-WebRequest -Uri $Uri -Method Post -Headers $Header -Form $Form -ContentType 'multipart/form-data'
-            $Result.Content | ConvertFrom-Json | Get-IMAsset
+
+            if ($PSVersionTable.PSEdition -eq 'Desktop')
+            {
+                # Windows PowerShell - use HttpClient
+                Add-Type -AssemblyName System.Net.Http
+                $HttpClient = New-Object System.Net.Http.HttpClient
+                $MultipartContent = New-Object System.Net.Http.MultipartFormDataContent
+
+                try
+                {
+                    # Add API key header
+                    $HttpClient.DefaultRequestHeaders.Add('x-api-key', (ConvertFromSecureString -SecureString $ImmichSession.AccessToken))
+
+                    # Add form fields
+                    foreach ($field in $FormData.GetEnumerator())
+                    {
+                        $StringContent = New-Object System.Net.Http.StringContent($field.Value.ToString())
+                        $MultipartContent.Add($StringContent, $field.Key)
+                    }
+
+                    # Add file content
+                    $FileStream = [System.IO.File]::OpenRead($FileInfo.FullName)
+                    $StreamContent = New-Object System.Net.Http.StreamContent($FileStream)
+                    $StreamContent.Headers.ContentType = New-Object System.Net.Http.Headers.MediaTypeHeaderValue('application/octet-stream')
+                    $MultipartContent.Add($StreamContent, 'assetData', $FileInfo.Name)
+
+                    # Send request
+                    $Response = $HttpClient.PostAsync($Uri, $MultipartContent).Result
+                    $ResponseContent = $Response.Content.ReadAsStringAsync().Result
+
+                    if ($Response.IsSuccessStatusCode)
+                    {
+                        $ResponseContent | ConvertFrom-Json | Get-IMAsset
+                    }
+                    else
+                    {
+                        throw "HTTP $($Response.StatusCode): $ResponseContent"
+                    }
+                }
+                finally
+                {
+                    if ($FileStream)
+                    {
+                        $FileStream.Dispose()
+                    }
+                    if ($MultipartContent)
+                    {
+                        $MultipartContent.Dispose()
+                    }
+                    if ($HttpClient)
+                    {
+                        $HttpClient.Dispose()
+                    }
+                }
+            }
+            else
+            {
+                # PowerShell Core - use Invoke-WebRequest
+                $Header = @{
+                    'Accept'    = 'application/json'
+                    'x-api-key' = ConvertFromSecureString -SecureString $ImmichSession.AccessToken
+                }
+                $Form = $FormData.Clone()
+                $Form['assetData'] = $FileInfo
+
+                $Result = Invoke-WebRequest -Uri $Uri -Method Post -Headers $Header -Form $Form -ContentType 'multipart/form-data'
+                $Result.Content | ConvertFrom-Json | Get-IMAsset
+            }
         }
     }
 }

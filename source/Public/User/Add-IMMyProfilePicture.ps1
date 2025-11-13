@@ -26,29 +26,71 @@
         $FilePath
     )
 
-    BEGIN
+    process
     {
-        # Do not run on Windows Powershell
+        $FileInfo = Get-Item -Path $FilePath.FullName
+        $Uri = "$($ImmichSession.ApiUri)/users/profile-image"
+
         if ($PSVersionTable.PSEdition -eq 'Desktop')
         {
-            Write-Warning -Message 'Add-IMMyProfilePicture is not currently supported on Windows Powershell, please use Powershell Core on Windows instead.'
-            break
-        }
-    }
+            # Windows PowerShell - use HttpClient
+            Add-Type -AssemblyName System.Net.Http
+            $HttpClient = New-Object System.Net.Http.HttpClient
+            $MultipartContent = New-Object System.Net.Http.MultipartFormDataContent
 
-    PROCESS
-    {
-            $FileInfo = Get-Item -Path $FilePath.FullName
-            $Uri = "$($ImmichSession.ApiUri)/users/profile-image"
+            try
+            {
+                # Add API key header
+                $HttpClient.DefaultRequestHeaders.Add('x-api-key', (ConvertFromSecureString -SecureString $ImmichSession.AccessToken))
+
+                # Add file content
+                $FileStream = [System.IO.File]::OpenRead($FileInfo.FullName)
+                $StreamContent = New-Object System.Net.Http.StreamContent($FileStream)
+                $StreamContent.Headers.ContentType = New-Object System.Net.Http.Headers.MediaTypeHeaderValue('application/octet-stream')
+                $MultipartContent.Add($StreamContent, 'file', $FileInfo.Name)
+
+                # Send request
+                $Response = $HttpClient.PostAsync($Uri, $MultipartContent).Result
+                $ResponseContent = $Response.Content.ReadAsStringAsync().Result
+
+                if ($Response.IsSuccessStatusCode)
+                {
+                    $ResponseContent | ConvertFrom-Json
+                }
+                else
+                {
+                    throw "HTTP $($Response.StatusCode): $ResponseContent"
+                }
+            }
+            finally
+            {
+                if ($FileStream)
+                {
+                    $FileStream.Dispose()
+                }
+                if ($MultipartContent)
+                {
+                    $MultipartContent.Dispose()
+                }
+                if ($HttpClient)
+                {
+                    $HttpClient.Dispose()
+                }
+            }
+        }
+        else
+        {
+            # PowerShell Core - use Invoke-WebRequest
             $Header = @{
                 'Accept'    = 'application/json'
                 'x-api-key' = ConvertFromSecureString -SecureString $ImmichSession.AccessToken
             }
-            $Form = @{}
-            $Form += @{
-                file      = $FileInfo
+            $Form = @{
+                file = $FileInfo
             }
+
             $Result = Invoke-WebRequest -Uri $Uri -Method Post -Headers $Header -Form $Form -ContentType 'multipart/form-data'
             $Result.Content | ConvertFrom-Json
+        }
     }
 }
