@@ -5,6 +5,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Windows PowerShell compatibility for Import-IMAsset and Add-IMMyProfilePicture cmdlets
+
+### Changed
+
+- Comprehensively improved PowerShell help documentation for all cmdlets
+
 ## [2.2.1] - 2025-11-06
 
 ### Added
