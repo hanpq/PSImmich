@@ -24,9 +24,61 @@
 InModuleScope $ProjectName {
 
     Describe 'AddCustomType' -Tag 'Unit', 'AddCustomType' {
-        Context 'Default' {
-            It 'Should be true' {
-                $true | Should -BeTrue
+        Context 'When adding custom type to single object' {
+            It 'Should add the correct PSImmich type name to the object' {
+                $testObject = [PSCustomObject]@{ Name = 'Test'; Value = 123 }
+                $result = $testObject | AddCustomType -Type 'IMAsset'
+
+                $result.PSObject.TypeNames[0] | Should -Be 'PSImmich.ObjectType.IMAsset'
+                $result.Name | Should -Be 'Test'
+                $result.Value | Should -Be 123
+            }
+        }
+
+        Context 'When adding custom type to multiple objects' {
+            It 'Should add the type name to all objects in the pipeline' {
+                $testObjects = @(
+                    [PSCustomObject]@{ ID = 1; Name = 'First' },
+                    [PSCustomObject]@{ ID = 2; Name = 'Second' }
+                )
+
+                $results = $testObjects | AddCustomType -Type 'IMAlbum'
+
+                $results.Count | Should -Be 2
+                $results[0].PSObject.TypeNames[0] | Should -Be 'PSImmich.ObjectType.IMAlbum'
+                $results[1].PSObject.TypeNames[0] | Should -Be 'PSImmich.ObjectType.IMAlbum'
+                $results[0].ID | Should -Be 1
+                $results[1].ID | Should -Be 2
+            }
+        }
+
+        Context 'When object already has the type name' {
+            It 'Should not add duplicate type names' {
+                $testObject = [PSCustomObject]@{ Name = 'Test' }
+                $testObject.PSObject.TypeNames.Insert(0, 'PSImmich.ObjectType.IMAsset')
+
+                $result = $testObject | AddCustomType -Type 'IMAsset'
+
+                # Should only have one instance of the type name
+                ($result.PSObject.TypeNames | Where-Object { $_ -eq 'PSImmich.ObjectType.IMAsset' }).Count | Should -Be 1
+                $result.PSObject.TypeNames[0] | Should -Be 'PSImmich.ObjectType.IMAsset'
+            }
+        }
+
+        Context 'When adding different type names' {
+            It 'Should handle various type names correctly' {
+                $testCases = @(
+                    @{ Type = 'IMUser'; Expected = 'PSImmich.ObjectType.IMUser' },
+                    @{ Type = 'IMLibrary'; Expected = 'PSImmich.ObjectType.IMLibrary' },
+                    @{ Type = 'IMJob'; Expected = 'PSImmich.ObjectType.IMJob' }
+                )
+
+                foreach ($case in $testCases)
+                {
+                    $testObject = [PSCustomObject]@{ Test = 'Value' }
+                    $result = $testObject | AddCustomType -Type $case.Type
+                    $result.PSObject.TypeNames[0] | Should -Be $case.Expected
+                }
             }
         }
     }
@@ -69,17 +121,118 @@ InModuleScope $ProjectName {
             }
         }
     }
-    Describe 'SelectBinding' -Tag 'Unit', 'SelectBinding' {
-        Context 'Default' {
-            It 'Should be true' {
-                $true | Should -BeTrue
+    Describe 'ValidateToken' -Tag 'Unit', 'ValidateToken' {
+        BeforeAll {
+            # Mock Invoke-RestMethod for all test scenarios
+            Mock -CommandName Invoke-RestMethod -MockWith {
+                param($Method, $Uri, $Headers)
+
+                # Simulate successful validation response
+                return [PSCustomObject]@{
+                    AuthStatus = $true
+                    UserEmail  = 'test@example.com'
+                    UserId     = 'user-123'
+                }
+            }
+
+            # Mock ConvertFromSecureString
+            Mock -CommandName ConvertFromSecureString -MockWith {
+                param($SecureString)
+                return 'mocked-token-value'
             }
         }
-    }
-    Describe 'ValidateToken' -Tag 'Unit', 'ValidateToken' {
-        Context 'Default' {
-            It 'Should be true' {
-                $true | Should -BeTrue
+
+        Context 'When validating AccessToken authentication' {
+            It 'Should call Invoke-RestMethod with correct X-API-Key header' {
+                $secureToken = ConvertTo-SecureString -String 'test-api-key' -AsPlainText -Force
+                $apiUrl = 'https://immich.test.com/api'
+
+                $result = ValidateToken -Type 'AccessToken' -APIUrl $apiUrl -Secret $secureToken
+
+                Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Post' -and
+                    $Uri -eq "$apiUrl/auth/validateToken" -and
+                    $Headers.ContainsKey('X-API-Key') -and
+                    $Headers['X-API-Key'] -eq 'mocked-token-value'
+                }
+
+                $result.AuthStatus | Should -Be $true
+            }
+        }
+
+        Context 'When validating Credential authentication' {
+            It 'Should call Invoke-RestMethod with correct Authorization Bearer header' {
+                $secureToken = ConvertTo-SecureString -String 'test-jwt-token' -AsPlainText -Force
+                $apiUrl = 'https://immich.test.com/api'
+
+                $result = ValidateToken -Type 'Credential' -APIUrl $apiUrl -Secret $secureToken
+
+                Should -Invoke Invoke-RestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Post' -and
+                    $Uri -eq "$apiUrl/auth/validateToken" -and
+                    $Headers.ContainsKey('Authorization') -and
+                    $Headers['Authorization'] -eq 'Bearer mocked-token-value'
+                }
+
+                $result.AuthStatus | Should -Be $true
+            }
+        }
+
+        Context 'When validation fails' {
+            BeforeAll {
+                # Override mock for failure scenario
+                Mock -CommandName Invoke-RestMethod -MockWith {
+                    return [PSCustomObject]@{
+                        AuthStatus = $false
+                        Message    = 'Invalid token'
+                    }
+                }
+            }
+
+            It 'Should return AuthStatus false for invalid tokens' {
+                $secureToken = ConvertTo-SecureString -String 'invalid-token' -AsPlainText -Force
+                $apiUrl = 'https://immich.test.com/api'
+
+                $result = ValidateToken -Type 'AccessToken' -APIUrl $apiUrl -Secret $secureToken
+
+                $result.AuthStatus | Should -Be $false
+            }
+        }
+
+        Context 'When API call throws exception' {
+            BeforeAll {
+                # Override mock to throw exception
+                Mock -CommandName Invoke-RestMethod -MockWith {
+                    throw 'Network error: Unable to connect to server'
+                }
+            }
+
+            It 'Should throw the exception from Invoke-RestMethod' {
+                $secureToken = ConvertTo-SecureString -String 'test-token' -AsPlainText -Force
+                $apiUrl = 'https://immich.test.com/api'
+
+                { ValidateToken -Type 'AccessToken' -APIUrl $apiUrl -Secret $secureToken } | Should -Throw '*Network error*'
+            }
+        }
+
+        Context 'Parameter validation' {
+            It 'Should handle different API URLs correctly' {
+                $testUrls = @(
+                    'https://immich.example.com/api',
+                    'http://localhost:2283/api',
+                    'https://photos.myserver.net/api'
+                )
+
+                $secureToken = ConvertTo-SecureString -String 'test-token' -AsPlainText -Force
+
+                foreach ($url in $testUrls)
+                {
+                    ValidateToken -Type 'AccessToken' -APIUrl $url -Secret $secureToken
+
+                    Should -Invoke Invoke-RestMethod -ParameterFilter {
+                        $Uri -eq "$url/auth/validateToken"
+                    }
+                }
             }
         }
     }
