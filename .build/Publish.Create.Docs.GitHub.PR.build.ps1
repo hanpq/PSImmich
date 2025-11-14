@@ -38,7 +38,7 @@ Task Update_GetPSDev_Docs {
     # Get variables from buildinfo
     foreach ($GitHubConfigKey in @('GitHubConfigUserName', 'GitHubConfigUserEmail'))
     {
-        if ( -Not (Get-Variable -Name $GitHubConfigKey -ValueOnly -ErrorAction SilentlyContinue))
+        if ( -not (Get-Variable -Name $GitHubConfigKey -ValueOnly -ErrorAction SilentlyContinue))
         {
             # Variable is not set in context, use $BuildInfo.GitHubConfig.<varName>
             $ConfigValue = $BuildInfo.GitHubConfig.($GitHubConfigKey)
@@ -130,6 +130,9 @@ module.exports = [
         $SourceChangeLogPath = Join-Path $args[3] 'CHANGELOG.md'
         Write-Output "Source changelog path is: $SourceChangeLogPath"
         $ChangeLogContent = Get-Content $SourceChangeLogPath -Raw
+        Write-Output 'Imported changelog content'
+        $ChangeLogContent = $ChangeLogContent -replace '(?<!\\)([{}])', '\$1'
+        Write-Output 'Escaped curly-brackets in changelog content'
         $DestinationModulePath = Join-Path $TemporaryDocsFolderModules $args[1]
         Write-Output "Destination module path is: $DestinationModulePath"
         $DestinationChangeLogPath = Join-Path $DestinationModulePath 'changelog.md'
@@ -154,7 +157,7 @@ module.exports = [
         ($sidebarjsTemplate -f $args[1])  | Out-File -FilePath $DestinationSidebarPath
 
         # Remove module
-        Remove-Module -name $args[1] -Force -ErrorAction Stop
+        Remove-Module -Name $args[1] -Force -ErrorAction Stop
 
     }
 
