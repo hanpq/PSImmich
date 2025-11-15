@@ -133,7 +133,6 @@ Below is a reference of the available command. For documentation about each comm
 
 ### FileReport
 
-- Get-IMAuditFile
 - Get-IMFileChecksum
 
 ### Job

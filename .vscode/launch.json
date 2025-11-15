@@ -12,7 +12,20 @@
             "args": [
                 "-Tasks",
                 "build,test"
-
+            ],
+            "cwd": "${workspaceFolder}",
+            "createTemporaryIntegratedConsole": true
+        },
+        {
+            "name": "Run Unit Tests",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${workspaceFolder}\\build.ps1",
+            "args": [
+                "-Tasks",
+                "build,test",
+                "-PesterTag",
+                "Unit"
             ],
             "cwd": "${workspaceFolder}",
             "createTemporaryIntegratedConsole": true
