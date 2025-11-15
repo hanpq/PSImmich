@@ -2608,7 +2608,7 @@ InModuleScope $ProjectName {
                 Save-IMAsset -Id $TestId -Path $TestPath
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $OutFilePath -like "$TestPath\test-image.jpg"
+                    $OutFilePath -like (Join-Path $TestPath "test-image.jpg")
                 }
             }
         }
