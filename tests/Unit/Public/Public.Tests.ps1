@@ -1540,7 +1540,7 @@ InModuleScope $ProjectName {
             }
 
             It 'Should validate GUID format for Id parameter' {
-                { Export-IMAssetThumbnail -Id 'invalid-guid' -Path 'C:\Temp' } | Should -Throw
+                { Export-IMAssetThumbnail -Id 'invalid-guid' -Path $TestDrive } | Should -Throw
             }
         }
 
@@ -1616,7 +1616,7 @@ InModuleScope $ProjectName {
             }
 
             It 'Should validate GUID format for Id parameter' {
-                { Export-IMAssetThumbnail -Id 'invalid-guid' -Path 'C:\Temp' } | Should -Throw
+                { Export-IMAssetThumbnail -Id 'invalid-guid' -Path $TestDrive } | Should -Throw
             }
 
             It 'Should accept valid GUID for Id parameter' {
@@ -2564,12 +2564,12 @@ InModuleScope $ProjectName {
         Context 'Pipeline Support' {
             It 'Should accept pipeline input for Id parameter' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
-                { $TestId | Save-IMAsset -Path 'C:\temp' } | Should -Not -Throw
+                { $TestId | Save-IMAsset -Path $TestDrive } | Should -Not -Throw
             }
 
             It 'Should accept pipeline input by property name' {
                 $TestObject = [PSCustomObject]@{ Id = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e' }
-                { $TestObject | Save-IMAsset -Path 'C:\temp' } | Should -Not -Throw
+                { $TestObject | Save-IMAsset -Path $TestDrive } | Should -Not -Throw
             }
 
             It 'Should process multiple IDs from pipeline' {
@@ -2578,7 +2578,7 @@ InModuleScope $ProjectName {
                     'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
                 )
 
-                { $TestIds | Save-IMAsset -Path 'C:\temp' } | Should -Not -Throw
+                { $TestIds | Save-IMAsset -Path $TestDrive } | Should -Not -Throw
                 Should -Invoke Get-IMAsset -ModuleName PSImmich -Exactly 2 -Scope It
             }
         }
@@ -2586,7 +2586,7 @@ InModuleScope $ProjectName {
         Context 'File Operations' {
             It 'Should call Get-IMAsset to retrieve filename' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
-                Save-IMAsset -Id $TestId -Path 'C:\temp'
+                Save-IMAsset -Id $TestId -Path $TestDrive
 
                 Should -Invoke Get-IMAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Id -eq $TestId
@@ -2595,7 +2595,7 @@ InModuleScope $ProjectName {
 
             It 'Should call InvokeImmichRestMethod with correct parameters' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
-                Save-IMAsset -Id $TestId -Path 'C:\temp'
+                Save-IMAsset -Id $TestId -Path $TestDrive
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Method -eq 'Get' -and $RelativePath -eq "/assets/$TestId/original" -and $ContentType -eq 'application/octet-stream'
@@ -2604,7 +2604,7 @@ InModuleScope $ProjectName {
 
             It 'Should pass OutFilePath parameter correctly' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
-                $TestPath = 'C:\temp'
+                $TestPath = $TestDrive
                 Save-IMAsset -Id $TestId -Path $TestPath
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
@@ -2616,7 +2616,7 @@ InModuleScope $ProjectName {
         Context 'API Parameters' {
             It 'Should call ConvertTo-ApiParameters' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
-                Save-IMAsset -Id $TestId -Path 'C:\temp'
+                Save-IMAsset -Id $TestId -Path $TestDrive
 
                 Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Exactly 1 -Scope It
             }
@@ -2625,7 +2625,7 @@ InModuleScope $ProjectName {
                 Mock ConvertTo-ApiParameters { return @{ key = 'test-key' } } -ModuleName PSImmich
 
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
-                Save-IMAsset -Id $TestId -Path 'C:\temp' -Key 'test-key'
+                Save-IMAsset -Id $TestId -Path $TestDrive -Key 'test-key'
 
                 Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $BoundParameters.Key -eq 'test-key'
@@ -2636,7 +2636,7 @@ InModuleScope $ProjectName {
                 Mock ConvertTo-ApiParameters { return @{ key = 'test-key' } } -ModuleName PSImmich
 
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
-                Save-IMAsset -Id $TestId -Path 'C:\temp' -Key 'test-key'
+                Save-IMAsset -Id $TestId -Path $TestDrive -Key 'test-key'
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $QueryParameters.key -eq 'test-key'
@@ -2657,7 +2657,7 @@ InModuleScope $ProjectName {
 
             It 'Should use default session when no session parameter provided' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
-                Save-IMAsset -Id $TestId -Path 'C:\temp'
+                Save-IMAsset -Id $TestId -Path $TestDrive
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
@@ -6532,7 +6532,7 @@ InModuleScope $ProjectName {
 
         Context 'Thumbnail Export' {
             It 'Should export thumbnail with correct API call' {
-                Export-IMPersonThumbnail -id 'a1b2c3d4-e5f6-4789-a012-123456789abc' -Path 'C:\temp'
+                Export-IMPersonThumbnail -id 'a1b2c3d4-e5f6-4789-a012-123456789abc' -Path $TestDrive
 
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
                     $Method -eq 'Get' -and
@@ -7635,7 +7635,7 @@ InModuleScope $ProjectName {
                     return [PSCustomObject]@{ userId = 'user-guid'; profileImagePath = '/profile/user.jpg' }
                 }
 
-                $result = Add-IMMyProfilePicture -FilePath 'C:\temp\avatar.jpg'
+                $result = Add-IMMyProfilePicture -FilePath (Join-Path $TestDrive 'avatar.jpg')
 
                 # Verify the function was called
                 Should -Invoke Add-IMMyProfilePicture -Times 1
@@ -7651,7 +7651,7 @@ InModuleScope $ProjectName {
         }
         Context 'Profile Picture Export' {
             It 'Should export profile picture with correct API call' {
-                Export-IMProfilePicture -id '12345678-1234-5678-9012-123456789abc' -Path 'C:\temp'
+                Export-IMProfilePicture -id '12345678-1234-5678-9012-123456789abc' -Path $TestDrive
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
                     $Method -eq 'Get' -and $RelativePath -eq '/users/12345678-1234-5678-9012-123456789abc/profile-image'
                 }
