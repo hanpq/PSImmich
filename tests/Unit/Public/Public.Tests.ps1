@@ -1584,7 +1584,7 @@ InModuleScope $ProjectName {
                 Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path (Join-Path $TestDrive "Thumbnails")
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $OutFilePath -like (Join-Path $TestDrive "Thumbnails" "*") -and
+                    $OutFilePath -like "$(Join-Path $TestDrive "Thumbnails")*" -and
                     $OutFilePath -like '*12345678-1234-1234-1234-123456789abc.jpeg'
                 }
             }
