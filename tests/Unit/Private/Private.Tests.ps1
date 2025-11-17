@@ -92,40 +92,31 @@ InModuleScope $ProjectName {
         }
 
         Context 'Windows PowerShell Desktop Edition' -Skip:($PSVersionTable.PSEdition -ne 'Desktop') {
-            BeforeAll {
-                # Mock PSVersionTable to simulate Windows PowerShell Desktop
-                Mock Get-Variable -ParameterFilter { $Name -eq 'PSVersionTable' } -MockWith {
-                    [PSCustomObject]@{
-                        Value = @{ PSEdition = 'Desktop' }
-                    }
-                } -ModuleName PSImmich
-
-                # Mock the .NET marshaling methods for Desktop edition
-                Mock -CommandName '[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR' -MockWith {
-                    return [IntPtr]::Zero
-                } -ModuleName PSImmich -Verifiable
-
-                Mock -CommandName '[System.Runtime.InteropServices.Marshal]::PtrToStringAuto' -MockWith {
-                    param($BSTR)
-                    return $TestPassword
-                } -ModuleName PSImmich -Verifiable
-
-                Mock -CommandName '[Runtime.InteropServices.Marshal]::ZeroFreeBSTR' -MockWith {
-                } -ModuleName PSImmich -Verifiable
-            }
-
             It 'Should convert SecureString to plain text using BSTR methods' {
+                # This test validates that the function uses the correct Desktop Edition code path
+                # We can't easily mock static .NET methods, so we test the actual functionality
                 $SecureString = ConvertTo-SecureString -String $TestPassword -AsPlainText -Force
 
                 $Result = ConvertFromSecureString -SecureString $SecureString
 
+                # In Desktop Edition, the function should successfully convert the SecureString
                 $Result | Should -BeExactly $TestPassword
             }
 
             It 'Should handle empty SecureString' {
-                $SecureString = ConvertTo-SecureString -String $EmptyPassword -AsPlainText -Force
+                # Create an empty SecureString by converting a space and then clearing it
+                $SecureString = New-Object System.Security.SecureString
+                $SecureString.MakeReadOnly()
 
                 { ConvertFromSecureString -SecureString $SecureString } | Should -Not -Throw
+            }
+
+            It 'Should handle Unicode characters in SecureString' {
+                $SecureString = ConvertTo-SecureString -String $UnicodePassword -AsPlainText -Force
+
+                $Result = ConvertFromSecureString -SecureString $SecureString
+
+                $Result | Should -BeExactly $UnicodePassword
             }
         }
 
