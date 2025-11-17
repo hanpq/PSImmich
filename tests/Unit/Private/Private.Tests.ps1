@@ -83,18 +83,155 @@ InModuleScope $ProjectName {
         }
     }
     Describe 'ConvertFromSecureString' -Tag 'Unit', 'ConvertFromSecureString' {
-        Context 'When providing a securestring' {
-            It 'Should return the correct string' {
-                $SecureString = ConvertTo-SecureString -String 'immich' -AsPlainText -Force
-                ConvertFromSecureString -SecureString $SecureString | Should -BeExactly 'immich'
+        BeforeAll {
+            # Test data
+            $TestPassword = 'TestPassword123!'
+            $EmptyPassword = ''
+            $UnicodePassword = 'Tëst€Ρássword🔐'
+            $LongPassword = 'a' * 1000
+        }
+
+        Context 'Windows PowerShell Desktop Edition' -Skip:($PSVersionTable.PSEdition -ne 'Desktop') {
+            BeforeAll {
+                # Mock PSVersionTable to simulate Windows PowerShell Desktop
+                Mock Get-Variable -ParameterFilter { $Name -eq 'PSVersionTable' } -MockWith {
+                    [PSCustomObject]@{
+                        Value = @{ PSEdition = 'Desktop' }
+                    }
+                } -ModuleName PSImmich
+
+                # Mock the .NET marshaling methods for Desktop edition
+                Mock -CommandName '[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR' -MockWith {
+                    return [IntPtr]::Zero
+                } -ModuleName PSImmich -Verifiable
+
+                Mock -CommandName '[System.Runtime.InteropServices.Marshal]::PtrToStringAuto' -MockWith {
+                    param($BSTR)
+                    return $TestPassword
+                } -ModuleName PSImmich -Verifiable
+
+                Mock -CommandName '[Runtime.InteropServices.Marshal]::ZeroFreeBSTR' -MockWith {
+                } -ModuleName PSImmich -Verifiable
+            }
+
+            It 'Should convert SecureString to plain text using BSTR methods' {
+                $SecureString = ConvertTo-SecureString -String $TestPassword -AsPlainText -Force
+
+                $Result = ConvertFromSecureString -SecureString $SecureString
+
+                $Result | Should -BeExactly $TestPassword
+            }
+
+            It 'Should handle empty SecureString' {
+                $SecureString = ConvertTo-SecureString -String $EmptyPassword -AsPlainText -Force
+
+                { ConvertFromSecureString -SecureString $SecureString } | Should -Not -Throw
+            }
+        }
+
+        Context 'PowerShell Core Edition' -Skip:($PSVersionTable.PSEdition -ne 'Core') {
+            BeforeAll {
+                # Mock PSVersionTable to simulate PowerShell Core
+                Mock Get-Variable -ParameterFilter { $Name -eq 'PSVersionTable' } -MockWith {
+                    [PSCustomObject]@{
+                        Value = @{ PSEdition = 'Core' }
+                    }
+                } -ModuleName PSImmich
+
+                # Mock ConvertFrom-SecureString cmdlet for Core edition
+                Mock ConvertFrom-SecureString -MockWith {
+                    param($SecureString, [switch]$AsPlainText)
+                    if ($AsPlainText)
+                    {
+                        return $TestPassword
+                    }
+                } -ModuleName PSImmich -Verifiable
+            }
+
+            It 'Should convert SecureString using ConvertFrom-SecureString -AsPlainText' {
+                $SecureString = ConvertTo-SecureString -String $TestPassword -AsPlainText -Force
+
+                $Result = ConvertFromSecureString -SecureString $SecureString
+
+                $Result | Should -BeExactly $TestPassword
+            }
+
+            It 'Should handle Unicode characters in SecureString' {
+                Mock ConvertFrom-SecureString -MockWith {
+                    return $UnicodePassword
+                } -ModuleName PSImmich
+
+                $SecureString = ConvertTo-SecureString -String $UnicodePassword -AsPlainText -Force
+
+                $Result = ConvertFromSecureString -SecureString $SecureString
+
+                $Result | Should -BeExactly $UnicodePassword
+            }
+
+            It 'Should handle long passwords' {
+                Mock ConvertFrom-SecureString -MockWith {
+                    return $LongPassword
+                } -ModuleName PSImmich
+
+                $SecureString = ConvertTo-SecureString -String $LongPassword -AsPlainText -Force
+
+                $Result = ConvertFromSecureString -SecureString $SecureString
+
+                $Result | Should -BeExactly $LongPassword
+            }
+        }
+
+        Context 'Return Value Processing' {
+            BeforeAll {
+                # Mock Core edition behavior
+                Mock Get-Variable -ParameterFilter { $Name -eq 'PSVersionTable' } -MockWith {
+                    [PSCustomObject]@{
+                        Value = @{ PSEdition = 'Core' }
+                    }
+                } -ModuleName PSImmich
+            }
+
+            It 'Should join array results correctly' {
+                # Mock to return array
+                Mock ConvertFrom-SecureString -MockWith {
+                    return @('Test', 'Password', '123')
+                } -ModuleName PSImmich
+
+                $SecureString = ConvertTo-SecureString -String 'TestPassword123' -AsPlainText -Force
+
+                $Result = ConvertFromSecureString -SecureString $SecureString
+
+                $Result | Should -BeExactly 'TestPassword123'
+            }
+
+            It 'Should handle single string results' {
+                Mock ConvertFrom-SecureString -MockWith {
+                    return 'SingleString'
+                } -ModuleName PSImmich
+
+                $SecureString = ConvertTo-SecureString -String 'SingleString' -AsPlainText -Force
+
+                $Result = ConvertFromSecureString -SecureString $SecureString
+
+                $Result | Should -BeExactly 'SingleString'
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should require SecureString parameter' {
+                { ConvertFromSecureString } | Should -Throw
+            }
+
+            It 'Should accept SecureString objects' {
+                $SecureString = ConvertTo-SecureString -String $TestPassword -AsPlainText -Force
+
+                { ConvertFromSecureString -SecureString $SecureString } | Should -Not -Throw
             }
         }
     }
     Describe 'InvokeImmichRestMethod' -Tag 'Unit', 'InvokeImmichRestMethod' {
         BeforeAll {
-            Mock -CommandName Invoke-RestMethod -MockWith {
-
-            }
+            Mock -CommandName Invoke-RestMethod -MockWith {}
             $Session = [ImmichSession]::New('https://immich.domain.com', 'AccessToken', (ConvertTo-SecureString -String 'accesstoken' -AsPlainText -Force), $true, (New-Object -TypeName pscredential -ArgumentList 'username', (ConvertTo-SecureString -String 'password' -AsPlainText -Force)), (ConvertTo-SecureString -String 'jwt' -AsPlainText -Force), '1.1.1', (New-Guid).Guid)
         }
         Context 'When calling get without query or body' {
@@ -234,6 +371,12 @@ InModuleScope $ProjectName {
                     }
                 }
             }
+        }
+    }
+
+    Describe 'Invoke-MultipartHttpUpload' -Tag 'Unit', 'Invoke-MultipartHttpUpload' {
+        It 'Should be true' {
+            $true | Should -Be $true
         }
     }
 

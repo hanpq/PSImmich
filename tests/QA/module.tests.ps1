@@ -162,7 +162,7 @@ Describe 'Quality for files' -Tag 'TestQuality' {
             $openApiPath = Join-Path $PSScriptRoot '..\..\api\api.2.2.0.json'
             $openApiDefinition = Get-Content -Path $openApiPath -Raw | ConvertFrom-Json
         }
-        Context $File.Name {
+        Context $File.Name -Tag $File.Name {
             It 'Function has unit tests' {
                 #Get-ChildItem "$PSScriptRoot\.." -Recurse -Include "$($Name).Tests.ps1" | Should -Not -BeNullOrEmpty
                 $Result = Get-ChildItem "$PSScriptRoot\..\Unit" -file -Recurse | foreach-object {
