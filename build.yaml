@@ -44,10 +44,12 @@ BuildWorkflow:
   testonly:
     - Import_Pester
     - Invoke_Pester_Tests_v5
+    - Update_TestBadge_README
 
   test:
     - Import_Pester
     - Invoke_Pester_Tests_v5
+    - Update_TestBadge_README
     - Pester_Run_Times
     - Fail_Build_If_Pester_Tests_Failed
     - Convert_Pester_Coverage
