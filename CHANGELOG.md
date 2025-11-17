@@ -5,6 +5,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added pipeline support for Disconnect-Immich cmdlet
+- Added automatic test count badge updates in README during build process
+
+### Changed
+
+- Improved cross-platform compatibility for unit tests on Linux and macOS
+- Enhanced Windows PowerShell test compatibility and reliability
+- Refactored multipart HTTP upload functionality into dedicated private function for better code organization
+- Improved build system documentation escaping for website integration
+
+### Fixed
+
+- Fixed unit test execution issues on Linux and macOS platforms
+- Fixed Windows PowerShell test failures for ConvertFromSecureString function
+- Resolved build process issues with curly bracket escaping in documentation
+
 ## [2.2.4] - 2025-11-13
 
 ### Changed
