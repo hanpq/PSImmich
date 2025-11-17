@@ -19,22 +19,27 @@
 
     [CmdletBinding()]
     param(
-        [Parameter()][ImmichSession]$Session = $null
+        [Parameter(ValueFromPipeline)]
+        [ImmichSession]
+        $Session = $null
     )
 
-    InvokeImmichRestMethod -Method Post -RelativePath '/auth/logout' -ImmichSession:$Session
-
-    # Remove ImmichSession variable
-    if ($Session)
+    process
     {
-        if ($script:ImmichSession.SessionID -eq $Session.SessionID)
+        InvokeImmichRestMethod -Method Post -RelativePath '/auth/logout' -ImmichSession:$Session
+
+        # Remove ImmichSession variable
+        if ($Session)
+        {
+            if ($script:ImmichSession.SessionID -eq $Session.SessionID)
+            {
+                Remove-Variable ImmichSession -Scope Script
+            }
+        }
+        else
         {
             Remove-Variable ImmichSession -Scope Script
         }
-    }
-    else
-    {
-        Remove-Variable ImmichSession -Scope Script
     }
 
 }
