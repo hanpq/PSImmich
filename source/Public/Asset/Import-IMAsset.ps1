@@ -4,8 +4,8 @@
     .SYNOPSIS
         Imports media files as Immich assets
     .DESCRIPTION
-        Uploads media files (photos and videos) to Immich, creating new assets. Supports cross-platform
-        multipart uploads with various metadata and status options.
+        Uploads media files (photos and videos) to Immich, creating new assets. Uses unified HttpClient
+        implementation for reliable cross-platform multipart uploads with metadata and status options.
     .PARAMETER Session
         Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
     .PARAMETER FilePath
@@ -41,7 +41,7 @@
 
         Imports multiple photos and archives them immediately.
     .NOTES
-        Supports both Windows PowerShell and PowerShell Core with cross-platform multipart upload capabilities.
+        Uses System.Net.Http.HttpClient for reliable multipart uploads across all PowerShell editions.
         This cmdlet supports ShouldProcess and will prompt for confirmation before uploading files.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP, retreived through PSBoundParameters')]
@@ -94,9 +94,10 @@
 
     process
     {
+
         $FilePath | ForEach-Object {
             $FileInfo = Get-Item -Path $PSItem.FullName
-            $Uri = "$($ImmichSession.ApiUri)/assets"
+            $Uri = "/assets"
 
             # Prepare form data
             $FormData = @{}
@@ -108,73 +109,10 @@
                 fileModifiedAt = $FileInfo.LastWriteTime.ToString('yyyy-MM-ddTHH:mm:ss')
             }
 
-            if ($PSVersionTable.PSEdition -eq 'Desktop')
-            {
-                # Windows PowerShell - use HttpClient
-                Add-Type -AssemblyName System.Net.Http
-                $HttpClient = New-Object System.Net.Http.HttpClient
-                $MultipartContent = New-Object System.Net.Http.MultipartFormDataContent
+            # Use unified HttpClient approach via private function
+            $ResponseContent = Invoke-MultipartHttpUpload -Uri $Uri -Session:$Session -FormData $FormData -FileInfo $FileInfo -FileFieldName 'assetData'
 
-                try
-                {
-                    # Add API key header
-                    $HttpClient.DefaultRequestHeaders.Add('x-api-key', (ConvertFromSecureString -SecureString $ImmichSession.AccessToken))
-
-                    # Add form fields
-                    foreach ($field in $FormData.GetEnumerator())
-                    {
-                        $StringContent = New-Object System.Net.Http.StringContent($field.Value.ToString())
-                        $MultipartContent.Add($StringContent, $field.Key)
-                    }
-
-                    # Add file content
-                    $FileStream = [System.IO.File]::OpenRead($FileInfo.FullName)
-                    $StreamContent = New-Object System.Net.Http.StreamContent($FileStream)
-                    $StreamContent.Headers.ContentType = New-Object System.Net.Http.Headers.MediaTypeHeaderValue('application/octet-stream')
-                    $MultipartContent.Add($StreamContent, 'assetData', $FileInfo.Name)
-
-                    # Send request
-                    $Response = $HttpClient.PostAsync($Uri, $MultipartContent).Result
-                    $ResponseContent = $Response.Content.ReadAsStringAsync().Result
-
-                    if ($Response.IsSuccessStatusCode)
-                    {
-                        $ResponseContent | ConvertFrom-Json | Get-IMAsset
-                    }
-                    else
-                    {
-                        throw "HTTP $($Response.StatusCode): $ResponseContent"
-                    }
-                }
-                finally
-                {
-                    if ($FileStream)
-                    {
-                        $FileStream.Dispose()
-                    }
-                    if ($MultipartContent)
-                    {
-                        $MultipartContent.Dispose()
-                    }
-                    if ($HttpClient)
-                    {
-                        $HttpClient.Dispose()
-                    }
-                }
-            }
-            else
-            {
-                # PowerShell Core - use Invoke-WebRequest
-                $Header = @{
-                    'Accept'    = 'application/json'
-                    'x-api-key' = ConvertFromSecureString -SecureString $ImmichSession.AccessToken
-                }
-                $Form = $FormData.Clone()
-                $Form['assetData'] = $FileInfo
-
-                $Result = Invoke-WebRequest -Uri $Uri -Method Post -Headers $Header -Form $Form -ContentType 'multipart/form-data'
-                $Result.Content | ConvertFrom-Json | Get-IMAsset
-            }
+            $ResponseContent | ConvertFrom-Json | Get-IMAsset
         }
     }
 }
