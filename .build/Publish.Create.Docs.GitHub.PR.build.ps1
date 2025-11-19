@@ -74,13 +74,13 @@ Task Update_GetPSDev_Docs {
     # Static text
     $ScriptBlock = {
 
-        $GetStartedPrefix = @'
+        $GetStartedPrefix = @"
 ---
-id: getstarted
-title: Get started
+id: $($args[1])
+title: $($args[1])
 ---
 
-'@
+"@
 
         $ChangelogPrefix = @'
 ---
@@ -90,27 +90,6 @@ title: Changelog
 
 '@
 
-        $sidebarjsTemplate = @'
-const commands = require('./commands/docusaurus.sidebar.js');
-module.exports = [
-    {{
-        type: 'category',
-        label: 'Introduction',
-        collapsed: false,
-        items: [
-            '{0}/getstarted',
-            '{0}/changelog'
-        ]
-    }},
-    {{
-        type: 'category',
-        label: 'Command Reference',
-        collapsed: true,
-        items: commands
-    }},
-];
-
-'@
         # Create commands docs
         $TemporaryDocsFolder = Join-Path $args[0] 'docs'
         $TemporaryDocsFolderModules = Join-Path $TemporaryDocsFolder 'modules'
@@ -119,12 +98,13 @@ module.exports = [
         $DocuSplat = @{
             Module          = $args[1]
             DocsFolder      = $TemporaryDocsFolderModules
-            Sidebar         = "$($args[1])/commands"
+            Sidebar         = "$($args[1])/Command Reference"
             MetaDescription = ('Help page for the Powershell "%1" command')
             MetaKeywords    = 'Powershell', $($args[1]), 'Help', 'Documentation'
             AppendMarkdown  = ("## EDIT THIS DOC `n`nThis page was auto-generated from the powershell command comment based help. To edit the content of this page, update the script file comment based help on github [Github](https://github.com/hanpq/{0})" -f $args[1])
         }
         $null = New-DocusaurusHelp @DocuSplat -ErrorAction Stop -WarningAction SilentlyContinue
+
 
         # Generate new changelog
         $SourceChangeLogPath = Join-Path $args[3] 'CHANGELOG.md'
@@ -139,22 +119,18 @@ module.exports = [
         Write-Output "Destination changelog path is: $DestinationChangeLogPath"
         $ChangelogPrefix + $ChangeLogContent | Out-File -FilePath $DestinationChangeLogPath
 
+        # Remove auto-generated sidebar file
+        Remove-Item (Join-Path $DestinationModulePath '/Command Reference/docusaurus.sidebar.js')
+
         # Generate new getstarted
         $SourceReadmePath = Join-Path $args[3] 'README.md'
         Write-Output "Source readme path is: $SourceReadmePath"
         $ReadmeContent = Get-Content $SourceReadmePath -Raw
         $DestinationModulePath = Join-Path $TemporaryDocsFolderModules $args[1]
         Write-Output "Destination module path is: $DestinationModulePath"
-        $DestinationGetStartedPath = Join-Path $DestinationModulePath 'getstarted.md'
+        $DestinationGetStartedPath = Join-Path $DestinationModulePath "$($args[1]).md"
         Write-Output "Destination getstarted path is: $DestinationGetStartedPath"
         $GetStartedPrefix + $ReadmeContent | Out-File -FilePath $DestinationGetStartedPath
-
-        # Generate new sidebar
-        $DestinationModulePath = Join-Path $TemporaryDocsFolderModules $args[1]
-        Write-Output "Destination module path is: $DestinationModulePath"
-        $DestinationSidebarPath = Join-Path $DestinationModulePath 'sidebar.js'
-        Write-Output "Destination sidebar path is: $DestinationGetStartedPath"
-        ($sidebarjsTemplate -f $args[1])  | Out-File -FilePath $DestinationSidebarPath
 
         # Remove module
         Remove-Module -Name $args[1] -Force -ErrorAction Stop
