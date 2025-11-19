@@ -98,7 +98,7 @@ title: Changelog
         $DocuSplat = @{
             Module          = $args[1]
             DocsFolder      = $TemporaryDocsFolderModules
-            Sidebar         = "$($args[1])/Command Reference"
+            Sidebar         = "$($args[1])/03-Command Reference"
             MetaDescription = ('Help page for the Powershell "%1" command')
             MetaKeywords    = 'Powershell', $($args[1]), 'Help', 'Documentation'
             AppendMarkdown  = ("## EDIT THIS DOC `n`nThis page was auto-generated from the powershell command comment based help. To edit the content of this page, update the script file comment based help on github [Github](https://github.com/hanpq/{0})" -f $args[1])
@@ -115,7 +115,7 @@ title: Changelog
         Write-Output 'Escaped curly-brackets in changelog content'
         $DestinationModulePath = Join-Path $TemporaryDocsFolderModules $args[1]
         Write-Output "Destination module path is: $DestinationModulePath"
-        $DestinationChangeLogPath = Join-Path $DestinationModulePath 'changelog.md'
+        $DestinationChangeLogPath = Join-Path $DestinationModulePath '02-changelog.md'
         Write-Output "Destination changelog path is: $DestinationChangeLogPath"
         $ChangelogPrefix + $ChangeLogContent | Out-File -FilePath $DestinationChangeLogPath
 
