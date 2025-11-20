@@ -43,6 +43,7 @@
 
         [Parameter(Mandatory)]
         [ValidateSet(
+            'emptyTrash',
             'thumbnailGeneration',
             'metadataExtraction',
             'videoConversion',
@@ -57,10 +58,20 @@
             'sidecar',
             'library',
             'notifications',
-            'emptyTrash',
+            'backupDatabase',
+            'ocr',
+            'workflow',
             'person-cleanup',
             'tag-cleanup',
-            'user-cleanup'
+            'user-cleanup',
+            'memory-cleanup',
+            'memory-create',
+            'backup-databaseperson-cleanup',
+            'tag-cleanup',
+            'user-cleanup',
+            'memory-cleanup',
+            'memory-create',
+            'backup-database'
         )]
         [string[]]
         $Job,
@@ -81,7 +92,7 @@
                     InvokeImmichRestMethod -Method POST -RelativePath '/trash/empty' -ImmichSession:$Session
                 }
             }
-            { @('person-cleanup', 'tag-cleanup', 'user-cleanup') -contains $PSItem }
+            { @('person-cleanup', 'tag-cleanup', 'user-cleanup', 'memory-cleanup', 'memory-create', 'backup-databaseperson-cleanup', 'tag-cleanup', 'user-cleanup', 'memory-cleanup', 'memory-create', 'backup-database') -contains $PSItem }
             {
                 if ($PSCmdlet.ShouldProcess("Start job: $($PSitem)", 'START'))
                 {
@@ -97,10 +108,10 @@
                 {
                     $CurrentJob = $PSItem
                     $Body = @{
-                        name = $CurrentJob
+                        command = 'start'
                     }
                     $Body += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-                    InvokeImmichRestMethod -Method POST -RelativePath '/jobs' -ImmichSession:$Session -Body:$Body
+                    InvokeImmichRestMethod -Method PUT -RelativePath "/jobs/$CurrentJob" -ImmichSession:$Session -Body:$Body
                 }
             }
         }

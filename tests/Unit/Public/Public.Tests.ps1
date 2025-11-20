@@ -1826,30 +1826,6 @@ InModuleScope $ProjectName {
             }
         }
 
-        Context 'Parameter Set: deviceid' {
-            It 'Should return assets from specific device' {
-                # Override the global mock for this specific test to return device assets
-                Mock InvokeImmichRestMethod {
-                    return @(
-                        [pscustomobject]@{ id = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3a'; originalFileName = 'device1.jpg' }
-                        [pscustomobject]@{ id = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3b'; originalFileName = 'device2.jpg' }
-                    )
-                } -ModuleName PSImmich -ParameterFilter { $RelativePath -match '/assets/device/' }
-
-                $testDeviceId = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
-                $result = Get-IMAsset -DeviceID $testDeviceId
-
-                $result | Should -HaveCount 2
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq "/assets/device/$testDeviceId"
-                }
-            }
-
-            It 'Should throw when invalid device ID GUID is provided' {
-                { Get-IMAsset -DeviceID 'invalid-guid' } | Should -Throw
-            }
-        }
-
         Context 'Parameter Set: personid' {
             It 'Should return assets for specific person' {
                 $testPersonId = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
@@ -1924,7 +1900,7 @@ InModuleScope $ProjectName {
 
             It 'Should have mandatory parameters for appropriate parameter sets' {
                 $Command.Parameters.Random.ParameterSets['random'].IsMandatory | Should -Be $true
-                $Command.Parameters.DeviceID.ParameterSets['deviceid'].IsMandatory | Should -Be $true
+
                 $Command.Parameters.PersonId.ParameterSets['personid'].IsMandatory | Should -Be $true
                 $Command.Parameters.TagId.ParameterSets['tagid'].IsMandatory | Should -Be $true
                 $Command.Parameters.Id.ParameterSets['id'].IsMandatory | Should -Be $true
@@ -4300,7 +4276,7 @@ InModuleScope $ProjectName {
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
                     $Method -eq 'PUT' -and
                     ($RelativePath -eq "/jobs/$TestJob" -or $RelativePath -eq "/jobs/$TestJob2") -and
-                    $Body.command -eq 'start'
+                    ($Body.command -eq 'start')
                 }
             }
 
@@ -5921,6 +5897,16 @@ InModuleScope $ProjectName {
 
                 switch -Regex ($RelativePath)
                 {
+                    '^/memories/statistics$'
+                    {
+                        # Mock response for memory statistics
+                        return [PSCustomObject]@{
+                            totalMemories = 42
+                            savedMemories = 15
+                            featuredMemories = 8
+                            onThisDayMemories = 12
+                        }
+                    }
                     '^/memories$'
                     {
                         # List all memories
@@ -6132,6 +6118,84 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
                     $Method -eq 'Get'
+                }
+            }
+        }
+
+        Context 'Statistics Parameter' {
+            It 'Should get memory statistics when Statistics switch is used' {
+                $result = Get-IMMemory -Statistics
+
+                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and
+                    $RelativePath -eq '/memories/statistics'
+                }
+                $result.totalMemories | Should -Be 42
+                $result.savedMemories | Should -Be 15
+            }
+
+            It 'Should support Statistics with other parameters' {
+                Get-IMMemory -Statistics -Order 'desc'
+
+                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $RelativePath -eq '/memories/statistics'
+                }
+            }
+        }
+
+        Context 'New Parameters Support' {
+            It 'Should support Order parameter' {
+                Get-IMMemory -Order 'desc'
+
+                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $RelativePath -eq '/memories' -and
+                    $QueryParameters.order -eq 'desc'
+                }
+            }
+
+            It 'Should support NumberOfMemories parameter' {
+                Get-IMMemory -NumberOfMemories 5
+
+                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $RelativePath -eq '/memories' -and
+                    $QueryParameters.size -eq 5
+                }
+            }
+
+            It 'Should support IsSaved parameter' {
+                Get-IMMemory -IsSaved:$true
+
+                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $RelativePath -eq '/memories' -and
+                    $QueryParameters.isSaved -eq $true
+                }
+            }
+
+            It 'Should support IsTrashed parameter' {
+                Get-IMMemory -IsTrashed:$false
+
+                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $RelativePath -eq '/memories' -and
+                    $QueryParameters.isTrashed -eq $false
+                }
+            }
+
+            It 'Should support Type parameter' {
+                Get-IMMemory -Type 'on_this_day'
+
+                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $RelativePath -eq '/memories' -and
+                    $QueryParameters.type -eq 'on_this_day'
+                }
+            }
+
+            It 'Should support For parameter for date filtering' {
+                $TestDate = '2024-01-15'
+                Get-IMMemory -For $TestDate
+
+                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $RelativePath -eq '/memories' -and
+                    $QueryParameters.for -eq $TestDate
                 }
             }
         }
@@ -7583,7 +7647,7 @@ InModuleScope $ProjectName {
             It 'Should have correct default ContentType' {
                 # Test by calling function without ContentType and checking the invocation
                 Invoke-ImmichMethod -Method 'GET' -RelativeURI '/test'
-                
+
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $ContentType -eq 'application/json'
                 }
@@ -7681,10 +7745,10 @@ InModuleScope $ProjectName {
         Context 'File Output' {
             It 'Should pass OutFilePath when provided' {
                 $outputPath = Join-Path $TestDrive 'output.jpg'
-                
+
                 # First check if function is called at all
                 { Invoke-ImmichMethod -Method 'GET' -RelativeURI '/download' -OutFilePath $outputPath } | Should -Not -Throw
-                
+
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
@@ -8204,6 +8268,391 @@ InModuleScope $ProjectName {
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
                     $Method -eq 'Put' -and $RelativePath -eq '/stacks/12345678-1234-1234-1234-123456789abc'
                 }
+            }
+        }
+    }
+
+    Describe 'Get-IMPlugin' -Tag 'Unit', 'Get-IMPlugin' {
+        BeforeAll {
+            Mock InvokeImmichRestMethod {
+                if ($RelativePath -eq '/plugins')
+                {
+                    return @(
+                        @{id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Plugin 1'; version = '1.0.0' },
+                        @{id = '223e4567-e89b-12d3-a456-426614174001'; name = 'Test Plugin 2'; version = '2.1.0' }
+                    )
+                }
+                elseif ($RelativePath -match '/plugins/[a-f0-9-]+')
+                {
+                    return @{id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Plugin 1'; version = '1.0.0' }
+                }
+            }
+            Mock AddCustomType {
+                param($InputObject, $Type)
+                return $InputObject
+            } -ModuleName 'PSImmich'
+        }
+
+        Context 'When retrieving all plugins (list parameter set)' {
+            It 'Should call InvokeImmichRestMethod with correct parameters' {
+                Get-IMPlugin
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/plugins'
+                }
+            }
+
+            It 'Should add custom type to results' {
+                Get-IMPlugin
+
+                Should -Invoke AddCustomType -Times 2 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
+                    $Type -eq 'IMPlugin'
+                }
+            }
+        }
+
+        Context 'When retrieving specific plugin by ID (id parameter set)' {
+            It 'Should call InvokeImmichRestMethod with plugin ID path' {
+                Get-IMPlugin -Id '123e4567-e89b-12d3-a456-426614174000'
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/plugins/123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should add custom type to single result' {
+                Get-IMPlugin -Id '123e4567-e89b-12d3-a456-426614174000'
+
+                Should -Invoke AddCustomType -Times 1 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
+                    $Type -eq 'IMPlugin'
+                }
+            }
+        }
+
+        Context 'Pipeline support' {
+            It 'Should accept Id from pipeline by value' {
+                '123e4567-e89b-12d3-a456-426614174000' | Get-IMPlugin
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RelativePath -eq '/plugins/123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should accept Id from pipeline by property name' {
+                [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Get-IMPlugin
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RelativePath -eq '/plugins/123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+        }
+
+        Context 'Parameter validation' {
+            It 'Should validate Id GUID format' {
+                { Get-IMPlugin -Id 'invalid-guid' } | Should -Throw
+            }
+        }
+
+        Context 'Session parameter' {
+            It 'Should pass Session parameter when provided' {
+                $function = Get-Command Get-IMPlugin
+                $sessionParam = $function.Parameters['Session']
+                $sessionParam.ParameterType.Name | Should -Be 'ImmichSession'
+            }
+        }
+    }
+
+    # Workflow tests excluded for now. Workflows API is still under development. Some request parameters have undefined types.
+    Describe 'Get-IMWorkflow' -Tag 'Unit', 'Get-IMWorkflow' -Skip:$true {
+        BeforeAll {
+            Mock InvokeImmichRestMethod {
+                if ($RelativePath -eq '/workflows')
+                {
+                    return @(
+                        @{id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Workflow 1'; enabled = $true },
+                        @{id = '223e4567-e89b-12d3-a456-426614174001'; name = 'Test Workflow 2'; enabled = $false }
+                    )
+                }
+                elseif ($RelativePath -match '/workflows/[a-f0-9-]+')
+                {
+                    return @{id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Workflow 1'; enabled = $true; actions = @(); filters = @() }
+                }
+            }
+            Mock AddCustomType {
+                param($InputObject, $Type)
+                return $InputObject
+            } -ModuleName 'PSImmich'
+        }
+
+        Context 'When retrieving all workflows (list parameter set)' {
+            It 'Should call InvokeImmichRestMethod with correct parameters' {
+                Get-IMWorkflow
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/workflows'
+                }
+            }
+
+            It 'Should add custom type to results' {
+                Get-IMWorkflow
+
+                Should -Invoke AddCustomType -Times 2 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
+                    $Type -eq 'IMWorkflow'
+                }
+            }
+        }
+
+        Context 'When retrieving specific workflow by ID (id parameter set)' {
+            It 'Should call InvokeImmichRestMethod with workflow ID path' {
+                Get-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000'
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should add custom type to single result' {
+                Get-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000'
+
+                Should -Invoke AddCustomType -Times 1 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
+                    $Type -eq 'IMWorkflow'
+                }
+            }
+        }
+
+        Context 'Pipeline support' {
+            It 'Should accept Id from pipeline by value' {
+                '123e4567-e89b-12d3-a456-426614174000' | Get-IMWorkflow
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should accept Id from pipeline by property name' {
+                [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Get-IMWorkflow
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+        }
+
+        Context 'Parameter validation' {
+            It 'Should validate Id GUID format' {
+                { Get-IMWorkflow -Id 'invalid-guid' } | Should -Throw
+            }
+        }
+
+        Context 'Session parameter' {
+            It 'Should pass Session parameter when provided' {
+                $function = Get-Command Get-IMWorkflow
+                $sessionParam = $function.Parameters['Session']
+                $sessionParam.ParameterType.Name | Should -Be 'ImmichSession'
+            }
+        }
+    }
+
+    Describe 'New-IMWorkflow' -Tag 'Unit', 'New-IMWorkflow' -Skip:$true {
+        BeforeAll {
+            Mock InvokeImmichRestMethod {
+                return @{
+                    id = '123e4567-e89b-12d3-a456-426614174000'
+                    name = 'Test Workflow'
+                    description = 'Test Description'
+                    enabled = $true
+                    actions = @()
+                    filters = @()
+                }
+            }
+            Mock ConvertTo-ApiParameters {
+                return @{
+                    name = $BoundParameters.Name
+                    description = $BoundParameters.Description
+                    enabled = $BoundParameters.Enabled
+                    actions = $BoundParameters.Actions
+                    filters = $BoundParameters.Filters
+                    triggerType = $BoundParameters.TriggerType
+                }
+            }
+            Mock AddCustomType {
+                param($InputObject, $Type)
+                return $InputObject
+            } -ModuleName 'PSImmich'
+        }
+
+        Context 'When creating a new workflow' {
+            It 'Should call InvokeImmichRestMethod with correct parameters' {
+                New-IMWorkflow -Name 'Test Workflow'
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Method -eq 'Post' -and $RelativePath -eq '/workflows'
+                }
+            }
+
+            It 'Should call ConvertTo-ApiParameters for body parameters' {
+                New-IMWorkflow -Name 'Test Workflow' -Description 'Test Description'
+
+                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
+            }
+
+            It 'Should add custom type to result' {
+                New-IMWorkflow -Name 'Test Workflow'
+
+                Should -Invoke AddCustomType -Times 1 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
+                    $Type -eq 'IMWorkflow'
+                }
+            }
+
+            It 'Should handle all optional parameters' {
+                New-IMWorkflow -Name 'Test' -Description 'Desc' -TriggerType 'upload' -Enabled:$false -Actions @() -Filters @()
+
+                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It
+            }
+        }
+    }
+
+    Describe 'Set-IMWorkflow' -Tag 'Unit', 'Set-IMWorkflow' -Skip:$true {
+        BeforeAll {
+            Mock InvokeImmichRestMethod {}
+            Mock ConvertTo-ApiParameters {
+                return @{
+                    name = $BoundParameters.Name
+                    description = $BoundParameters.Description
+                    enabled = $BoundParameters.Enabled
+                    actions = $BoundParameters.Actions
+                    filters = $BoundParameters.Filters
+                    triggerType = $BoundParameters.TriggerType
+                }
+            }
+            Mock AddCustomType {
+                param($InputObject, $Type)
+                return $InputObject
+            } -ModuleName 'PSImmich'
+        }
+
+        Context 'When updating a workflow' {
+            It 'Should call InvokeImmichRestMethod with correct parameters for single ID' {
+                Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Name 'Updated' -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Method -eq 'Put' -and $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should call ConvertTo-ApiParameters for body parameters' {
+                Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Name 'Updated' -Confirm:$false
+
+                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
+            }
+
+            It 'Should add custom type to result' {
+                Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Name 'Updated' -Confirm:$false
+
+                Should -Invoke AddCustomType -Times 1 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
+                    $Type -eq 'IMWorkflow'
+                }
+            }
+
+            It 'Should handle multiple IDs' {
+                $Ids = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
+                Set-IMWorkflow -Id $Ids -Name 'Updated' -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+            }
+        }
+
+        Context 'Pipeline support' {
+            It 'Should accept Id from pipeline by value' {
+                '123e4567-e89b-12d3-a456-426614174000' | Set-IMWorkflow -Name 'Updated' -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should accept Id from pipeline by property name' {
+                [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Set-IMWorkflow -Name 'Updated' -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+        }
+
+        Context 'Parameter validation' {
+            It 'Should validate Id GUID format' {
+                { Set-IMWorkflow -Id 'invalid-guid' -Name 'Test' } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Remove-IMWorkflow' -Tag 'Unit', 'Remove-IMWorkflow' -Skip:$true {
+        BeforeAll {
+            Mock InvokeImmichRestMethod {
+                return $null
+            }
+        }
+
+        Context 'When removing workflows' {
+            It 'Should call InvokeImmichRestMethod with correct parameters for single ID' {
+                Remove-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Method -eq 'Delete' -and $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should handle multiple IDs' {
+                $Ids = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
+                Remove-IMWorkflow -Id $Ids -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+            }
+
+            It 'Should call InvokeImmichRestMethod for each ID in array' {
+                $Ids = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
+                Remove-IMWorkflow -Id $Ids -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                }
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RelativePath -eq '/workflows/223e4567-e89b-12d3-a456-426614174001'
+                }
+            }
+        }
+
+        Context 'Pipeline support' {
+            It 'Should accept Id from pipeline by value' {
+                '123e4567-e89b-12d3-a456-426614174000' | Remove-IMWorkflow -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should accept Id from pipeline by property name' {
+                [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Remove-IMWorkflow -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should accept WorkflowId alias from pipeline by property name' {
+                [PSCustomObject]@{WorkflowId = '123e4567-e89b-12d3-a456-426614174000' } | Remove-IMWorkflow -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+        }
+
+        Context 'Parameter validation' {
+            It 'Should validate Id GUID format' {
+                { Remove-IMWorkflow -Id 'invalid-guid' } | Should -Throw
             }
         }
     }

@@ -159,7 +159,9 @@ Describe 'Quality for files' -Tag 'TestQuality' {
 
             $FunctionHelp = $ParsedFunction.GetHelpContent()
             $parameters = $ParsedFunction.Body.ParamBlock.Parameters.name.VariablePath.Foreach{ $_.ToString() }
-            $openApiPath = Join-Path $PSScriptRoot '..\..\api\api.2.2.0.json'
+
+            $LastAPISpecFile = Get-ChildItem (Join-Path $PSScriptRoot '..\..\api\') -File -Filter "api*.json" | sort lastwritetime | select -last 1
+            $openApiPath = $LastAPISpecFile.FullName
             $openApiDefinition = Get-Content -Path $openApiPath -Raw | ConvertFrom-Json
         }
         Context $File.Name -Tag $File.Name {

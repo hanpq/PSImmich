@@ -199,7 +199,7 @@ Describe 'Server' -Tag 'Integration' {
         }
         It -Name 'Should return these properties' {
             $Result = Get-IMServerConfig
-            $ExpectedProperties = @('loginPageMessage', 'trashDays', 'userDeleteDelay', 'oauthButtonText', 'isInitialized', 'isOnboarded', 'externalDomain', 'mapDarkStyleUrl', 'mapLightStyleUrl', 'publicUsers')
+            $ExpectedProperties = @('maintenanceMode','loginPageMessage', 'trashDays', 'userDeleteDelay', 'oauthButtonText', 'isInitialized', 'isOnboarded', 'externalDomain', 'mapDarkStyleUrl', 'mapLightStyleUrl', 'publicUsers')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
@@ -1501,6 +1501,269 @@ Describe 'Stack' -Tag 'Integration' {
         catch
         {
             # No stacks to clean up
+        }
+    }
+}
+
+Describe 'Plugin' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context 'Get-IMPlugin' -Tag 'Get-IMPlugin' {
+        It -Name 'Should list all plugins without error' {
+            { $Result = Get-IMPlugin } | Should -Not -Throw
+        }
+        It -Name 'Should get specific plugin by ID if plugins exist' {
+            $AllPlugins = Get-IMPlugin
+            if ($AllPlugins -and $AllPlugins.Count -gt 0) {
+                $FirstPlugin = $AllPlugins[0]
+                $Result = Get-IMPlugin -Id $FirstPlugin.id
+                $Result | Should -Not -BeNullOrEmpty
+                $Result.id | Should -Be $FirstPlugin.id
+            }
+        }
+        It -Name 'Should support pipeline input with plugin ID' {
+            $AllPlugins = Get-IMPlugin
+            if ($AllPlugins -and $AllPlugins.Count -gt 0) {
+                $FirstPlugin = $AllPlugins[0]
+                $Result = $FirstPlugin.id | Get-IMPlugin
+                $Result | Should -Not -BeNullOrEmpty
+                $Result.id | Should -Be $FirstPlugin.id
+            }
+        }
+        It -Name 'Should throw when getting non-existent plugin' {
+            $FakeId = 'ffffffff-ffff-ffff-ffff-ffffffffffff'
+            { Get-IMPlugin -Id $FakeId } | Should -Throw
+        }
+    }
+}
+
+Describe 'Memory' -Tag 'Integration' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context 'Get-IMMemory' -Tag 'Get-IMMemory' {
+        It -Name 'Should list memories without error' {
+            { $Result = Get-IMMemory } | Should -Not -Throw
+        }
+        It -Name 'Should return array when memories exist' {
+            $Result = Get-IMMemory
+            if ($Result) {
+                $Result | Should -BeOfType [Array]
+            }
+        }
+        It -Name 'Should support Order parameter' {
+            { $Result = Get-IMMemory -Order 'asc' } | Should -Not -Throw
+            { $Result = Get-IMMemory -Order 'desc' } | Should -Not -Throw
+        }
+        It -Name 'Should support NumberOfMemories parameter' {
+            { $Result = Get-IMMemory -NumberOfMemories 5 } | Should -Not -Throw
+        }
+        It -Name 'Should support IsSaved parameter' {
+            { $Result = Get-IMMemory -IsSaved:$true } | Should -Not -Throw
+            { $Result = Get-IMMemory -IsSaved:$false } | Should -Not -Throw
+        }
+        It -Name 'Should support IsTrashed parameter' {
+            { $Result = Get-IMMemory -IsTrashed:$true } | Should -Not -Throw
+            { $Result = Get-IMMemory -IsTrashed:$false } | Should -Not -Throw
+        }
+        It -Name 'Should support Type parameter' {
+            { $Result = Get-IMMemory -Type 'on_this_day' } | Should -Not -Throw
+        }
+        It -Name 'Should support Statistics switch and return statistics data' {
+            { $Result = Get-IMMemory -Statistics } | Should -Not -Throw
+            $Result = Get-IMMemory -Statistics
+            if ($Result) {
+                # Statistics should return different structure than regular memories
+                $Result | Should -Not -BeNullOrEmpty
+            }
+        }
+        It -Name 'Should support For parameter for date filtering' {
+            $TestDate = Get-Date -Format 'yyyy-MM-dd'
+            { $Result = Get-IMMemory -For $TestDate } | Should -Not -Throw
+        }
+        It -Name 'Should support combined parameters' {
+            { $Result = Get-IMMemory -Order 'desc' -NumberOfMemories 3 -IsSaved:$false } | Should -Not -Throw
+        }
+        It -Name 'Statistics parameter should be mutually exclusive with other parameters' {
+            # When Statistics is used, it should work independently
+            { $Result = Get-IMMemory -Statistics -Order 'desc' } | Should -Not -Throw
+            { $Result = Get-IMMemory -Statistics -NumberOfMemories 5 } | Should -Not -Throw
+        }
+    }
+}
+
+# Workflow tests excluded for now. Workflows API is still under development. Some request parameters have undefined types.
+Describe 'Workflow' -Tag 'Integration' -Skip:$true {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+        if ($env:CI) {
+            $TestWorkflowName = "CI-Test-$($env:GITHUB_RUN_ID)"
+        } else {
+            $TestWorkflowName = "Test-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+        }
+    }
+
+    Context 'Get-IMWorkflow' -Tag 'Get-IMWorkflow' {
+        It -Name 'Should list all workflows without error' {
+            { $Result = Get-IMWorkflow } | Should -Not -Throw
+        }
+        It -Name 'Should return array when workflows exist' {
+            # Create a test workflow first to ensure we have at least one
+            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Integration test workflow'
+            try {
+                $Result = Get-IMWorkflow
+                $Result | Should -Not -BeNullOrEmpty
+            } finally {
+                Remove-IMWorkflow -Id $TestWorkflow.id -Confirm:$false
+            }
+        }
+        It -Name 'Should get specific workflow by ID' {
+            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Integration test workflow'
+            try {
+                $Result = Get-IMWorkflow -Id $TestWorkflow.id
+                $Result | Should -Not -BeNullOrEmpty
+                $Result.id | Should -Be $TestWorkflow.id
+                $Result.name | Should -Be $TestWorkflowName
+            } finally {
+                Remove-IMWorkflow -Id $TestWorkflow.id -Confirm:$false
+            }
+        }
+        It -Name 'Should support pipeline input with workflow ID' {
+            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Integration test workflow'
+            try {
+                $Result = $TestWorkflow.id | Get-IMWorkflow
+                $Result | Should -Not -BeNullOrEmpty
+                $Result.id | Should -Be $TestWorkflow.id
+            } finally {
+                Remove-IMWorkflow -Id $TestWorkflow.id -Confirm:$false
+            }
+        }
+        It -Name 'Should throw when getting non-existent workflow' {
+            $FakeId = 'ffffffff-ffff-ffff-ffff-ffffffffffff'
+            { Get-IMWorkflow -Id $FakeId } | Should -Throw
+        }
+    }
+
+    Context 'New-IMWorkflow' -Tag 'New-IMWorkflow' {
+        It -Name 'Should create workflow with basic parameters' {
+            $NewWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Integration test workflow'
+            try {
+                $NewWorkflow | Should -Not -BeNullOrEmpty
+                $NewWorkflow.name | Should -Be $TestWorkflowName
+                $NewWorkflow.description | Should -Be 'Integration test workflow'
+                $NewWorkflow.enabled | Should -Be $true  # Default value
+
+                # Verify workflow exists in system
+                $Retrieved = Get-IMWorkflow -Id $NewWorkflow.id
+                $Retrieved.name | Should -Be $TestWorkflowName
+            } finally {
+                Remove-IMWorkflow -Id $NewWorkflow.id -Confirm:$false
+            }
+        }
+        It -Name 'Should create workflow with disabled state' {
+            $NewWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Disabled test workflow' -Enabled:$false
+            try {
+                $NewWorkflow | Should -Not -BeNullOrEmpty
+                $NewWorkflow.enabled | Should -Be $false
+            } finally {
+                Remove-IMWorkflow -Id $NewWorkflow.id -Confirm:$false
+            }
+        }
+        It -Name 'Should create workflow with empty actions and filters' {
+            $NewWorkflow = New-IMWorkflow -Name $TestWorkflowName -Actions @() -Filters @()
+            try {
+                $NewWorkflow | Should -Not -BeNullOrEmpty
+                # Verify workflow can be created with empty collections
+                $Retrieved = Get-IMWorkflow -Id $NewWorkflow.id
+                $Retrieved.name | Should -Be $TestWorkflowName
+            } finally {
+                Remove-IMWorkflow -Id $NewWorkflow.id -Confirm:$false
+            }
+        }
+    }
+
+    Context 'Set-IMWorkflow' -Tag 'Set-IMWorkflow' {
+        BeforeAll {
+            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Original description'
+        }
+        AfterAll {
+            try {
+                Remove-IMWorkflow -Id $TestWorkflow.id -Confirm:$false
+            } catch {
+                # Workflow may have been removed by tests
+            }
+        }
+        It -Name 'Should update workflow name' {
+            $UpdatedName = "$TestWorkflowName-Updated"
+            Set-IMWorkflow -Id $TestWorkflow.id -Name $UpdatedName -Confirm:$false
+            $Result = Get-IMWorkflow -Id $TestWorkflow.id
+            $Result.name | Should -Be $UpdatedName
+        }
+        It -Name 'Should update workflow description' {
+            $UpdatedDescription = 'Updated integration test workflow description'
+            Set-IMWorkflow -Id $TestWorkflow.id -Description $UpdatedDescription -Confirm:$false
+            $Result = Get-IMWorkflow -Id $TestWorkflow.id
+            $Result.description | Should -Be $UpdatedDescription
+        }
+        It -Name 'Should update workflow enabled state' {
+            Set-IMWorkflow -Id $TestWorkflow.id -Enabled:$false -Confirm:$false
+            $Result = Get-IMWorkflow -Id $TestWorkflow.id
+            $Result.enabled | Should -Be $false
+
+            # Set it back to enabled
+            Set-IMWorkflow -Id $TestWorkflow.id -Enabled:$true -Confirm:$false
+            $Result = Get-IMWorkflow -Id $TestWorkflow.id
+            $Result.enabled | Should -Be $true
+        }
+        It -Name 'Should support pipeline input for workflow updates' {
+            $UpdatedName = "$TestWorkflowName-Pipeline"
+            $TestWorkflow.id | Set-IMWorkflow -Name $UpdatedName -Confirm:$false
+            $Result = Get-IMWorkflow -Id $TestWorkflow.id
+            $Result.name | Should -Be $UpdatedName
+        }
+    }
+
+    Context 'Remove-IMWorkflow' -Tag 'Remove-IMWorkflow' {
+        It -Name 'Should remove workflow by ID' {
+            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Workflow to be removed'
+            $WorkflowId = $TestWorkflow.id
+
+            # Remove the workflow
+            Remove-IMWorkflow -Id $WorkflowId -Confirm:$false
+
+            # Verify workflow was removed
+            { Get-IMWorkflow -Id $WorkflowId } | Should -Throw
+        }
+        It -Name 'Should support pipeline input for removal' {
+            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Workflow to be removed via pipeline'
+            $WorkflowId = $TestWorkflow.id
+
+            # Remove via pipeline
+            $WorkflowId | Remove-IMWorkflow -Confirm:$false
+
+            # Verify workflow was removed
+            { Get-IMWorkflow -Id $WorkflowId } | Should -Throw
+        }
+        It -Name 'Should remove multiple workflows' {
+            $Workflow1 = New-IMWorkflow -Name "$TestWorkflowName-1" -Description 'First workflow to remove'
+            $Workflow2 = New-IMWorkflow -Name "$TestWorkflowName-2" -Description 'Second workflow to remove'
+
+            # Remove both workflows
+            Remove-IMWorkflow -Id $Workflow1.id, $Workflow2.id -Confirm:$false
+
+            # Verify both workflows were removed
+            { Get-IMWorkflow -Id $Workflow1.id } | Should -Throw
+            { Get-IMWorkflow -Id $Workflow2.id } | Should -Throw
+        }
+    }
+
+    AfterAll {
+        # Clean up any remaining test workflows
+        try {
+            Get-IMWorkflow | Where-Object { $_.name -like "*$TestWorkflowName*" } | Remove-IMWorkflow -Confirm:$false -ErrorAction SilentlyContinue
+        } catch {
+            # No test workflows to clean up
         }
     }
 }
