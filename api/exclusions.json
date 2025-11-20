@@ -101,16 +101,6 @@
             "Reason": "Unclear usage - no documentation"
         },
         {
-            "Path": "/sync/delta-sync",
-            "Method": "POST",
-            "Reason": "Unclear usage - no documentation"
-        },
-        {
-            "Path": "/sync/full-sync",
-            "Method": "POST",
-            "Reason": "Unclear usage - no documentation"
-        },
-        {
             "Path": "/system-metadata/admin-onboarding",
             "Method": "GET",
             "Reason": "Admin setup - web specific"
@@ -174,38 +164,21 @@
             "Path": "/users/me/preferences",
             "Method": "PUT",
             "Reason": "User-specific endpoint - admin-focused module excludes /me endpoints"
-        }
-    ],
-    "ManualMappings": [
+        },
         {
-            "Path": "/auth/login",
+            "Path": "/sync/delta-sync",
             "Method": "POST",
-            "CoveredBy": "Connect-Immich"
+            "Reason": "Internal sync mechanism - not for direct use"
         },
         {
-            "Path": "/auth/logout",
+            "Path": "/sync/full-sync",
             "Method": "POST",
-            "CoveredBy": "Disconnect-Immich"
+            "Reason": "Internal sync mechanism - not for direct use"
         },
         {
-            "Path": "/assets",
+            "Path": "/admin/maintenance/login",
             "Method": "POST",
-            "CoveredBy": "Import-IMAsset"
-        },
-        {
-            "Path": "/users/me",
-            "Method": "GET",
-            "CoveredBy": "Get-IMUser"
-        },
-        {
-            "Path": "/users/me/preferences",
-            "Method": "GET",
-            "CoveredBy": "Get-IMUserPreference"
-        },
-        {
-            "Path": "/shared-links/me",
-            "Method": "GET",
-            "CoveredBy": "Get-IMSharedLink"
+            "Reason": "Admin maintenance - not for interactive use"
         }
     ]
 }
