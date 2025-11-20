@@ -97,7 +97,7 @@
 
         $FilePath | ForEach-Object {
             $FileInfo = Get-Item -Path $PSItem.FullName
-            $Uri = "/assets"
+            $Uri = '/assets'
 
             # Prepare form data
             $FormData = @{}

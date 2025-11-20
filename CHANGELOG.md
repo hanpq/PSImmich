@@ -5,6 +5,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Get-IMMemories now support retrieving memories statistics
+- Get-IMMemories
+  - New parameters; Order,For,NumberOfMemories,IsSaved,IsTrashed,Type,Statistics
+  - New functionality for the /memories/statistics API, invoked with the parameter -Statistics
+- Start-IMJob now uses the new api POST /jobs
+- Get-IMAsset removed support for DeviceID according to API deprecation
+
 ## [2.2.5] - 2025-11-17
 
 ### Added

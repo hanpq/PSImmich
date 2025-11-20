@@ -97,10 +97,10 @@
                 {
                     $CurrentJob = $PSItem
                     $Body = @{
-                        command = 'start'
+                        name = $CurrentJob
                     }
                     $Body += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-                    InvokeImmichRestMethod -Method PUT -RelativePath "/jobs/$CurrentJob" -ImmichSession:$Session -Body:$Body
+                    InvokeImmichRestMethod -Method POST -RelativePath '/jobs' -ImmichSession:$Session -Body:$Body
                 }
             }
         }

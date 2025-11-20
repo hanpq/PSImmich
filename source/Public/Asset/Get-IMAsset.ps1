@@ -61,11 +61,6 @@
         [int]
         $Count = 1,
 
-        [Parameter(Mandatory, ParameterSetName = 'deviceid')]
-        [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [string]
-        $DeviceID,
-
         [Parameter(Mandatory, ParameterSetName = 'personid')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
@@ -111,10 +106,6 @@
             'id'
             {
                 InvokeImmichRestMethod -Method Get -RelativePath "/assets/$Id" -ImmichSession:$Session -QueryParameters $QueryParameters | AddCustomType IMAsset
-            }
-            'deviceid'
-            {
-                InvokeImmichRestMethod -Method Get -RelativePath "/assets/device/$DeviceID" -ImmichSession:$Session | Get-IMAsset
             }
             'personId'
             {
