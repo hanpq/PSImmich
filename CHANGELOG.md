@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New Plugin management cmdlets (Alpha feature):
   - Get-IMPlugin - Retrieve plugins with support for listing all plugins or getting specific plugin by ID
 - New Workflow management cmdlets (Alpha feature):
+  - NOTE: These are basically untested, the API specification is not complete and workflows are currently under active development by the Immich Team. These cmdlets has been added as a preparation for when the workflow feature is stable.
   - Get-IMWorkflow - Retrieve workflows with support for listing all workflows or getting specific workflow by ID
   - New-IMWorkflow - Create new workflows with configurable name, description, trigger type, actions, and filters
   - Set-IMWorkflow - Update existing workflows including name, description, trigger type, enabled state, actions, and filters

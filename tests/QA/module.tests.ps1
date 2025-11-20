@@ -160,9 +160,9 @@ Describe 'Quality for files' -Tag 'TestQuality' {
             $FunctionHelp = $ParsedFunction.GetHelpContent()
             $parameters = $ParsedFunction.Body.ParamBlock.Parameters.name.VariablePath.Foreach{ $_.ToString() }
 
-            $LastAPISpecFile = Get-ChildItem (Join-Path $PSScriptRoot '..\..\api\') -File -Filter "api*.json" | sort lastwritetime | select -last 1
+            $LastAPISpecFile = Get-ChildItem (Join-Path $PSScriptRoot '..\..\api\') -File -Filter "api*.json" | sort-object lastwritetime | select-object -last 1
             $openApiPath = $LastAPISpecFile.FullName
-            $openApiDefinition = Get-Content -Path $openApiPath -Raw | ConvertFrom-Json
+            $openApiDefinition = Get-Content -Path $openApiPath -Raw | ConvertFrom-Json 
         }
         Context $File.Name -Tag $File.Name {
             It 'Function has unit tests' {
