@@ -151,7 +151,7 @@ Describe 'Session' -Tag 'Integration' {
             Connect-Immich -BaseURL $env:PSIMMICHURI -Credential $Cred
         }
         It -Name 'Credentials can be used' {
-            Get-IMServerConfig
+            Get-IMServer -Configuration
         }
     }
     Context -Name 'Get-IMSession - When no parameters are specified' -Tag 'Get-IMSession' {
@@ -193,71 +193,71 @@ Describe 'Server' -Tag 'Integration' {
             { Get-IMServer } | Should -Not -Throw
         }
     }
-    Context -Name 'Get-IMServerConfig - When no parameters are specified' -Tag 'Get-IMServerConfig' {
+    Context -Name 'Get-IMServer -Configuration - When no parameters are specified' -Tag 'Get-IMServer' {
         It -Name 'Should not throw' {
-            { Get-IMServerConfig } | Should -Not -Throw
+            { Get-IMServer -Configuration } | Should -Not -Throw
         }
         It -Name 'Should return these properties' {
-            $Result = Get-IMServerConfig
+            $Result = Get-IMServer -Configuration
             $ExpectedProperties = @('maintenanceMode','loginPageMessage', 'trashDays', 'userDeleteDelay', 'oauthButtonText', 'isInitialized', 'isOnboarded', 'externalDomain', 'mapDarkStyleUrl', 'mapLightStyleUrl', 'publicUsers')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
-    Context -Name 'Get-IMServerFeature - When no parameters are specified' -Tag 'Get-IMServerFeature' {
+    Context -Name 'Get-IMServer -Features - When no parameters are specified' -Tag 'Get-IMServer' {
         It -Name 'Should not throw' {
-            { Get-IMServerFeature } | Should -Not -Throw
+            { Get-IMServer -Features } | Should -Not -Throw
         }
         It -Name 'Should return these properties' {
-            $Result = Get-IMServerFeature
+            $Result = Get-IMServer -Features
             $ExpectedProperties = @('ocr', 'importFaces', 'duplicateDetection', 'smartSearch', 'passwordLogin', 'configFile', 'facialRecognition', 'map', 'reverseGeocoding', 'sidecar', 'search', 'trash', 'oauth', 'oauthAutoLaunch', 'email')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
-    Context -Name 'Get-IMServerStatistic - When no parameters are specified' -Tag 'Get-IMServerStatistic' {
+    Context -Name 'Get-IMServer -Statistic - When no parameters are specified' -Tag 'Get-IMServer' {
         It -Name 'Should not throw' {
-            { Get-IMServerStatistic } | Should -Not -Throw
+            { Get-IMServer -Statistics } | Should -Not -Throw
         }
         It -Name 'Should return these properties' {
-            $Result = Get-IMServerStatistic
+            $Result = Get-IMServer -Statistics
             $ExpectedProperties = @('photos', 'videos', 'usage', 'usageByUser', 'usagePhotos', 'usageVideos')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
             $ExpectedProperties = @('userID', 'userName', 'photos', 'videos', 'usage', 'usagePhotos', 'usageVideos', 'quotaSizeInBytes')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.usagebyuser[0].PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
-    Context -Name 'Get-IMServerVersion - When no parameters are specified' -Tag 'Get-IMServerVersion' {
+    Context -Name 'Get-IMServer -Version - When no parameters are specified' -Tag 'Get-IMServer' {
         It -Name 'Should not throw' {
-            { Get-IMServerVersion } | Should -Not -Throw
+            { Get-IMServer -Version } | Should -Not -Throw
         }
         It -Name 'Should return these properties' {
-            $Result = Get-IMServerVersion
+            $Result = Get-IMServer -Version
             $ExpectedProperties = @('version')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
-    Context -Name 'Get-IMSupportedMediaType - When no parameters are specified' -Tag 'Get-IMSupportedMediaType' {
+    Context -Name 'Get-IMServer -MediaTypes - When no parameters are specified' -Tag 'Get-IMServer' {
         It -Name 'Should not throw' {
-            { Get-IMSupportedMediaType } | Should -Not -Throw
+            { Get-IMServer -MediaTypes } | Should -Not -Throw
         }
         It -Name 'Should return these properties' {
-            $Result = Get-IMSupportedMediaType
+            $Result = Get-IMServer -MediaTypes
             $ExpectedProperties = @('video', 'image', 'sidecar')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
-    Context -Name 'Get-IMTheme - When no parameters are specified' -Tag 'Get-IMTheme' {
+    Context -Name 'Get-IMServer -Theme - When no parameters are specified' -Tag 'Get-IMServer' {
         It -Name 'Should not throw' {
-            { Get-IMTheme } | Should -Not -Throw
+            { Get-IMServer -Theme } | Should -Not -Throw
         }
         It -Name 'Should return these properties' {
-            $Result = Get-IMTheme
+            $Result = Get-IMServer -Theme
             $ExpectedProperties = @('customCss')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
-    Context -Name 'Get-IMServerAbout - When no parameters are specified' -Tag 'Get-IMServerAbout' {
+    Context -Name 'Get-IMServerAbout - When no parameters are specified' -Tag 'Get-IMServer' {
         It -Name 'Should not throw' {
-            { Get-IMServerAbout } | Should -Not -Throw
+            { Get-IMServer -About } | Should -Not -Throw
         }
         It -Name 'Should return these properties' {
             #$Result = Get-IMTheme
@@ -265,14 +265,49 @@ Describe 'Server' -Tag 'Integration' {
             #Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
-    Context -Name 'Test-IMPing - When no parameters are specified' -Tag 'Test-IMPing' {
+    Context -Name 'Get-IMServer -Ping - When no parameters are specified' -Tag 'Get-IMServer' {
         It -Name 'Should not throw' {
-            { Test-IMPing } | Should -Not -Throw
+            { Get-IMServer -Ping } | Should -Not -Throw
         }
         It -Name 'Should return these properties' {
-            $Result = Test-IMPing
+            $Result = Get-IMServer -Ping
             $ExpectedProperties = @('responds')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
+        }
+    }
+    Context -Name 'Get-IMServer -VersionHistory - When no parameters are specified' -Tag 'Get-IMServer' {
+        It -Name 'Should not throw' {
+            { Get-IMServer -VersionHistory } | Should -Not -Throw
+        }
+    }
+    Context -Name 'Get-IMServer -AppliedSystemConfiguration - When no parameters are specified' -Tag 'Get-IMServer' {
+        It -Name 'Should not throw' {
+            { Get-IMServer -AppliedSystemConfiguration } | Should -Not -Throw
+        }
+    }
+    Context -Name 'Get-IMServer -DefaultSystemConfiguration - When no parameters are specified' -Tag 'Get-IMServer' {
+        It -Name 'Should not throw' {
+            { Get-IMServer -DefaultSystemConfiguration } | Should -Not -Throw
+        }
+    }
+    Context -Name 'Get-IMServer -StorageTemplateOptions - When no parameters are specified' -Tag 'Get-IMServer' {
+        It -Name 'Should not throw' {
+            { Get-IMServer -StorageTemplateOptions } | Should -Not -Throw
+        }
+    }
+    Context -Name 'Get-IMServer -Storage - When no parameters are specified' -Tag 'Get-IMServer' {
+        It -Name 'Should not throw' {
+            { Get-IMServer -Storage } | Should -Not -Throw
+        }
+    }
+    Context -Name 'Get-IMServer -APKLinks - When no parameters are specified' -Tag 'Get-IMServer' {
+        It -Name 'Should not throw' {
+            { Get-IMServer -APKLinks } | Should -Not -Throw
+        }
+    }
+    Context -Name 'Get-IMServer -VersionCheck - When no parameters are specified' -Tag 'Get-IMServer' {
+        It -Name 'Should not throw' {
+            { Get-IMServer -VersionCheck } | Should -Not -Throw
         }
     }
 }
@@ -1085,35 +1120,35 @@ Describe 'ServerConfig' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
-    Context 'Get-IMConfig' -Tag 'Get-IMConfig' {
+    Context 'Get-IMServer' -Tag 'Get-IMServer' {
         It 'Should return applied config' {
-            $Result = Get-IMConfig
+            $Result = Get-IMServer -AppliedSystemConfiguration
             $Result | Should -HaveCount 1
         }
         It 'Should return applied config raw' {
-            $Result = Get-IMConfig -ReturnRawJSON
+            $Result = Get-IMServer -AppliedSystemConfiguration -ReturnRawJSON
             { $Result | ConvertFrom-Json } | Should -Not -Throw
         }
         It 'Should return default config' {
-            $Result = Get-IMConfig -Default
+            $Result = Get-IMServer -DefaultSystemConfiguration
             $Result | Should -HaveCount 1
         }
         It 'Should return default config raw' {
-            $Result = Get-IMConfig -Default -ReturnRawJSON
+            $Result = Get-IMServer -DefaultSystemConfiguration -ReturnRawJSON
             { $Result | ConvertFrom-Json } | Should -Not -Throw
         }
         It 'Should return storage template config' {
-            $Result = Get-IMConfig -StorageTemplate
+            $Result = Get-IMServer -StorageTemplateOptions
             $Result | Should -HaveCount 1
         }
         It 'Should update setting' {
-            $Result = Get-IMConfig
+            $Result = Get-IMServer -AppliedSystemConfiguration
             $Result.reverseGeocoding.enabled = $false
-            Set-IMConfig -RawJSON ($Result | ConvertTo-Json -Depth 10)
-            $ResultNew = Get-IMConfig
+            Set-IMServer -RawJSONConfig ($Result | ConvertTo-Json -Depth 10)
+            $ResultNew = Get-IMServer -AppliedSystemConfiguration
             $ResultNew.reverseGeocoding.enabled | Should -BeFalse
             $Result.reverseGeocoding.enabled = $true
-            Set-IMConfig -RawJSON ($Result | ConvertTo-Json -Depth 10)
+            Set-IMServer -RawJSONConfig ($Result | ConvertTo-Json -Depth 10)
         }
     }
 }

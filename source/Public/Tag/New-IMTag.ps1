@@ -9,10 +9,8 @@
         Optional session object for multi-instance connections.
     .PARAMETER Name
         Name for the new tag.
-    .PARAMETER Type
-        Tag type: OBJECT, FACE, or CUSTOM.
     .EXAMPLE
-        New-IMTag -Name 'Vacation' -Type CUSTOM
+        New-IMTag -Name 'Vacation'
 
         Creates custom tag for vacation photos.
 

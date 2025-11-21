@@ -7320,123 +7320,7 @@ InModuleScope $ProjectName {
             }
         }
     }
-    Describe 'Get-IMServer' -Tag 'Unit', 'Get-IMServer' {
-        BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{
-                    externalDomain       = 'https://immich.example.com'
-                    loginPageMessage     = 'Welcome to Immich'
-                    mapDarkStyleUrl      = 'https://tiles.example.com/dark/{z}/{x}/{y}.png'
-                    mapLightStyleUrl     = 'https://tiles.example.com/light/{z}/{x}/{y}.png'
-                    name                 = 'Immich Server'
-                    passwordLoginEnabled = $true
-                    publicLoginEnabled   = $false
-                    trashDays            = 30
-                }
-            }
-        }
 
-        Context 'Server Information Retrieval' {
-            It 'Should get server info with correct API call' {
-                # Mock the individual server functions that Get-IMServer calls
-                Mock Get-IMServerAbout { return [PSCustomObject]@{ version = '1.0.0' } }
-                Mock Get-IMServerConfig { return [PSCustomObject]@{ name = 'Immich Server'; trashDays = 30 } }
-                Mock Get-IMServerFeature { return [PSCustomObject]@{ smartSearch = $true } }
-
-                Get-IMServer
-
-                # Verify that the composite function calls the individual functions
-                Should -Invoke Get-IMServerAbout -Times 1
-                Should -Invoke Get-IMServerConfig -Times 1
-            }
-
-            It 'Should return server configuration' {
-                # Mock the individual functions to return predictable data
-                Mock Get-IMServerAbout { return [PSCustomObject]@{ version = '1.0.0' } }
-                Mock Get-IMServerConfig { return [PSCustomObject]@{ name = 'Immich Server'; passwordLoginEnabled = $true; trashDays = 30 } }
-                Mock Get-IMServerFeature { return [PSCustomObject]@{ smartSearch = $true } }
-                Mock Get-IMServerStatistic { return [PSCustomObject]@{ photos = 100 } }
-                Mock Get-IMServerStorage { return [PSCustomObject]@{ diskSpace = '100GB' } }
-                Mock Get-IMServerVersion { return [PSCustomObject]@{ version = '1.0.0' } }
-                Mock Get-IMSupportedMediaType { return [PSCustomObject]@{ image = @('jpg', 'png') } }
-                Mock Get-IMTheme { return [PSCustomObject]@{ darkMode = $true } }
-                Mock Test-IMPing { return [PSCustomObject]@{ status = 'ok' } }
-
-                $result = Get-IMServer
-
-                # Test composite object structure (properties are prefixed with ObjectType)
-                $result.Config_name | Should -Be 'Immich Server'
-                $result.Config_passwordLoginEnabled | Should -Be $true
-                $result.Config_trashDays | Should -Be 30
-            }
-        }
-    }
-    Describe 'Get-IMServerAbout' -Tag 'Unit', 'Get-IMServerAbout' {
-        BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{
-                    version       = '1.118.0'
-                    versionUrl    = 'https://github.com/immich-app/immich/releases/tag/v1.118.0'
-                    repository    = 'https://github.com/immich-app/immich'
-                    repositoryUrl = 'https://github.com/immich-app/immich'
-                    build         = '12345'
-                    buildUrl      = 'https://github.com/immich-app/immich/commit/abc123'
-                    buildImage    = 'ghcr.io/immich-app/immich-server:v1.118.0'
-                    buildImageUrl = 'https://github.com/immich-app/immich/pkgs/container/immich-server'
-                    sourceCommit  = 'abc123def456'
-                    sourceRef     = 'refs/tags/v1.118.0'
-                }
-            }
-        }
-
-        Context 'Server About Information' {
-            It 'Should get server about with correct API call' {
-                Get-IMServerAbout
-
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/server/about'
-                }
-            }
-
-            It 'Should return version information' {
-                $result = Get-IMServerAbout
-
-                $result.version | Should -Be '1.118.0'
-                $result.repository | Should -Be 'https://github.com/immich-app/immich'
-            }
-        }
-    }
-    Describe 'Get-IMServerConfig' -Tag 'Unit', 'Get-IMServerConfig' {
-        BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ loginPageMessage = 'Welcome'; trashDays = 30 }
-            }
-        }
-        Context 'Server Config Retrieval' {
-            It 'Should get server config with correct API call' {
-                Get-IMServerConfig
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/config'
-                }
-            }
-        }
-    }
-    Describe 'Get-IMServerFeature' -Tag 'Unit', 'Get-IMServerFeature' {
-        BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ smartSearch = $true; facialRecognition = $true }
-            }
-        }
-        Context 'Server Features' {
-            It 'Should get server features with correct API call' {
-                Get-IMServerFeature
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/features'
-                }
-            }
-        }
-    }
     Describe 'Get-IMServerLicense' -Tag 'Unit', 'Get-IMServerLicense' {
         BeforeAll {
             Mock InvokeImmichRestMethod {
@@ -7448,81 +7332,6 @@ InModuleScope $ProjectName {
                 Get-IMServerLicense
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
                     $Method -eq 'Get' -and $RelativePath -eq '/server/license'
-                }
-            }
-        }
-    }
-    Describe 'Get-IMServerStatistic' -Tag 'Unit', 'Get-IMServerStatistic' {
-        BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ photos = 1000; videos = 200; usage = 50000000000 }
-            }
-        }
-        Context 'Server Statistics' {
-            It 'Should get server statistics with correct API call' {
-                Get-IMServerStatistic
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/statistics'
-                }
-            }
-        }
-    }
-    Describe 'Get-IMServerStorage' -Tag 'Unit', 'Get-IMServerStorage' {
-        BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ diskSizeRaw = 1000000000000; diskUseRaw = 500000000000 }
-            }
-        }
-        Context 'Server Storage' {
-            It 'Should get server storage with correct API call' {
-                Get-IMServerStorage
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/storage'
-                }
-            }
-        }
-    }
-    Describe 'Get-IMServerVersion' -Tag 'Unit', 'Get-IMServerVersion' {
-        BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ major = 1; minor = 118; patch = 0 }
-            }
-        }
-        Context 'Server Version' {
-            It 'Should get server version with correct API call' {
-                Get-IMServerVersion
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/version'
-                }
-            }
-        }
-    }
-    Describe 'Get-IMSupportedMediaType' -Tag 'Unit', 'Get-IMSupportedMediaType' {
-        BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ image = @('jpg', 'png'); video = @('mp4', 'mov') }
-            }
-        }
-        Context 'Supported Media Types' {
-            It 'Should get supported media types with correct API call' {
-                Get-IMSupportedMediaType
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/media-types'
-                }
-            }
-        }
-    }
-    Describe 'Get-IMTheme' -Tag 'Unit', 'Get-IMTheme' {
-        BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ customCss = '.header { background: blue; }' }
-            }
-        }
-        Context 'Theme Retrieval' {
-            It 'Should get theme with correct API call' {
-                Get-IMTheme
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/theme'
                 }
             }
         }
@@ -7555,51 +7364,157 @@ InModuleScope $ProjectName {
             }
         }
     }
-    Describe 'Test-IMPing' -Tag 'Unit', 'Test-IMPing' {
+    Describe 'Get-IMServer' -Tag 'Unit', 'Get-IMServer' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ res = 'pong' }
-            }
+            Mock InvokeImmichRestMethod {}
         }
-        Context 'Server Ping' {
-            It 'Should ping server with correct API call' {
-                Test-IMPing
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/ping'
-                }
-            }
-        }
-    }
-    Describe 'Get-IMConfig' -Tag 'Unit', 'Get-IMConfig' {
-        BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{
-                    ffmpeg = [PSCustomObject]@{ crf = 23; threads = 0 }
-                    job    = [PSCustomObject]@{ backgroundTask = [PSCustomObject]@{ concurrency = 5 } }
-                }
-            }
-        }
-        Context 'Config Retrieval' {
+        Context '-AppliedSystemConfiguration' {
             It 'Should get config with correct API call' {
-                Get-IMConfig
+                Get-IMServer -AppliedSystemConfiguration
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/system-config'
+                }
+            }
+            It 'Should get applied system config as JSON when ReturnRawJSON is used' {
+                Mock InvokeImmichRestMethod { return @{ test = 'data' } }
+                $result = Get-IMServer -AppliedSystemConfiguration -ReturnRawJSON
+                $result | Should -BeOfType [string]
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
                     $Method -eq 'Get' -and $RelativePath -eq '/system-config'
                 }
             }
         }
-    }
-    Describe 'Set-IMConfig' -Tag 'Unit', 'Set-IMConfig' {
-        BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{
-                    ffmpeg = [PSCustomObject]@{ crf = 25; threads = 2 }
+        Context '-Ping' {
+            It 'Should ping server with correct API call' {
+                Get-IMServer -Ping
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/server/ping'
                 }
             }
         }
-        Context 'Config Update' {
+        Context '-Theme' {
+            It 'Should get theme with correct API call' {
+                Get-IMServer -Theme
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/server/theme'
+                }
+            }
+        }
+        Context '-MediaTypes' {
+            It 'Should get supported media types with correct API call' {
+                Get-IMServer -MediaTypes
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/server/media-types'
+                }
+            }
+        }
+        Context '-Version' {
+            It 'Should get server version with correct API call' {
+                Get-IMServer -Version
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/server/version'
+                }
+            }
+        }
+        Context '-Storage' {
+            It 'Should get server storage with correct API call' {
+                Get-IMServer -Storage
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/server/storage'
+                }
+            }
+        }
+        Context '-Statistics' {
+            It 'Should get server statistics with correct API call' {
+                Get-IMServer -Statistics
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/server/statistics'
+                }
+            }
+        }
+        Context '-Features' {
+            It 'Should get server features with correct API call' {
+                Get-IMServer -Features
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/server/features'
+                }
+            }
+        }
+        Context '-Configuration' {
+            It 'Should get server config with correct API call' {
+                Get-IMServer -Configuration
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/server/config'
+                }
+            }
+        }
+        Context '-About' {
+            It 'Should get server about with correct API call' {
+                Get-IMServer -About
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and
+                    $RelativePath -eq '/server/about'
+                }
+            }
+        }
+        Context '-VersionHistory' {
+            It 'Should get version history with correct API call' {
+                Get-IMServer -VersionHistory
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/server/version-history'
+                }
+            }
+        }
+        Context '-DefaultSystemConfiguration' {
+            It 'Should get default system config with correct API call' {
+                Get-IMServer -DefaultSystemConfiguration
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/system-config/defaults'
+                }
+            }
+            It 'Should get default system config as JSON when ReturnRawJSON is used' {
+                Mock InvokeImmichRestMethod { return @{ test = 'data' } }
+                $result = Get-IMServer -DefaultSystemConfiguration -ReturnRawJSON
+                $result | Should -BeOfType [string]
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/system-config/defaults'
+                }
+            }
+        }
+        Context '-StorageTemplateOptions' {
+            It 'Should get storage template options with correct API call' {
+                Get-IMServer -StorageTemplateOptions
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/system-config/storage-template-options'
+                }
+            }
+        }
+        Context '-APKLinks' {
+            It 'Should get APK links with correct API call' {
+                Get-IMServer -APKLinks
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/server/apk-links'
+                }
+            }
+        }
+        Context '-VersionCheck' {
+            It 'Should check version with correct API call' {
+                Get-IMServer -VersionCheck
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/server/version-check'
+                }
+            }
+        }
+    }
+    Describe 'Set-IMServer' -Tag 'Unit', 'Set-IMServer' {
+        BeforeAll {
+            Mock InvokeImmichRestMethod {}
+        }
+        Context '-RawJSON' {
             It 'Should set config with correct API call' {
                 $config = @{ ffmpeg = @{ crf = 25 } }
-                Set-IMConfig -RawJSON ($config | ConvertTo-Json)
+                Set-IMServer -RawJSON ($config | ConvertTo-Json)
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
                     $Method -eq 'Put' -and $RelativePath -eq '/system-config'
                 }

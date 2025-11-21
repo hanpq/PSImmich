@@ -1,9 +1,34 @@
 ﻿{
     "ExcludedPaths": [
         {
+            "Path": "/sessions",
+            "Method": "POST",
+            "Reason": "Not relevant for PowerShell module"
+        },
+        {
+            "Path": "/sessions/{id}",
+            "Method": "PUT",
+            "Reason": "Not relevant for PowerShell module"
+        },
+        {
+            "Path": "/sessions/{id}/lock",
+            "Method": "POST",
+            "Reason": "Not relevant for PowerShell module"
+        },
+        {
+            "Path": "/albums/assets",
+            "Method": "PUT",
+            "Reason": "Functionality covered by Set-IMAsset -AddToAlbum parameter. This API is more efficient when adding multiple assets to multiple albums at the same time."
+        },
+        {
             "Path": "/auth/admin-sign-up",
             "Method": "POST",
             "Reason": "Admin setup - not suitable for interactive use"
+        },
+        {
+            "Path": "/admin/auth/unlink-all",
+            "Method": "POST",
+            "Reason": "Interactive web operation"
         },
         {
             "Path": "/auth/change-password",
@@ -58,17 +83,7 @@
         {
             "Path": "/assets/exist",
             "Method": "POST",
-            "Reason": "Bulk operation - unclear usage"
-        },
-        {
-            "Path": "/assets/stack/parent",
-            "Method": "PUT",
-            "Reason": "Unclear API usage"
-        },
-        {
-            "Path": "/assets/{id}/video/playback",
-            "Method": "GET",
-            "Reason": "Streaming - not applicable for PowerShell"
+            "Reason": "Used for mobile app backup process"
         },
         {
             "Path": "/search/suggestions",
@@ -93,11 +108,6 @@
         {
             "Path": "/people/{id}/reassign",
             "Method": "PUT",
-            "Reason": "Unclear usage - no documentation"
-        },
-        {
-            "Path": "/reports/fix",
-            "Method": "POST",
             "Reason": "Unclear usage - no documentation"
         },
         {
@@ -179,6 +189,26 @@
             "Path": "/admin/maintenance/login",
             "Method": "POST",
             "Reason": "Admin maintenance - not for interactive use"
+        },
+        {
+            "Path": "/sync/ack",
+            "Method": "DELETE",
+            "Reason": "Internal sync mechanism - not for direct use"
+        },
+        {
+            "Path": "/sync/ack",
+            "Method": "GET",
+            "Reason": "Internal sync mechanism - not for direct use"
+        },
+        {
+            "Path": "/sync/ack",
+            "Method": "POST",
+            "Reason": "Internal sync mechanism - not for direct use"
+        },
+        {
+            "Path": "/sync/stream",
+            "Method": "POST",
+            "Reason": "Internal sync mechanism - not for direct use"
         }
     ]
 }

@@ -5,6 +5,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BREAKING CHANGES
+
+- Get-IMServer* cmdlets have been removed and replaced by single Get-IMServer cmdlet that provides switch parameters for the different data.
+  - Removed cmdlets
+    - Get-IMServerAbout -> Get-IMServer -About
+    - Get-IMServerConfig -> Get-IMServer -Configuration
+    - Get-IMServerFeature -> Get-IMServer -Features
+    - Get-IMServerStatistic -> Get-IMServer -Statistics
+    - Get-IMServerStorage -> Get-IMServer -Storage
+    - Get-IMServerVersion -> Get-IMServer -Version & Get-IMServer
+    - Get-IMServerMediaTypes -> Get-IMServer -MediaTypes
+    - Get-IMTheme -> Get-IMServer -Theme
+    - Get-IMConfig -Applied -> Get-IMServer -AppliedSystemConfiguration
+    - Get-IMConfig -Default -> Get-IMServer -DefaultSystemConfiguration
+    - Get-IMConfig -Storage -> Get-IMServer -StorageTemplateOptions
+    - Test-IMPing -> Get-IMServer -Ping
+    - Set-IMConfig -RawJson -> Set-IMServer -RawJson
+
 ### Added
 
 - New Plugin management cmdlets (Alpha feature):
@@ -15,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New-IMWorkflow - Create new workflows with configurable name, description, trigger type, actions, and filters
   - Set-IMWorkflow - Update existing workflows including name, description, trigger type, enabled state, actions, and filters
   - Remove-IMWorkflow - Delete workflows with confirmation support
+- New server info
+  - Get-IMServer -APKLinks
+  - Get-IMServer -VersionCheck
 
 ### Changed
 

@@ -1,4 +1,4 @@
-﻿function Set-IMConfig
+﻿function Set-IMServer
 {
     <#
     .SYNOPSIS
@@ -7,11 +7,11 @@
         Applies new configuration settings to the Immich server using JSON format.
     .PARAMETER Session
         Optional session object for multi-instance connections.
-    .PARAMETER RawJSON
+    .PARAMETER RawJSONConfig
         Configuration data as JSON text string.
     .EXAMPLE
-        $config = Get-IMConfig -ReturnRawJSON
-        Set-IMConfig -RawJSON $config
+        $config = Get-IMServer -ReturnRawJSON
+        Set-IMServer -RawJSONConfig $config
 
         Updates server configuration using modified JSON.
     .NOTES
@@ -24,14 +24,15 @@
         [ImmichSession]
         $Session = $null,
 
-        [Parameter()]
+        [Parameter(Mandatory)]
+        [Alias('Config')]
         [string]
-        $RawJSON
+        $RawJSONConfig
     )
 
     if ($PSCmdlet.ShouldProcess('Config', 'Set'))
     {
-        InvokeImmichRestMethod -Method Put -RelativePath '/system-config' -ImmichSession:$Session -RawBody:$RawJSON
+        InvokeImmichRestMethod -Method Put -RelativePath '/system-config' -ImmichSession:$Session -RawBody:$RawJSONConfig
     }
 }
 #endregion
