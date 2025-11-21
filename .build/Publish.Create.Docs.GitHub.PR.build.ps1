@@ -120,7 +120,7 @@ title: Changelog
         $ChangelogPrefix + $ChangeLogContent | Out-File -FilePath $DestinationChangeLogPath
 
         # Remove auto-generated sidebar file
-        Remove-Item (Join-Path $DestinationModulePath '/Command Reference/docusaurus.sidebar.js')
+        Remove-Item (Join-Path $DestinationModulePath '/03-Command Reference/docusaurus.sidebar.js') -ErrorAction SilentlyContinue
 
         # Generate new getstarted
         $SourceReadmePath = Join-Path $args[3] 'README.md'
