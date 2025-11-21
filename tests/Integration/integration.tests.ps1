@@ -942,7 +942,7 @@ Describe 'Partner' -Tag 'Integration' {
     }
     Context 'Add-IMPartner' -Tag 'Add-IMPartner' {
         It 'Should add a partner' {
-            $Add = Add-IMPartner -id '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
+            $Add = Add-IMPartner -SharedWithId '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
             $Result = Get-IMPartner -Direction shared-by
             $Result | Should -HaveCount 1
         }

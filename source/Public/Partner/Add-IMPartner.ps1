@@ -7,10 +7,10 @@
         Creates a partnership relationship allowing asset sharing between users.
     .PARAMETER Session
         Optional session object for multi-instance connections.
-    .PARAMETER Id
+    .PARAMETER SharedWithId
         User ID to add as partner. Must be valid GUID format.
     .EXAMPLE
-        Add-IMPartner -Id 'bf973405-3f2a-48d2-a687-2ed4167164be'
+        Add-IMPartner -SharedWithId 'bf973405-3f2a-48d2-a687-2ed4167164be'
 
         Adds the specified user as a sharing partner.
     #>
@@ -23,10 +23,13 @@
 
         [Parameter(Mandatory)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [ApiParameter('sharedWithId')]
         [string]
-        $id
+        $SharedWithId
     )
 
-    InvokeImmichRestMethod -Method POST -RelativePath "/partners/$id" -ImmichSession:$Session
+    $BodyParameters = ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
+
+    InvokeImmichRestMethod -Method POST -RelativePath '/partners' -ImmichSession:$Session -Body $BodyParameters
 }
 #endregion

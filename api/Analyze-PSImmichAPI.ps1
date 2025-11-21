@@ -2,552 +2,405 @@
 
 <#
 .SYNOPSIS
-    Advanced API coverage analysis script for PSImmich
+    Simple API work item analyzer for PSImmich module maintenance
 
 .DESCRIPTION
-    Analyzes PSImmich source code against OpenAPI specification to provide:
-    - API endpoint coverage analysis
-    - Parameter coverage validation
-    - Folder organization validation against OpenAPI tags
-    - Configurable exclusion of web-frontend specific APIs
+    Analyzes the latest API specification against current PSImmich implementation
+    to generate a focused work item list. Shows only what needs attention:
 
-.PARAMETER ApiSpecFile
-    Path to the OpenAPI specification JSON file
+    - Missing APIs that should be implemented
+    - Deprecated APIs that are still implemented (should be removed)
+    - Excludes APIs listed in exclusions.json
 
-.PARAMETER SourcePath
-    Path to the source/Public directory containing PowerShell functions
+    The goal is to provide a clean, actionable todo list for module maintenance.
 
-.PARAMETER ExclusionConfigFile
-    Path to JSON file containing API exclusions (optional)
+.EXAMPLE
+    .\Analyze-PSImmichAPIv2.ps1
 
-.PARAMETER ShowParameters
-    Include parameter analysis in the output
-
-.PARAMETER ShowFolderMismatches
-    Show functions that are in folders not matching their OpenAPI tag
-
-.PARAMETER ExcludeSkipped
-    Hide skipped APIs from console output (they will still be included in CSV exports)
-
-.PARAMETER ExportResults
-    Export results to CSV files.EXAMPLE
-    .\Analyze-PSImmichAPI.ps1 -ApiSpecFile "api\api.2.2.0.json" -ShowParameters -ShowFolderMismatches -ExcludeSkipped
+    Runs analysis using the latest API spec and current source code
 #>
 
 [CmdletBinding()]
-param(
-    [Parameter(Mandatory)]
-    [string]$ApiSpecFile = 'api\api.2.2.0.json',
+param()
 
-    [string]$SourcePath = 'source\Public',
+#region Helper Functions
 
-    [string]$ExclusionConfigFile,
-
-    [switch]$ShowParameters,
-
-    [switch]$ShowFolderMismatches,
-
-    [switch]$ExcludeSkipped,
-
-    [switch]$ExportResults
-)
-
-# Helper function to normalize folder names
-function Get-NormalizedFolderName
+function Get-LatestApiSpec
 {
-    param([string]$TagName)
-
-    $normalized = $TagName -replace '[^a-zA-Z0-9]', ''
-
-    # Handle specific mappings
-    $mappings = @{
-        'Activities'         = 'Activity'
-        'Albums'             = 'Album'
-        'APIKeys'            = 'APIKey'
-        'Assets'             = 'Asset'
-        'Authadmin'          = 'Auth'
-        'Authentication'     = 'Auth'
-        'Download'           = 'Asset'  # Downloads are asset-related
-        'Duplicates'         = 'Duplicates'
-        'Faces'              = 'Face'
-        'Jobs'               = 'Job'
-        'Libraries'          = 'Library'
-        'Map'                = 'Map'
-        'Memories'           = 'Memories'
-        'Notifications'      = 'Notification'
-        'Notificationsadmin' = 'Notification'
-        'OAuth'              = 'Auth'
-        'Partners'           = 'Partner'
-        'People'             = 'Person'
-        'Search'             = 'Search'
-        'Server'             = 'Server'
-        'Sessions'           = 'Session'
-        'SharedLinks'        = 'SharedLink'
-        'Stacks'             = 'Stack'
-        'Sync'               = 'Server'  # Sync operations are server-related
-        'SystemConfig'       = 'ServerConfig'
-        'SystemMetadata'     = 'Server'
-        'Tags'               = 'Tag'
-        'Timeline'           = 'Timeline'
-        'Trash'              = 'Trash'
-        'Users'              = 'User'
-        'Usersadmin'         = 'User'
-        'View'               = 'Asset'  # View operations are asset-related
-    }
-
-    return $mappings[$normalized] ?? $normalized
-}
-
-# Load API exclusions configuration
-function Get-APIExclusions
-{
-    param([string]$ConfigFile)
-
-    if ($ConfigFile -and (Test-Path $ConfigFile))
+    $apiFiles = Get-ChildItem -Path $PSScriptRoot -Filter 'api.*.json' | Sort-Object LastWriteTime -Descending
+    if (-not $apiFiles)
     {
-        return Get-Content $ConfigFile | ConvertFrom-Json
+        throw "No API specification files found in $PSScriptRoot"
     }
 
-    # Default exclusions for web-frontend specific APIs
-    return @{
-        ExcludedPaths  = @(
-            @{ Path = '/auth/admin-sign-up'; Method = 'POST'; Reason = 'Admin setup - not suitable for interactive use' }
-            @{ Path = '/auth/change-password'; Method = 'POST'; Reason = 'Interactive web operation' }
-            @{ Path = '/oauth/authorize'; Method = 'POST'; Reason = 'OIDC web flow - not for interactive use' }
-            @{ Path = '/oauth/callback'; Method = 'POST'; Reason = 'OIDC web flow - not for interactive use' }
-            @{ Path = '/oauth/link'; Method = 'POST'; Reason = 'OIDC web flow - not for interactive use' }
-            @{ Path = '/oauth/mobile-redirect'; Method = 'GET'; Reason = 'Mobile app specific' }
-            @{ Path = '/oauth/unlink'; Method = 'POST'; Reason = 'OIDC web flow - not for interactive use' }
-            @{ Path = '/download/archive'; Method = 'POST'; Reason = 'Use Save-IMAsset instead' }
-            @{ Path = '/download/asset/{id}'; Method = 'POST'; Reason = 'Use Save-IMAsset instead' }
-            @{ Path = '/download/info'; Method = 'POST'; Reason = 'Web frontend specific' }
-            @{ Path = '/assets/bulk-upload-check'; Method = 'POST'; Reason = 'Mobile app specific' }
-            @{ Path = '/assets/exist'; Method = 'POST'; Reason = 'Bulk operation - unclear usage' }
-            @{ Path = '/assets/stack/parent'; Method = 'PUT'; Reason = 'Unclear API usage' }
-            @{ Path = '/assets/{id}/video/playback'; Method = 'GET'; Reason = 'Streaming - not applicable for PowerShell' }
-            @{ Path = '/search/suggestions'; Method = 'GET'; Reason = 'Interactive search - not applicable for PowerShell' }
-            @{ Path = '/tags'; Method = 'PUT'; Reason = 'Batch operation easily replicated in PowerShell' }
-            @{ Path = '/tags/assets'; Method = 'PUT'; Reason = 'Batch operation easily replicated in PowerShell' }
-            @{ Path = '/people/{id}'; Method = 'PUT'; Reason = 'Single item version of batch API' }
-            @{ Path = '/people/{id}/reassign'; Method = 'PUT'; Reason = 'Unclear usage - no documentation' }
-            @{ Path = '/reports/fix'; Method = 'POST'; Reason = 'Unclear usage - no documentation' }
-            @{ Path = '/sync/delta-sync'; Method = 'POST'; Reason = 'Unclear usage - no documentation' }
-            @{ Path = '/sync/full-sync'; Method = 'POST'; Reason = 'Unclear usage - no documentation' }
-            @{ Path = '/system-metadata/admin-onboarding'; Method = 'GET'; Reason = 'Admin setup - web specific' }
-            @{ Path = '/system-metadata/admin-onboarding'; Method = 'POST'; Reason = 'Admin setup - web specific' }
-            @{ Path = '/system-metadata/reverse-geocoding-state'; Method = 'GET'; Reason = 'Internal state - unclear usage' }
-        )
-        ManualMappings = @(
-            @{ Path = '/auth/login'; Method = 'POST'; CoveredBy = 'Connect-Immich' }
-            @{ Path = '/auth/logout'; Method = 'POST'; CoveredBy = 'Disconnect-Immich' }
-            @{ Path = '/assets'; Method = 'POST'; CoveredBy = 'Import-IMAsset' }
-        )
-    }
+    $latestFile = $apiFiles[0]
+    Write-Host 'Using API specification: ' -NoNewline -ForegroundColor Cyan
+    Write-Host $latestFile.Name -ForegroundColor White
+
+    return Get-Content $latestFile.FullName | ConvertFrom-Json
 }
 
-# Parse source code to find API calls
-function Get-SourceCodeAPICalls
+function Get-ExclusionConfig
 {
-    param([string]$SourcePath)
+    $exclusionFile = Join-Path $PSScriptRoot 'exclusions.json'
+    if (Test-Path $exclusionFile)
+    {
+        Write-Host 'Loading exclusions from: ' -NoNewline -ForegroundColor Cyan
+        Write-Host 'exclusions.json' -ForegroundColor White
+        return Get-Content $exclusionFile | ConvertFrom-Json
+    }
 
-    Write-Host 'Analyzing source code...' -ForegroundColor Cyan
+    Write-Warning 'No exclusions.json found - no APIs will be excluded'
+    return @{ ExcludedPaths = @(); ManualMappings = @() }
+}
 
-    $AllFunctions = @()
-    $AllCodeFiles = Get-ChildItem $SourcePath -Recurse -Filter '*.ps1'
+function Get-ImplementedAPIs
+{
+    $sourcePath = Join-Path (Split-Path $PSScriptRoot -Parent) 'source\Public'
+    if (-not (Test-Path $sourcePath))
+    {
+        throw "Source path not found: $sourcePath"
+    }
 
-    foreach ($file in $AllCodeFiles)
+    Write-Host 'Analyzing source code in: ' -NoNewline -ForegroundColor Cyan
+    Write-Host 'source\Public' -ForegroundColor White
+
+    $implementedAPIs = @()
+    $codeFiles = Get-ChildItem $sourcePath -Recurse -Filter '*.ps1'
+
+    foreach ($file in $codeFiles)
     {
         try
         {
             $ast = [System.Management.Automation.Language.Parser]::ParseFile(
-                $file.FullName,
-                [ref]$null,
-                [ref]$null
+                $file.FullName, [ref]$null, [ref]$null
             )
 
-            # Extract function name
+            # Get function name
             $functionDef = $ast.FindAll({
                     $args[0] -is [System.Management.Automation.Language.FunctionDefinitionAst]
                 }, $false) | Select-Object -First 1
 
             if (-not $functionDef)
             {
-                continue
+                continue 
             }
 
-            # Find InvokeImmichRestMethod calls
-            $invokeCommands = $ast.FindAll({
+            # Find API calls
+            $apiCalls = $ast.FindAll({
                     $args[0] -is [System.Management.Automation.Language.CommandAst] -and
                     $args[0].GetCommandName() -eq 'InvokeImmichRestMethod'
                 }, $true)
 
-            foreach ($command in $invokeCommands)
+            foreach ($call in $apiCalls)
             {
                 $method = $null
-                $relativePath = $null
+                $path = $null
 
-                # Extract parameters by looking for -Method and -RelativePath
-                for ($i = 0; $i -lt $command.CommandElements.Count; $i++)
+                # Extract method and path parameters
+                for ($i = 0; $i -lt $call.CommandElements.Count; $i++)
                 {
-                    $element = $command.CommandElements[$i]
+                    $element = $call.CommandElements[$i]
                     $elementText = if ($element.Value)
                     {
-                        $element.Value
+                        $element.Value 
                     }
                     else
                     {
-                        $element.Extent.Text
+                        $element.Extent.Text 
                     }
 
-                    if ($elementText -eq '-Method' -and ($i + 1) -lt $command.CommandElements.Count)
+                    if ($elementText -eq '-Method' -and ($i + 1) -lt $call.CommandElements.Count)
                     {
-                        $methodElement = $command.CommandElements[$i + 1]
-                        $methodText = if ($methodElement.Value)
+                        $methodElement = $call.CommandElements[$i + 1]
+                        $method = if ($methodElement.Value)
                         {
-                            $methodElement.Value
+                            $methodElement.Value 
                         }
                         else
                         {
-                            $methodElement.Extent.Text
+                            $methodElement.Extent.Text 
                         }
-                        $method = $methodText -replace "['`"]", ''
+                        $method = $method -replace "['`"]", '' | ForEach-Object { $_.ToUpper() }
                     }
-                    elseif ($elementText -eq '-RelativePath' -and ($i + 1) -lt $command.CommandElements.Count)
+                    elseif ($elementText -eq '-RelativePath' -and ($i + 1) -lt $call.CommandElements.Count)
                     {
-                        $pathElement = $command.CommandElements[$i + 1]
-                        $pathText = if ($pathElement.Value)
+                        $pathElement = $call.CommandElements[$i + 1]
+                        $path = if ($pathElement.Value)
                         {
-                            $pathElement.Value
+                            $pathElement.Value 
                         }
                         else
                         {
-                            $pathElement.Extent.Text
+                            $pathElement.Extent.Text 
                         }
-                        $relativePath = $pathText -replace "['`"]", ''
+                        $path = $path -replace "['`"]", ''
                     }
                 }
 
-                if ($method -and $relativePath)
+                if ($method -and $path)
                 {
-                    $AllFunctions += [PSCustomObject]@{
-                        FunctionName = $functionDef.Name
-                        Method       = $method.ToUpper()
-                        RelativePath = $relativePath
-                        FilePath     = $file.FullName
-                        FolderName   = $file.Directory.Name
-                        FileName     = $file.BaseName
+                    $implementedAPIs += [PSCustomObject]@{
+                        Method   = $method
+                        Path     = $path
+                        Function = $functionDef.Name
+                        File     = $file.Name
                     }
                 }
             }
         }
         catch
         {
-            Write-Warning "Failed to parse $($file.FullName): $($_.Exception.Message)"
+            Write-Warning "Failed to parse $($file.Name): $($_.Exception.Message)"
         }
     }
 
-    return $AllFunctions
+    return $implementedAPIs
 }
 
-# Parse function parameters
-function Get-FunctionParameters
+function Test-APIExclusion
 {
-    param([string]$FilePath)
+    param($Method, $Path, $Exclusions)
 
-    try
+    # Check excluded paths
+    $excluded = $Exclusions.ExcludedPaths | Where-Object {
+        $_.Path -eq $Path -and $_.Method -eq $Method
+    }
+
+    # Check manual mappings (these are also considered "handled")
+    $mapped = $Exclusions.ManualMappings | Where-Object {
+        $_.Path -eq $Path -and $_.Method -eq $Method
+    }
+
+    return [bool]($excluded -or $mapped)
+}
+
+function Test-APIMatch
+{
+    param($SpecPath, $SpecMethod, $ImplPath, $ImplMethod)
+
+    if ($SpecMethod -ne $ImplMethod)
     {
-        $ast = [System.Management.Automation.Language.Parser]::ParseFile(
-            $FilePath,
-            [ref]$null,
-            [ref]$null
-        )
+        return $false
+    }
 
-        $functionDef = $ast.FindAll({
-                $args[0] -is [System.Management.Automation.Language.FunctionDefinitionAst]
-            }, $false) | Select-Object -First 1
+    # Direct match
+    if ($SpecPath -eq $ImplPath)
+    {
+        return $true
+    }
 
-        if ($functionDef.Body.ParamBlock)
+    # Pattern match for parameterized paths
+    $pattern = $SpecPath -replace '\{[^}]+\}', '*'
+    return $ImplPath -like $pattern
+}
+
+#endregion
+
+#region Main Analysis
+
+try
+{
+    Write-Host "`n=== PSImmich API Work Item Analysis ===" -ForegroundColor Yellow
+    Write-Host "Generating focused todo list for module maintenance`n" -ForegroundColor Gray
+
+    # Load data
+    $apiSpec = Get-LatestApiSpec
+    $exclusions = Get-ExclusionConfig
+    $implementedAPIs = Get-ImplementedAPIs
+
+    Write-Host "`n=== Analysis Results ===" -ForegroundColor Yellow
+
+    $workItems = @()
+    $processedCount = 0
+
+    # Analyze each API endpoint in the specification
+    foreach ($pathKey in $apiSpec.paths.PSObject.Properties.Name)
+    {
+        $pathObject = $apiSpec.paths.$pathKey
+
+        foreach ($methodKey in $pathObject.PSObject.Properties.Name)
         {
-            return $functionDef.Body.ParamBlock.Parameters | ForEach-Object {
-                [PSCustomObject]@{
-                    Name        = $_.Name.VariablePath.UserPath
-                    Type        = $_.StaticType.Name
-                    IsMandatory = $_.Attributes | Where-Object { $_.TypeName.Name -eq 'Parameter' } |
-                        ForEach-Object { $_.NamedArguments | Where-Object { $_.ArgumentName -eq 'Mandatory' } |
-                                ForEach-Object { $_.Argument.Value } }
-                        }
+            if ($methodKey -notin @('get', 'post', 'put', 'delete', 'patch'))
+            {
+                continue
+            }
+
+            $processedCount++
+            $methodObject = $pathObject.$methodKey
+            $method = $methodKey.ToUpper()
+            $path = $pathKey
+
+            # Skip if excluded
+            if (Test-APIExclusion -Method $method -Path $path -Exclusions $exclusions)
+            {
+                continue
+            }
+
+            # Check if implemented
+            $matchingImpl = $implementedAPIs | Where-Object {
+                Test-APIMatch -SpecPath $path -SpecMethod $method -ImplPath $_.Path -ImplMethod $_.Method
+            }
+
+            $isImplemented = [bool]$matchingImpl
+            $isDeprecated = [bool]$methodObject.deprecated
+
+            # Determine work item type
+            $workItemType = $null
+            $priority = 'Medium'
+
+            if ($isDeprecated -and $isImplemented)
+            {
+                $workItemType = 'Remove'
+                $priority = 'High'
+            }
+            elseif (-not $isDeprecated -and -not $isImplemented)
+            {
+                $workItemType = 'Implement'
+                $priority = 'Medium'
+            }
+
+            # Add work item if action needed
+            if ($workItemType)
+            {
+                $tags = $methodObject.tags -join ', '
+                $description = $methodObject.summary ?? $methodObject.description ?? 'No description available'
+
+                $workItems += [PSCustomObject]@{
+                    Type            = $workItemType
+                    Priority        = $priority
+                    Method          = $method
+                    Path            = $path
+                    OperationId     = $methodObject.operationId
+                    Tags            = $tags
+                    Description     = $description
+                    CurrentFunction = if ($matchingImpl)
+                    {
+                        ($matchingImpl.Function -join ', ') 
+                    }
+                    else
+                    {
+                        '' 
+                    }
+                    DeprecatedSince = if ($isDeprecated)
+                    {
+                        $methodObject.'x-immich-lifecycle'.deprecatedAt 
+                    }
+                    else
+                    {
+                        '' 
                     }
                 }
             }
-            catch
-            {
-                Write-Warning "Failed to parse parameters for $FilePath`: $($_.Exception.Message)"
-            }
-
-            return @()
         }
+    }
 
-        # Main analysis function
-        function Invoke-APIAnalysis
+    # Display results
+    if ($workItems.Count -eq 0)
+    {
+        Write-Host '🎉 ' -NoNewline -ForegroundColor Green
+        Write-Host 'No work items found! Module is current with API specification.' -ForegroundColor Green
+    }
+    else
+    {
+        # Summary
+        $removeCount = ($workItems | Where-Object Type -EQ 'Remove').Count
+        $implementCount = ($workItems | Where-Object Type -EQ 'Implement').Count
+
+        Write-Host '📋 Work Items Summary:' -ForegroundColor Cyan
+        if ($removeCount -gt 0)
         {
-            param(
-                [string]$ApiSpecFile,
-                [string]$SourcePath,
-                [object]$Exclusions,
-                [switch]$ShowParameters,
-                [switch]$ShowFolderMismatches
-            )
+            Write-Host '   • Remove deprecated APIs: ' -NoNewline -ForegroundColor Red
+            Write-Host $removeCount -ForegroundColor White
+        }
+        if ($implementCount -gt 0)
+        {
+            Write-Host '   • Implement missing APIs: ' -NoNewline -ForegroundColor Yellow
+            Write-Host $implementCount -ForegroundColor White
+        }
+        Write-Host ''
 
-            Write-Host 'Loading OpenAPI specification...' -ForegroundColor Cyan
-            $apiSpec = Get-Content $ApiSpecFile | ConvertFrom-Json -Depth 10
+        # Group and display work items
+        $removeItems = $workItems | Where-Object Type -EQ 'Remove' | Sort-Object Path
+        $implementItems = $workItems | Where-Object Type -EQ 'Implement' | Sort-Object Tags, Path
 
-            Write-Host 'Analyzing source code...' -ForegroundColor Cyan
-            $sourceFunctions = Get-SourceCodeAPICalls -SourcePath $SourcePath
-
-            Write-Host 'Processing API endpoints...' -ForegroundColor Cyan
-            $results = @()
-
-            foreach ($pathKey in $apiSpec.paths.PSObject.Properties.Name)
+        if ($removeItems)
+        {
+            Write-Host '🗑️  REMOVE - Deprecated APIs still implemented:' -ForegroundColor Red
+            foreach ($item in $removeItems)
             {
-                $pathObject = $apiSpec.paths.$pathKey
-
-                foreach ($methodKey in $pathObject.PSObject.Properties.Name)
+                Write-Host "   $($item.Method) $($item.Path)" -ForegroundColor Red
+                Write-Host '      Function: ' -NoNewline -ForegroundColor Gray
+                Write-Host $item.CurrentFunction -ForegroundColor White
+                if ($item.DeprecatedSince)
                 {
-                    $methodObject = $pathObject.$methodKey
-
-                    # Skip if not a valid HTTP method
-                    if ($methodKey -notin @('get', 'post', 'put', 'delete', 'patch'))
-                    {
-                        continue
-                    }
-
-                    $method = $methodKey.ToUpper()
-                    $path = $pathKey
-
-                    # Check if excluded
-                    $exclusion = $Exclusions.ExcludedPaths | Where-Object {
-                        $_.Path -eq $path -and $_.Method -eq $method
-                    }
-
-                    # Check manual mappings
-                    $manualMapping = $Exclusions.ManualMappings | Where-Object {
-                        $_.Path -eq $path -and $_.Method -eq $method
-                    }
-
-                    # Find matching source functions
-                    $cleanPath = $path -replace '\{[^}]+\}', '*'
-                    $matchingFunctions = $sourceFunctions | Where-Object {
-                        $_.Method -eq $method -and $_.RelativePath -like $cleanPath
-                    }
-
-                    # Determine coverage
-                    $covered = [bool]($matchingFunctions -or $manualMapping)
-                    $skipped = [bool]$exclusion
-
-                    $coveredBy = @()
-                    if ($matchingFunctions)
-                    {
-                        $coveredBy += $matchingFunctions.FunctionName
-                    }
-                    if ($manualMapping)
-                    {
-                        $coveredBy += $manualMapping.CoveredBy
-                    }
-
-                    # Get OpenAPI tags and suggested folder
-                    $tags = $methodObject.tags ?? @()
-                    $suggestedFolder = if ($tags.Count -gt 0)
-                    {
-                        Get-NormalizedFolderName -TagName $tags[0]
-                    }
-                    else
-                    {
-                        'Unknown'
-                    }
-
-                    # Check folder placement
-                    $actualFolders = $matchingFunctions.FolderName | Sort-Object -Unique
-                    $folderMismatch = $actualFolders | Where-Object { $_ -ne $suggestedFolder }
-
-                    # Determine combined status
-                    $status = if ([bool]$methodObject.deprecated)
-                    {
-                        'Deprecated'
-                    }
-                    elseif ($skipped)
-                    {
-                        'Skipped'
-                    }
-                    elseif ($covered)
-                    {
-                        'Covered'
-                    }
-                    else
-                    {
-                        'Missing'
-                    }
-
-                    # Determine folder status
-                    $folderStatus = if (-not $covered)
-                    {
-                        'N/A'
-                    }
-                    elseif (-not $folderMismatch)
-                    {
-                        'OK'
-                    }
-                    else
-                    {
-                        "Wrong Folder ($($actualFolders -join ', ') | $suggestedFolder)"
-                    }
-
-                    $result = [PSCustomObject]@{
-                        Method          = $method
-                        Path            = $path
-                        Status          = $status
-                        FolderStatus    = $folderStatus
-                        CoveredBy       = ($coveredBy | Sort-Object -Unique) -join ', '
-                        OperationId     = $methodObject.operationId
-                        Tags            = ($tags -join ', ')
-                        SuggestedFolder = $suggestedFolder
-                        ActualFolders   = ($actualFolders -join ', ')
-                        FolderMismatch  = [bool]$folderMismatch
-                        Covered         = $covered
-                        Skipped         = $skipped
-                        Deprecated      = [bool]$methodObject.deprecated
-                        SkipReason      = $exclusion.Reason
-                        Description     = $methodObject.description
-                        Parameters      = if ($ShowParameters -and $methodObject.parameters)
-                        {
-                            ($methodObject.parameters | ForEach-Object {
-                                "$($_.name)($($_.required ? 'required' : 'optional'))"
-                            }) -join ', '
-                        }
-                        else
-                        {
-                            ''
-                        }
-                    }
-
-                    $results += $result
+                    Write-Host '      Deprecated since: ' -NoNewline -ForegroundColor Gray
+                    Write-Host $item.DeprecatedSince -ForegroundColor DarkYellow
                 }
+                Write-Host ''
             }
-
-            return $results
         }
 
-        # Color formatting for console output
-        function Format-ResultsTable
+        if ($implementItems)
         {
-            param([object[]]$Results)
+            Write-Host '➕ IMPLEMENT - Missing API coverage:' -ForegroundColor Yellow
 
-
-            return $Results | Format-Table 'Method', 'Path', 'Status', 'FolderStatus', 'CoveredBy' -AutoSize
-        }
-
-        # Main execution
-        try
-        {
-            $scriptPath = $PSScriptRoot
-            if (-not $scriptPath)
+            # Group by tags for better organization
+            $groupedItems = $implementItems | Group-Object Tags
+            foreach ($group in $groupedItems)
             {
-                $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-            }
-
-            $fullApiSpecPath = Join-Path $scriptPath $ApiSpecFile
-            $fullSourcePath = Join-Path $scriptPath $SourcePath
-
-            if (-not (Test-Path $fullApiSpecPath))
-            {
-                throw "API specification file not found: $fullApiSpecPath"
-            }
-
-            if (-not (Test-Path $fullSourcePath))
-            {
-                throw "Source path not found: $fullSourcePath"
-            }
-
-            # Load exclusions
-            $exclusions = Get-APIExclusions -ConfigFile $ExclusionConfigFile
-
-            # Run analysis
-            $results = Invoke-APIAnalysis -ApiSpecFile $fullApiSpecPath -SourcePath $fullSourcePath -Exclusions $exclusions -ShowParameters:$ShowParameters -ShowFolderMismatches:$ShowFolderMismatches
-
-            # Display results
-            Write-Host "`n=== API Coverage Analysis ===" -ForegroundColor Yellow
-
-            # Summary statistics
-            $totalAPIs = $results.Count
-            $coveredAPIs = ($results | Where-Object { $_.Covered -eq $true -and $_.Skipped -eq $false }).Count
-            $skippedAPIs = ($results | Where-Object { $_.Skipped -eq $true }).Count
-            $uncoveredAPIs = ($results | Where-Object { $_.Covered -eq $false -and $_.Skipped -eq $false }).Count
-            $deprecatedAPIs = ($results | Where-Object { $_.Deprecated -eq $true }).Count
-
-            $applicableAPIs = $coveredAPIs + $uncoveredAPIs
-            $coveragePercentage = if ($applicableAPIs -gt 0)
-            {
-                [Math]::Round(($coveredAPIs / $applicableAPIs) * 100, 1)
-            }
-            else
-            {
-                0
-            }
-
-            Write-Host "Total APIs: $totalAPIs" -ForegroundColor White
-            Write-Host "Covered: $coveredAPIs" -ForegroundColor Green
-            Write-Host "Uncovered: $uncoveredAPIs" -ForegroundColor Red
-            Write-Host "Skipped: $skippedAPIs" -ForegroundColor Gray
-            Write-Host "Deprecated: $deprecatedAPIs" -ForegroundColor DarkYellow
-            Write-Host "Coverage: $coveragePercentage% ($coveredAPIs/$applicableAPIs)" -ForegroundColor Magenta
-
-            if ($ExcludeSkipped)
-            {
-                Write-Host 'Note: Skipped APIs are hidden from detailed results below' -ForegroundColor Cyan
-            }
-
-            # Show folder mismatches if requested
-            if ($ShowFolderMismatches)
-            {
-                Write-Host "`n=== Folder Organization Issues ===" -ForegroundColor Yellow
-                $mismatches = $results | Where-Object { $_.FolderMismatch -and $_.Covered }
-                if ($mismatches)
+                $tagName = if ($group.Name)
                 {
-                    $mismatches | Format-Table Method, Path, SuggestedFolder, ActualFolders, CoveredBy -AutoSize
+                    $group.Name 
                 }
                 else
                 {
-                    Write-Host 'No folder mismatches found!' -ForegroundColor Green
+                    'Untagged' 
                 }
-            }
+                Write-Host "   📁 $tagName" -ForegroundColor Cyan
 
-            # Display main results
-            Write-Host "`n=== Detailed Results ===" -ForegroundColor Yellow
-            $displayResults = if ($ExcludeSkipped)
-            {
-                $results | Where-Object { $_.Status -ne 'Skipped' }
+                foreach ($item in $group.Group)
+                {
+                    Write-Host "      $($item.Method) $($item.Path)" -ForegroundColor Yellow
+                    if ($item.OperationId)
+                    {
+                        Write-Host '         Operation: ' -NoNewline -ForegroundColor Gray
+                        Write-Host $item.OperationId -ForegroundColor White
+                    }
+                    $shortDesc = if ($item.Description.Length -gt 80)
+                    {
+                        $item.Description.Substring(0, 77) + '...'
+                    }
+                    else
+                    {
+                        $item.Description
+                    }
+                    Write-Host "         $shortDesc" -ForegroundColor Gray
+                }
+                Write-Host ''
             }
-            else
-            {
-                $results
-            }
-            Format-ResultsTable -Results $displayResults
-
-            # Export if requested
-            if ($ExportResults)
-            {
-                $exportPath = Join-Path $scriptPath "api-analysis-$(Get-Date -Format 'yyyyMMdd-HHmmss').csv"
-                $results | Export-Csv -Path $exportPath -NoTypeInformation -Encoding UTF8
-                Write-Host "`nResults exported to: $exportPath" -ForegroundColor Green
-
-                # Export uncovered APIs separately
-                $uncoveredPath = Join-Path $scriptPath "api-uncovered-$(Get-Date -Format 'yyyyMMdd-HHmmss').csv"
-                $results | Where-Object { $_.Covered -eq $false -and $_.Skipped -eq $false } |
-                    Export-Csv -Path $uncoveredPath -NoTypeInformation -Encoding UTF8
-        Write-Host "Uncovered APIs exported to: $uncoveredPath" -ForegroundColor Yellow
+        }
     }
+
+    # Final statistics
+    Write-Host '📊 Analysis Statistics:' -ForegroundColor Cyan
+    Write-Host "   • Total API endpoints processed: $processedCount" -ForegroundColor White
+    Write-Host '   • Excluded from analysis: ' -NoNewline -ForegroundColor White
+    Write-Host $exclusions.ExcludedPaths.Count -ForegroundColor Gray
+    Write-Host '   • Work items identified: ' -NoNewline -ForegroundColor White
+    Write-Host $workItems.Count -ForegroundColor $(if ($workItems.Count -eq 0)
+        {
+            'Green' 
+        }
+        else
+        {
+            'Yellow' 
+        })
 }
 catch
 {
     Write-Error "Analysis failed: $($_.Exception.Message)"
     exit 1
 }
+
+#endregion

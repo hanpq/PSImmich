@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Get-IMMemory - Integrated /memories/statistics API functionality
 - Updated Job management:
   - Start-IMJob - Now uses the updated POST /jobs API endpoint
+- Updated Partner cmdlets for API changes
 - Deprecated functionality removal:
   - Get-IMAsset - Removed DeviceID support following API deprecation
 

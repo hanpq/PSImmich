@@ -46,11 +46,11 @@
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$OldSpecPath,
+    [Parameter(Mandatory = $false)]
+    [string]$OldSpecPath = '.\api.2.2.0.json',
 
-    [Parameter(Mandatory = $true)]
-    [string]$NewSpecPath,
+    [Parameter(Mandatory = $false)]
+    [string]$NewSpecPath = '.\api.2.3.1.json',
 
     [Parameter(Mandatory = $false)]
     [string]$OutputPath,
@@ -702,11 +702,11 @@ try
     $excludedApis = $null
     $exclusionsFile = if ($ExclusionsPath)
     {
-        $ExclusionsPath 
+        $ExclusionsPath
     }
     else
     {
-        Join-Path $PSScriptRoot 'exclusions.json' 
+        Join-Path $PSScriptRoot 'exclusions.json'
     }
 
     if (Test-Path $exclusionsFile)

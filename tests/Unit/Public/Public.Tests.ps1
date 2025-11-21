@@ -6534,27 +6534,28 @@ InModuleScope $ProjectName {
         }
 
         Context 'Parameter Validation' {
-            It 'Should have Id parameter as mandatory' {
+            It 'Should have SharedWithId parameter as mandatory' {
                 $function = Get-Command Add-IMPartner
-                $idParam = $function.Parameters['id']
-                $idParam.ParameterSets.Values.IsMandatory | Should -Contain $true
+                $sharedWithIdParam = $function.Parameters['SharedWithId']
+                $sharedWithIdParam.ParameterSets.Values.IsMandatory | Should -Contain $true
             }
 
-            It 'Should validate GUID format for Id parameter' {
+            It 'Should validate GUID format for SharedWithId parameter' {
                 $function = Get-Command Add-IMPartner
-                $idParam = $function.Parameters['id']
-                $validationAttribute = $idParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ValidatePatternAttribute' }
+                $sharedWithIdParam = $function.Parameters['SharedWithId']
+                $validationAttribute = $sharedWithIdParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ValidatePatternAttribute' }
                 $validationAttribute.RegexPattern | Should -Be '^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$'
             }
         }
 
         Context 'Partner Addition' {
             It 'Should add partner with correct API call' {
-                Add-IMPartner -id 'a1b2c3d4-e5f6-4789-a012-123456789abc'
+                Add-IMPartner -SharedWithId 'a1b2c3d4-e5f6-4789-a012-123456789abc'
 
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
                     $Method -eq 'Post' -and
-                    $RelativePath -eq '/partners/a1b2c3d4-e5f6-4789-a012-123456789abc'
+                    $RelativePath -eq '/partners' -and
+                    $Body.sharedWithId -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 }
             }
         }
