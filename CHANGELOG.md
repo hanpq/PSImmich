@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.1] - 2025-11-22
+
 ### BREAKING CHANGES
 
 - Get-IMServer* cmdlets have been removed and replaced by a single Get-IMServer cmdlet that provides switch parameters for the different data.
