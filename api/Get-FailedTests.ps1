@@ -7,12 +7,12 @@
 .DESCRIPTION
     Parses Pester test results from the output\testResults folder and extracts
     only failed tests with detailed information useful for troubleshooting.
-    
+
     The script imports the PesterObject XML file which contains rich test metadata
     and outputs failed tests as structured JSON data including:
-    
+
     - Test name and full hierarchy path
-    - Source file and line number  
+    - Source file and line number
     - Test duration
     - Error details including exception messages
     - Test code and context information
@@ -51,15 +51,15 @@ param(
 
 function Get-LatestPesterResults {
     param([string]$Path)
-    
+
     $pesterFiles = Get-ChildItem -Path $Path -Filter 'PesterObject_*.xml' | Sort-Object LastWriteTime -Descending
-    
+
     if (-not $pesterFiles) {
         throw "No Pester result files found in $Path"
     }
-    
+
     $latestFile = $pesterFiles[0]
-    
+
     return @{
         Results = Import-Clixml $latestFile.FullName
         SourceFile = $latestFile.Name
@@ -69,7 +69,7 @@ function Get-LatestPesterResults {
 
 function ConvertTo-FailedTestObject {
     param($Test, $PesterResults, [switch]$IncludeContext)
-    
+
     # Extract error details
     $errorDetails = @()
     if ($Test.ErrorRecord -and $Test.ErrorRecord.Count -gt 0) {
@@ -92,10 +92,10 @@ function ConvertTo-FailedTestObject {
             }
         }
     }
-    
+
     # Get source file information
     $sourceContainer = Get-TestSourceFile -Test $Test -PesterResults $PesterResults
-    
+
     $testObject = @{
         name = $Test.Name
         path = $Test.Path
@@ -109,14 +109,14 @@ function ConvertTo-FailedTestObject {
         code = if ($Test.ScriptBlock) { $Test.ScriptBlock.Trim() } else { $null }
         result = $Test.Result
     }
-    
+
     if ($IncludeContext) {
         $testObject.executedAt = $Test.ExecutedAt.ToString('yyyy-MM-dd HH:mm:ss')
         $testObject.blockName = $Test.Block.Name
         $testObject.hasData = [bool]$Test.Data
         $testObject.hasFrameworkData = [bool]$Test.FrameworkData
     }
-    
+
     return $testObject
 }
 
