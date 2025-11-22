@@ -2201,7 +2201,7 @@ InModuleScope $ProjectName {
                 Import-IMAsset -FilePath $TestFile1
 
                 Should -Invoke Invoke-MultipartHttpUpload -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
-                    $Uri -eq '/assets' -and
+                    $RelativePath -eq '/assets' -and
                     $FileFieldName -eq 'assetData' -and
                     $FileInfo.Name -like 'photo1.jpg'
                 }
@@ -7942,7 +7942,7 @@ InModuleScope $ProjectName {
                 Add-IMMyProfilePicture -FilePath $TestFile
 
                 Should -Invoke Invoke-MultipartHttpUpload -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
-                    $Uri -eq '/users/profile-image' -and
+                    $RelativePath -eq '/users/profile-image' -and
                     $FileFieldName -eq 'file' -and
                     $FileInfo.Name -eq 'test-avatar.jpg'
                 }

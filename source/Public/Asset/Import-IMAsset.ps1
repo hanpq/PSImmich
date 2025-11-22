@@ -97,7 +97,7 @@
 
         $FilePath | ForEach-Object {
             $FileInfo = Get-Item -Path $PSItem.FullName
-            $Uri = '/assets'
+            $RelativePath = '/assets'
 
             # Prepare form data
             $FormData = @{}
@@ -110,7 +110,7 @@
             }
 
             # Use unified HttpClient approach via private function
-            $ResponseContent = Invoke-MultipartHttpUpload -Uri $Uri -Session:$Session -FormData $FormData -FileInfo $FileInfo -FileFieldName 'assetData'
+            $ResponseContent = Invoke-MultipartHttpUpload -RelativePath $RelativePath -Session:$Session -FormData $FormData -FileInfo $FileInfo -FileFieldName 'assetData'
 
             $ResponseContent | ConvertFrom-Json | Get-IMAsset
         }

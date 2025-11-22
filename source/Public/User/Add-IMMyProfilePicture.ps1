@@ -31,10 +31,10 @@
     {
         # Resolve session - same pattern as InvokeImmichRestMethod
         $FileInfo = Get-Item -Path $FilePath.FullName
-        $Uri = "/users/profile-image"
+        $RelativePath = '/users/profile-image'
 
         # Use unified HttpClient approach via private function
-        $ResponseContent = Invoke-MultipartHttpUpload -Uri $Uri -Session:$Session -FormData @{} -FileInfo $FileInfo -FileFieldName 'file'
+        $ResponseContent = Invoke-MultipartHttpUpload -RelativePath $RelativePath -Session:$Session -FormData @{} -FileInfo $FileInfo -FileFieldName 'file'
 
         $ResponseContent | ConvertFrom-Json
     }

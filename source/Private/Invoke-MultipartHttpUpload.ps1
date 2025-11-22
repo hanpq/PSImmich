@@ -6,8 +6,8 @@
     .DESCRIPTION
         Handles multipart form data uploads with file content using .NET HttpClient.
         Centralizes HttpClient logic for consistent cross-platform file uploads.
-    .PARAMETER Uri
-        The target URI for the HTTP POST request
+    .PARAMETER RelativePath
+        The relative path for the API endpoint (e.g., '/assets', '/users/profile-image')
     .PARAMETER Session
         The ImmichSession object containing API URI and access token
     .PARAMETER FormData
@@ -17,7 +17,7 @@
     .PARAMETER FileFieldName
         The form field name for the file (e.g., 'assetData', 'file')
     .EXAMPLE
-        Invoke-MultipartHttpUpload -Uri $uri -ApiKey $token -FormData $data -FileInfo $file -FileFieldName 'assetData'
+        Invoke-MultipartHttpUpload -RelativePath '/assets' -Session $session -FormData $data -FileInfo $file -FileFieldName 'assetData'
     #>
     [CmdletBinding()]
     param(
@@ -26,7 +26,7 @@
         $Session,
 
         [Parameter(Mandatory)]
-        [string]$Uri,
+        [string]$RelativePath,
 
         [Parameter()]
         [hashtable]$FormData = @{},
@@ -64,7 +64,7 @@
         # Validate FileInfo object has required properties
         if (-not $FileInfo.FullName -or -not $FileInfo.Name)
         {
-            throw "FileInfo object must have FullName and Name properties"
+            throw 'FileInfo object must have FullName and Name properties'
         }
 
         # Add API key header
@@ -85,7 +85,7 @@
         $MultipartContent.Add($StreamContent, $FileFieldName, $FileInfo.Name)
 
         # Send request
-        $Response = $HttpClient.PostAsync($(($Session.ApiUri) + $Uri), $MultipartContent).Result
+        $Response = $HttpClient.PostAsync($(($Session.ApiUri) + $RelativePath), $MultipartContent).Result
         $ResponseContent = $Response.Content.ReadAsStringAsync().Result
 
         if ($Response.IsSuccessStatusCode)

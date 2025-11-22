@@ -56,17 +56,27 @@ function Get-ExclusionConfig
 
 function Get-ImplementedAPIs
 {
-    $sourcePath = Join-Path (Split-Path $PSScriptRoot -Parent) 'source\Public'
-    if (-not (Test-Path $sourcePath))
+    $sourceBasePath = Join-Path (Split-Path $PSScriptRoot -Parent) 'source'
+    $publicPath = Join-Path $sourceBasePath 'Public'
+    $classesPath = Join-Path $sourceBasePath 'Classes'
+
+    if (-not (Test-Path $publicPath))
     {
-        throw "Source path not found: $sourcePath"
+        throw "Source path not found: $publicPath"
     }
 
     Write-Host 'Analyzing source code in: ' -NoNewline -ForegroundColor Cyan
-    Write-Host 'source\Public' -ForegroundColor White
+    Write-Host 'source\Public and source\Classes' -ForegroundColor White
 
     $implementedAPIs = @()
-    $codeFiles = Get-ChildItem $sourcePath -Recurse -Filter '*.ps1'
+
+    # Get files from both Public functions and Classes
+    $codeFiles = @()
+    $codeFiles += Get-ChildItem $publicPath -Recurse -Filter '*.ps1'
+    if (Test-Path $classesPath)
+    {
+        $codeFiles += Get-ChildItem $classesPath -Recurse -Filter '*.ps1'
+    }
 
     foreach ($file in $codeFiles)
     {
@@ -83,16 +93,32 @@ function Get-ImplementedAPIs
 
             if (-not $functionDef)
             {
-                continue 
+                continue
             }
 
-            # Find API calls
-            $apiCalls = $ast.FindAll({
+            # Find API calls - both InvokeImmichRestMethod and Invoke-MultipartHttpUpload
+            $invokeRestCalls = $ast.FindAll({
                     $args[0] -is [System.Management.Automation.Language.CommandAst] -and
                     $args[0].GetCommandName() -eq 'InvokeImmichRestMethod'
                 }, $true)
 
-            foreach ($call in $apiCalls)
+            $multipartCalls = $ast.FindAll({
+                    $args[0] -is [System.Management.Automation.Language.CommandAst] -and
+                    $args[0].GetCommandName() -eq 'Invoke-MultipartHttpUpload'
+                }, $true)
+
+            # Also look for direct RelativePath usage (like in classes)
+            $directApiCalls = $ast.FindAll({
+                    $args[0] -is [System.Management.Automation.Language.StringConstantExpressionAst] -and
+                    $args[0].Value -match '^/[a-zA-Z]'
+                }, $true)
+
+            $apiCalls = @()
+            $apiCalls += $invokeRestCalls
+            $apiCalls += $multipartCalls
+
+            # Process InvokeImmichRestMethod calls
+            foreach ($call in $invokeRestCalls)
             {
                 $method = $null
                 $path = $null
@@ -103,11 +129,11 @@ function Get-ImplementedAPIs
                     $element = $call.CommandElements[$i]
                     $elementText = if ($element.Value)
                     {
-                        $element.Value 
+                        $element.Value
                     }
                     else
                     {
-                        $element.Extent.Text 
+                        $element.Extent.Text
                     }
 
                     if ($elementText -eq '-Method' -and ($i + 1) -lt $call.CommandElements.Count)
@@ -115,11 +141,11 @@ function Get-ImplementedAPIs
                         $methodElement = $call.CommandElements[$i + 1]
                         $method = if ($methodElement.Value)
                         {
-                            $methodElement.Value 
+                            $methodElement.Value
                         }
                         else
                         {
-                            $methodElement.Extent.Text 
+                            $methodElement.Extent.Text
                         }
                         $method = $method -replace "['`"]", '' | ForEach-Object { $_.ToUpper() }
                     }
@@ -128,13 +154,38 @@ function Get-ImplementedAPIs
                         $pathElement = $call.CommandElements[$i + 1]
                         $path = if ($pathElement.Value)
                         {
-                            $pathElement.Value 
+                            $pathElement.Value
                         }
                         else
                         {
-                            $pathElement.Extent.Text 
+                            $pathElement.Extent.Text
                         }
                         $path = $path -replace "['`"]", ''
+
+                        # If path is a variable (starts with $), try to resolve it
+                        if ($path -match '^\$(\w+)$')
+                        {
+                            $varName = $Matches[1]
+                            # Look for variable assignment in the same function
+                            $assignments = $ast.FindAll({
+                                    $args[0] -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+                                    $args[0].Left.VariablePath.UserPath -eq $varName
+                                }, $true)
+
+                            if ($assignments)
+                            {
+                                $assignmentRight = $assignments[0].Right
+                                if ($assignmentRight -is [System.Management.Automation.Language.StringConstantExpressionAst])
+                                {
+                                    $path = $assignmentRight.Value
+                                }
+                                elseif ($assignmentRight -is [System.Management.Automation.Language.CommandExpressionAst] -and
+                                    $assignmentRight.Expression -is [System.Management.Automation.Language.StringConstantExpressionAst])
+                                {
+                                    $path = $assignmentRight.Expression.Value
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -143,9 +194,152 @@ function Get-ImplementedAPIs
                     $implementedAPIs += [PSCustomObject]@{
                         Method   = $method
                         Path     = $path
-                        Function = $functionDef.Name
+                        Function = if ($functionDef)
+                        {
+                            $functionDef.Name
+                        }
+                        else
+                        {
+                            'Class Method'
+                        }
                         File     = $file.Name
                     }
+                }
+            }
+
+            # Process Invoke-MultipartHttpUpload calls (always POST)
+            foreach ($call in $multipartCalls)
+            {
+                $path = $null
+
+                # Extract RelativePath parameter (method is always POST for multipart)
+                for ($i = 0; $i -lt $call.CommandElements.Count; $i++)
+                {
+                    $element = $call.CommandElements[$i]
+                    $elementText = if ($element.Value)
+                    {
+                        $element.Value
+                    }
+                    else
+                    {
+                        $element.Extent.Text
+                    }
+
+                    if ($elementText -eq '-RelativePath' -and ($i + 1) -lt $call.CommandElements.Count)
+                    {
+                        $pathElement = $call.CommandElements[$i + 1]
+                        $path = if ($pathElement.Value)
+                        {
+                            $pathElement.Value
+                        }
+                        else
+                        {
+                            $pathElement.Extent.Text
+                        }
+                        $path = $path -replace "['`"]", ''
+
+                        # If path is a variable (starts with $), try to resolve it
+                        if ($path -match '^\$(\w+)$')
+                        {
+                            $varName = $Matches[1]
+                            # Look for variable assignment in the same function
+                            $assignments = $ast.FindAll({
+                                    $args[0] -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+                                    $args[0].Left.VariablePath.UserPath -eq $varName
+                                }, $true)
+
+                            if ($assignments)
+                            {
+                                $assignmentRight = $assignments[0].Right
+                                if ($assignmentRight -is [System.Management.Automation.Language.StringConstantExpressionAst])
+                                {
+                                    $path = $assignmentRight.Value
+                                }
+                                elseif ($assignmentRight -is [System.Management.Automation.Language.CommandExpressionAst] -and
+                                    $assignmentRight.Expression -is [System.Management.Automation.Language.StringConstantExpressionAst])
+                                {
+                                    $path = $assignmentRight.Expression.Value
+                                }
+                            }
+                        }
+                        break
+                    }
+                }
+
+                if ($path)
+                {
+                    $implementedAPIs += [PSCustomObject]@{
+                        Method   = 'POST'
+                        Path     = $path
+                        Function = if ($functionDef)
+                        {
+                            $functionDef.Name
+                        }
+                        else
+                        {
+                            'Class Method'
+                        }
+                        File     = $file.Name
+                    }
+                }
+            }
+
+            # Process direct API path references (like in classes)
+            foreach ($pathRef in $directApiCalls)
+            {
+                $path = $pathRef.Value
+
+                # Try to determine the method by context (look for nearby method references)
+                $parent = $pathRef.Parent
+                $method = $null
+
+                # Look for method context in the surrounding code
+                while ($parent -and -not $method)
+                {
+                    $methodRefs = $parent.FindAll({
+                            $args[0] -is [System.Management.Automation.Language.StringConstantExpressionAst] -and
+                            $args[0].Value -match '^(GET|POST|PUT|DELETE|PATCH)$'
+                        }, $false)
+
+                    if ($methodRefs)
+                    {
+                        $method = $methodRefs[0].Value.ToUpper()
+                        break
+                    }
+
+                    # Also check for common patterns like "Method:'Post'"
+                    $methodPatterns = $parent.FindAll({
+                            $args[0] -is [System.Management.Automation.Language.StringConstantExpressionAst] -and
+                            $args[0].Value -match '^(Get|Post|Put|Delete|Patch)$'
+                        }, $false)
+
+                    if ($methodPatterns)
+                    {
+                        $method = $methodPatterns[0].Value.ToUpper()
+                        break
+                    }
+
+                    $parent = $parent.Parent
+                }
+
+                # Default to GET if no method found (most common for direct references)
+                if (-not $method)
+                {
+                    $method = 'GET'
+                }
+
+                $implementedAPIs += [PSCustomObject]@{
+                    Method   = $method
+                    Path     = $path
+                    Function = if ($functionDef)
+                    {
+                        $functionDef.Name
+                    }
+                    else
+                    {
+                        'Class Method'
+                    }
+                    File     = $file.Name
                 }
             }
         }
@@ -276,24 +470,27 @@ try
                     Description     = $description
                     CurrentFunction = if ($matchingImpl)
                     {
-                        ($matchingImpl.Function -join ', ') 
+                        ($matchingImpl.Function -join ', ')
                     }
                     else
                     {
-                        '' 
+                        ''
                     }
                     DeprecatedSince = if ($isDeprecated)
                     {
-                        $methodObject.'x-immich-lifecycle'.deprecatedAt 
+                        $methodObject.'x-immich-lifecycle'.deprecatedAt
                     }
                     else
                     {
-                        '' 
+                        ''
                     }
                 }
             }
         }
     }
+
+    # Calculate covered APIs using simple math
+    $coveredCount = $processedCount - $exclusions.ExcludedPaths.Count - $workItems.Count
 
     # Display results
     if ($workItems.Count -eq 0)
@@ -351,11 +548,11 @@ try
             {
                 $tagName = if ($group.Name)
                 {
-                    $group.Name 
+                    $group.Name
                 }
                 else
                 {
-                    'Untagged' 
+                    'Untagged'
                 }
                 Write-Host "   📁 $tagName" -ForegroundColor Cyan
 
@@ -385,16 +582,18 @@ try
     # Final statistics
     Write-Host '📊 Analysis Statistics:' -ForegroundColor Cyan
     Write-Host "   • Total API endpoints processed: $processedCount" -ForegroundColor White
+    Write-Host '   • Covered APIs (working correctly): ' -NoNewline -ForegroundColor White
+    Write-Host $coveredCount -ForegroundColor Green
     Write-Host '   • Excluded from analysis: ' -NoNewline -ForegroundColor White
     Write-Host $exclusions.ExcludedPaths.Count -ForegroundColor Gray
     Write-Host '   • Work items identified: ' -NoNewline -ForegroundColor White
     Write-Host $workItems.Count -ForegroundColor $(if ($workItems.Count -eq 0)
         {
-            'Green' 
+            'Green'
         }
         else
         {
-            'Yellow' 
+            'Yellow'
         })
 }
 catch
