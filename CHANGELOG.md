@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.2] - 2025-11-25
+
 ### Added
 
 - New cmdlet Copy-IMAssetInfo to support the PUT /assets/copy API.
