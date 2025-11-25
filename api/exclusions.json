@@ -209,6 +209,71 @@
             "Path": "/sync/stream",
             "Method": "POST",
             "Reason": "Internal sync mechanism - not for direct use"
+        },
+        {
+            "Path": "/assets/{id}/video/playback",
+            "Method": "GET",
+            "Reason": "Video playback endpoint - not relevant for PowerShell module"
+        },
+        {
+            "Path": "/assets/{id}/metadata",
+            "Method": "GET",
+            "Reason": "Mobile sync exclusive - used for storing IcloudId for assets"
+        },
+        {
+            "Path": "/assets/{id}/metadata",
+            "Method": "PUT",
+            "Reason": "Mobile sync exclusive - used for storing IcloudId for assets"
+        },
+        {
+            "Path": "/assets/{id}/metadata/{key}",
+            "Method": "DELETE",
+            "Reason": "Mobile sync exclusive - used for storing IcloudId for assets"
+        },
+        {
+            "Path": "/assets/{id}/metadata/{key}",
+            "Method": "GET",
+            "Reason": "Mobile sync exclusive - used for storing IcloudId for assets"
+        },
+        {
+            "Path": "/users",
+            "Method": "GET",
+            "Reason": "End user API, PSImmich supports only admin operations, in this case through Get-IMUser and /admin/users"
+        },
+        {
+            "Path": "/auth/pin-code",
+            "Method": "DELETE",
+            "Reason": "User-specific endpoint for interactive web UI - not suitable for PowerShell automation"
+        },
+        {
+            "Path": "/auth/pin-code",
+            "Method": "POST",
+            "Reason": "User-specific endpoint for interactive web UI - not suitable for PowerShell automation"
+        },
+        {
+            "Path": "/auth/pin-code",
+            "Method": "PUT",
+            "Reason": "User-specific endpoint for interactive web UI - not suitable for PowerShell automation"
+        },
+        {
+            "Path": "/auth/session/lock",
+            "Method": "POST",
+            "Reason": "Interactive web session management - not applicable for PowerShell automation"
+        },
+        {
+            "Path": "/auth/session/unlock",
+            "Method": "POST",
+            "Reason": "Interactive web session management - not applicable for PowerShell automation"
+        },
+        {
+            "Path": "/auth/status",
+            "Method": "GET",
+            "Reason": "Interactive web session status - not applicable for PowerShell automation"
+        },
+        {
+            "Path": "/duplicates/{id}",
+            "Method": "DELETE",
+            "Reason": "Batch-version of this api is implemented as Remove-IMDuplicate"
         }
     ]
 }

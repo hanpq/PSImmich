@@ -5,6 +5,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New cmdlet Copy-IMAssetInfo to support the PUT /assets/copy API.
+- Get-IMAsset now has a parameter -IncludeOCR when using the -Id parameter to retrieve OCR data.
+- New cmdlet Remove-IMDuplicate to support the DELETE /duplicate API
+- New cmdlets Start-IMMaintenanceMode and Stop-IMMaintenanceMode
+  - NOTE: These are currently in alpha mode and not completely functional. We can enter maintenance mode successfully but once maintenance mode is enabled we cannot stop maintenance mode trough the API. Therefor it is currently disabled in code with a warning.
+
 ## [2.3.1] - 2025-11-22
 
 ### BREAKING CHANGES

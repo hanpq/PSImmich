@@ -24,6 +24,8 @@
         Specifies that random assets should be retrieved instead of a specific asset.
     .PARAMETER Count
         The number of random assets to return when using -Random. Default is 1, maximum is 1000.
+    .PARAMETER IncludeOCR
+        Include OCR data for the asset when retrieving by Id.
     .EXAMPLE
         Get-IMAsset
 
@@ -84,7 +86,11 @@
         [Parameter(ParameterSetName = 'id')]
         [ApiParameter('slug')]
         [string]
-        $Slug
+        $Slug,
+
+        [Parameter(ParameterSetName = 'id')]
+        [switch]
+        $IncludeOCR
     )
 
     begin
@@ -105,11 +111,17 @@
         {
             'id'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/assets/$Id" -ImmichSession:$Session -QueryParameters $QueryParameters | AddCustomType IMAsset
+                $Result = InvokeImmichRestMethod -Method Get -RelativePath "/assets/$Id" -ImmichSession:$Session -QueryParameters $QueryParameters | AddCustomType IMAsset
+                if ($IncludeOCR.IsPresent)
+                {
+                    $OcrData = InvokeImmichRestMethod -Method Get -RelativePath "/assets/$Id/ocr" -ImmichSession:$Session
+                    $Result | Add-Member -MemberType NoteProperty -Name OCR -Value $OcrData
+                }
+                $Result
             }
             'personId'
             {
-                Find-IMAsset -personIds $PersonId -Session:$Session
+                Find-IMAsset -PersonIds $PersonId -Session:$Session
             }
             'tagid'
             {

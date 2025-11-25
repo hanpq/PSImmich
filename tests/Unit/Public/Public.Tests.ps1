@@ -4367,6 +4367,90 @@ InModuleScope $ProjectName {
             }
         }
     }
+    # Skipped until we can exit maintenance mode via API
+    Describe 'Start-IMMaintenanceMode' -Tag 'Unit', 'Start-IMMaintenanceMode' -Skip:$true{
+        BeforeAll {
+            Mock InvokeImmichRestMethod {}
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should have Session parameter' {
+                $Command = Get-Command Start-IMMaintenanceMode
+                $Command.Parameters['Session'] | Should -Not -BeNullOrEmpty
+            }
+        }
+
+        Context 'ShouldProcess Support' {
+            It 'Should support ShouldProcess' {
+                $Command = Get-Command Start-IMMaintenanceMode
+                $CmdletBinding = $Command.ScriptBlock.Attributes | Where-Object { $_ -is [System.Management.Automation.CmdletBindingAttribute] }
+                $CmdletBinding.SupportsShouldProcess | Should -Be $true
+            }
+
+            It 'Should have High ConfirmImpact' {
+                $Command = Get-Command Start-IMMaintenanceMode
+                $CmdletBinding = $Command.ScriptBlock.Attributes | Where-Object { $_ -is [System.Management.Automation.CmdletBindingAttribute] }
+                $CmdletBinding.ConfirmImpact | Should -Be 'High'
+            }
+
+            It 'Should not call API when ShouldProcess returns false' {
+                Start-IMMaintenanceMode -WhatIf
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 0 -Scope It
+            }
+        }
+
+        Context 'API Calls' {
+            It 'Should call correct endpoint with start action' {
+                Start-IMMaintenanceMode -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                    $Method -eq 'POST' -and
+                    $RelativePath -eq '/admin/maintenance' -and
+                    $Body.action -eq 'start'
+                }
+            }
+        }
+    }
+    # Skipped until we can exit maintenance mode via API
+    Describe 'Stop-IMMaintenanceMode' -Tag 'Unit', 'Stop-IMMaintenanceMode' -Skip:$true {
+        BeforeAll {
+            Mock InvokeImmichRestMethod {}
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should have Session parameter' {
+                $Command = Get-Command Stop-IMMaintenanceMode
+                $Command.Parameters['Session'] | Should -Not -BeNullOrEmpty
+            }
+        }
+
+        Context 'ShouldProcess Support' {
+            It 'Should support ShouldProcess' {
+                $Command = Get-Command Stop-IMMaintenanceMode
+                $CmdletBinding = $Command.ScriptBlock.Attributes | Where-Object { $_ -is [System.Management.Automation.CmdletBindingAttribute] }
+                $CmdletBinding.SupportsShouldProcess | Should -Be $true
+            }
+
+            It 'Should not call API when ShouldProcess returns false' {
+                Stop-IMMaintenanceMode -WhatIf
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 0 -Scope It
+            }
+        }
+
+        Context 'API Calls' {
+            It 'Should call correct endpoint with end action' {
+                Stop-IMMaintenanceMode -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                    $Method -eq 'POST' -and
+                    $RelativePath -eq '/admin/maintenance' -and
+                    $Body.action -eq 'end'
+                }
+            }
+        }
+    }
     Describe 'Suspend-IMJob' -Tag 'Unit', 'Suspend-IMJob' {
         BeforeAll {
             Mock InvokeImmichRestMethod -ModuleName PSImmich {
@@ -5901,9 +5985,9 @@ InModuleScope $ProjectName {
                     {
                         # Mock response for memory statistics
                         return [PSCustomObject]@{
-                            totalMemories = 42
-                            savedMemories = 15
-                            featuredMemories = 8
+                            totalMemories     = 42
+                            savedMemories     = 15
+                            featuredMemories  = 8
                             onThisDayMemories = 12
                         }
                     }
@@ -8373,21 +8457,21 @@ InModuleScope $ProjectName {
         BeforeAll {
             Mock InvokeImmichRestMethod {
                 return @{
-                    id = '123e4567-e89b-12d3-a456-426614174000'
-                    name = 'Test Workflow'
+                    id          = '123e4567-e89b-12d3-a456-426614174000'
+                    name        = 'Test Workflow'
                     description = 'Test Description'
-                    enabled = $true
-                    actions = @()
-                    filters = @()
+                    enabled     = $true
+                    actions     = @()
+                    filters     = @()
                 }
             }
             Mock ConvertTo-ApiParameters {
                 return @{
-                    name = $BoundParameters.Name
+                    name        = $BoundParameters.Name
                     description = $BoundParameters.Description
-                    enabled = $BoundParameters.Enabled
-                    actions = $BoundParameters.Actions
-                    filters = $BoundParameters.Filters
+                    enabled     = $BoundParameters.Enabled
+                    actions     = $BoundParameters.Actions
+                    filters     = $BoundParameters.Filters
                     triggerType = $BoundParameters.TriggerType
                 }
             }
@@ -8434,11 +8518,11 @@ InModuleScope $ProjectName {
             Mock InvokeImmichRestMethod {}
             Mock ConvertTo-ApiParameters {
                 return @{
-                    name = $BoundParameters.Name
+                    name        = $BoundParameters.Name
                     description = $BoundParameters.Description
-                    enabled = $BoundParameters.Enabled
-                    actions = $BoundParameters.Actions
-                    filters = $BoundParameters.Filters
+                    enabled     = $BoundParameters.Enabled
+                    actions     = $BoundParameters.Actions
+                    filters     = $BoundParameters.Filters
                     triggerType = $BoundParameters.TriggerType
                 }
             }
@@ -8569,6 +8653,290 @@ InModuleScope $ProjectName {
         Context 'Parameter validation' {
             It 'Should validate Id GUID format' {
                 { Remove-IMWorkflow -Id 'invalid-guid' } | Should -Throw
+            }
+        }
+    }
+    Describe 'Copy-IMAssetInfo' -Tag 'Unit', 'Copy-IMAssetInfo' {
+        BeforeAll {
+            Mock InvokeImmichRestMethod {
+                return $null
+            }
+            Mock ConvertTo-ApiParameters {
+                return @{
+                    sourceId    = $BoundParameters.SourceId
+                    targetId    = $BoundParameters.TargetId
+                    albums      = $BoundParameters.Albums
+                    metadata    = $BoundParameters.Metadata
+                    sharedLinks = $BoundParameters.SharedLinks
+                    sidecar     = $BoundParameters.Sidecar
+                    stack       = $BoundParameters.Stack
+                }
+            }
+        }
+
+        Context 'When copying all asset information' {
+            It 'Should call InvokeImmichRestMethod with correct parameters' {
+                $params = @{
+                    SourceId = '123e4567-e89b-12d3-a456-426614174000'
+                    TargetId = '987fcdeb-51a2-43d5-b789-123456789abc'
+                }
+
+                Copy-IMAssetInfo @params
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Method -eq 'PUT' -and
+                    $RelativePath -eq '/assets/copy' -and
+                    $Body.sourceId -eq $params.SourceId -and
+                    $Body.targetId -eq $params.TargetId
+                }
+            }
+        }
+
+        Context 'When copying selective asset information' {
+            It 'Should include only specified switches in body' {
+                $params = @{
+                    SourceId    = '123e4567-e89b-12d3-a456-426614174000'
+                    TargetId    = '987fcdeb-51a2-43d5-b789-123456789abc'
+                    Albums      = $true
+                    Metadata    = $true
+                    SharedLinks = $false
+                    Sidecar     = $false
+                    Stack       = $false
+                }
+
+                Copy-IMAssetInfo @params
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Method -eq 'PUT' -and
+                    $RelativePath -eq '/assets/copy' -and
+                    $Body.sourceId -eq $params.SourceId -and
+                    $Body.targetId -eq $params.TargetId -and
+                    $Body.albums -eq $params.Albums -and
+                    $Body.metadata -eq $params.Metadata
+                }
+            }
+        }
+
+        Context 'When using ShouldProcess' {
+            It 'Should support WhatIf parameter' {
+                $params = @{
+                    SourceId = '123e4567-e89b-12d3-a456-426614174000'
+                    TargetId = '987fcdeb-51a2-43d5-b789-123456789abc'
+                    WhatIf   = $true
+                }
+
+                Copy-IMAssetInfo @params
+
+                Should -Invoke InvokeImmichRestMethod -Times 0 -Exactly
+            }
+        }
+
+        Context 'Default parameter behavior' {
+            It 'Should set all boolean switches to true when none are specified' {
+                $params = @{
+                    SourceId = '123e4567-e89b-12d3-a456-426614174000'
+                    TargetId = '987fcdeb-51a2-43d5-b789-123456789abc'
+                }
+
+                Copy-IMAssetInfo @params
+
+                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -ParameterFilter {
+                    $BoundParameters.Albums -eq $true -and
+                    $BoundParameters.Metadata -eq $true -and
+                    $BoundParameters.SharedLinks -eq $true -and
+                    $BoundParameters.Sidecar -eq $true -and
+                    $BoundParameters.Stack -eq $true
+                }
+            }
+        }
+
+        Context 'Parameter validation' {
+            It 'Should validate SourceId GUID format' {
+                { Copy-IMAssetInfo -SourceId 'invalid-guid' -TargetId '987fcdeb-51a2-43d5-b789-123456789abc' } | Should -Throw
+            }
+
+            It 'Should validate TargetId GUID format' {
+                { Copy-IMAssetInfo -SourceId '123e4567-e89b-12d3-a456-426614174000' -TargetId 'invalid-guid' } | Should -Throw
+            }
+        }
+
+        Context 'Switch parameter behavior' {
+            It 'Should only copy specified switches when some are provided' {
+                $params = @{
+                    SourceId = '123e4567-e89b-12d3-a456-426614174000'
+                    TargetId = '987fcdeb-51a2-43d5-b789-123456789abc'
+                    Albums   = $true
+                    Metadata = $true
+                }
+
+                Copy-IMAssetInfo @params
+
+                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -ParameterFilter {
+                    $BoundParameters.Albums -eq $true -and
+                    $BoundParameters.Metadata -eq $true -and
+                    -not $BoundParameters.ContainsKey('SharedLinks') -and
+                    -not $BoundParameters.ContainsKey('Sidecar') -and
+                    -not $BoundParameters.ContainsKey('Stack')
+                }
+            }
+
+            It 'Should handle explicit false values for switches' {
+                $params = @{
+                    SourceId = '123e4567-e89b-12d3-a456-426614174000'
+                    TargetId = '987fcdeb-51a2-43d5-b789-123456789abc'
+                    Albums   = $false
+                }
+
+                Copy-IMAssetInfo @params
+
+                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -ParameterFilter {
+                    $BoundParameters.Albums -eq $false -and
+                    -not $BoundParameters.ContainsKey('Metadata') -and
+                    -not $BoundParameters.ContainsKey('SharedLinks') -and
+                    -not $BoundParameters.ContainsKey('Sidecar') -and
+                    -not $BoundParameters.ContainsKey('Stack')
+                }
+            }
+        }
+    }
+
+    Describe 'Remove-IMDuplicate' -Tag 'Remove-IMDuplicate' {
+        BeforeAll {
+            Mock InvokeImmichRestMethod {}
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should validate GUID format for Ids parameter' {
+                { Remove-IMDuplicate -Ids 'invalid-guid' } | Should -Throw
+            }
+
+            It 'Should have Ids parameter as mandatory' {
+                (Get-Command Remove-IMDuplicate).Parameters.Ids.Attributes.Mandatory | Should -Be $true
+            }
+
+            It 'Should have id alias for Ids parameter' {
+                (Get-Command Remove-IMDuplicate).Parameters.Ids.Aliases | Should -Contain 'id'
+            }
+
+            It 'Should reject invalid GUID format' {
+                { Remove-IMDuplicate -Ids 'not-a-guid' } | Should -Throw
+            }
+        }
+
+        Context 'ShouldProcess Support' {
+            It 'Should support ShouldProcess' {
+                (Get-Command Remove-IMDuplicate).Parameters.ContainsKey('WhatIf') | Should -Be $true
+                (Get-Command Remove-IMDuplicate).Parameters.ContainsKey('Confirm') | Should -Be $true
+            }
+
+            It 'Should call InvokeImmichRestMethod when confirmed for single duplicate' {
+                Remove-IMDuplicate -Ids '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Method -eq 'Delete' -and
+                    $RelativePath -eq '/duplicates' -and
+                    $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+            It 'Should call InvokeImmichRestMethod when confirmed for multiple duplicates' {
+                $duplicateIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
+                Remove-IMDuplicate -Ids $duplicateIds -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Method -eq 'Delete' -and
+                    $RelativePath -eq '/duplicates' -and
+                    $Body.ids.Count -eq 2 -and
+                    $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000' -and
+                    $Body.ids -contains '987fcdeb-51a2-43d5-b789-123456789abc'
+                }
+            }
+        }
+
+        Context 'Pipeline Support' {
+            It 'Should accept pipeline input by value' {
+                '123e4567-e89b-12d3-a456-426614174000' | Remove-IMDuplicate -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should accept pipeline input by property name (Ids)' {
+                $duplicateObject = [PSCustomObject]@{ Ids = '123e4567-e89b-12d3-a456-426614174000' }
+                $duplicateObject | Remove-IMDuplicate -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should accept pipeline input by property name (id alias)' {
+                $duplicateObject = [PSCustomObject]@{ id = '123e4567-e89b-12d3-a456-426614174000' }
+                $duplicateObject | Remove-IMDuplicate -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should handle multiple duplicates from pipeline' {
+                $duplicates = @(
+                    [PSCustomObject]@{ id = '123e4567-e89b-12d3-a456-426614174000' }
+                    [PSCustomObject]@{ id = '987fcdeb-51a2-43d5-b789-123456789abc' }
+                )
+                $duplicates | Remove-IMDuplicate -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Body.ids.Count -eq 2 -and
+                    $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000' -and
+                    $Body.ids -contains '987fcdeb-51a2-43d5-b789-123456789abc'
+                }
+            }
+
+            It 'Should collect multiple pipeline objects into single API call' {
+                $duplicateIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc', 'abcdef01-2345-6789-abcd-ef0123456789')
+                $duplicateIds | Remove-IMDuplicate -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Body.ids.Count -eq 3
+                }
+            }
+        }
+
+        Context 'Session Parameter' {
+            It 'Should pass Session parameter when provided' {
+                # Verify Session parameter is accepted by checking parameter definition
+                $function = Get-Command Remove-IMDuplicate
+                $sessionParam = $function.Parameters['Session']
+                $sessionParam.ParameterType.Name | Should -Be 'ImmichSession'
+            }
+
+            It 'Should use default session when no session parameter provided' {
+                Remove-IMDuplicate -Ids '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                    $null -eq $ImmichSession
+                }
+            }
+        }
+
+        Context 'API Integration' {
+            It 'Should call correct REST endpoint' {
+                Remove-IMDuplicate -Ids '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Method -eq 'Delete' -and $RelativePath -eq '/duplicates'
+                }
+            }
+
+            It 'Should include all duplicate IDs in request body' {
+                $duplicateIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc', 'abcdef01-2345-6789-abcd-ef0123456789')
+                Remove-IMDuplicate -Ids $duplicateIds -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Body.ids.Count -eq 3 -and
+                    ($duplicateIds | ForEach-Object { $Body.ids -contains $_ }) -notcontains $false
+                }
             }
         }
     }

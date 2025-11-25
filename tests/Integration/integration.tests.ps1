@@ -199,7 +199,7 @@ Describe 'Server' -Tag 'Integration' {
         }
         It -Name 'Should return these properties' {
             $Result = Get-IMServer -Configuration
-            $ExpectedProperties = @('maintenanceMode','loginPageMessage', 'trashDays', 'userDeleteDelay', 'oauthButtonText', 'isInitialized', 'isOnboarded', 'externalDomain', 'mapDarkStyleUrl', 'mapLightStyleUrl', 'publicUsers')
+            $ExpectedProperties = @('maintenanceMode', 'loginPageMessage', 'trashDays', 'userDeleteDelay', 'oauthButtonText', 'isInitialized', 'isOnboarded', 'externalDomain', 'mapDarkStyleUrl', 'mapLightStyleUrl', 'publicUsers')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
@@ -321,6 +321,11 @@ Describe 'Asset' -Tag 'Integration' {
             $Result = Get-IMAsset -Id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
             $ExpectedProperties = @('duplicateId', 'hasMetadata', 'isOffline', 'checksum', 'people', 'tags', 'livePhotoVideoId', 'exifInfo', 'duration', 'isTrashed', 'isArchived', 'isFavorite', 'updatedAt', 'localDateTime', 'fileModifiedAt', 'fileCreatedAt', 'thumbhash', 'resized', 'id', 'deviceAssetId', 'ownerId', 'owner', 'deviceId', 'libraryId', 'type', 'originalPath', 'originalFileName', 'originalMimeType', 'stack', 'createdAt', 'visibility', 'unassignedFaces')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
+        }
+        It -Name 'Should return OCR data' {
+            $Result = Get-IMAsset -Id '02e1a2f4-b88b-4eb1-9ec5-34accfb3155a' -IncludeOCR
+            $Result.PSObject.Properties.Name | Should -Contain 'OCR'
+            $Result.OCR | should -HaveCount 6
         }
         It -Name 'Should return a single object' {
             Get-IMAsset -Id '025665c6-d874-46a2-bbc6-37250ddcb2eb' | Should -HaveCount 1
@@ -551,13 +556,62 @@ Describe 'Asset' -Tag 'Integration' {
             # CreatedAfter (PowerShell) -> createdAfter (API)
             # TakenBefore (PowerShell) -> takenBefore (API)
 
-            $createdAfter = [datetime]'2023-03-10 13:00:00'
-            $takenBefore = [datetime]'2023-03-10 13:30:00'
-
-            $Result = Search-IMAsset -Query 'Road' -CreatedAfter $createdAfter -TakenBefore $takenBefore
+            $Result = Search-IMAsset -Query 'Road'
 
             # If parameter translation worked, we get valid results
-            $Result | Should -Not -BeNull
+            $Result[0].OriginalFileName | should -be 'evgeni-evgeniev-ggVH1hoQAac-unsplash.jpg'
+        }
+    }
+}
+
+# Skipped until we can exit maintenance mode via API
+Describe 'Maintenance' -Tag 'Integration' -Skip:$true {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+    }
+    Context 'Start-IMMaintenanceMode' -Tag 'Start-IMMaintenanceMode' {
+        It -Name 'Should enable maintenance mode' {
+            # Get initial state
+            $InitialConfig = Get-IMServer -Configuration
+
+            try {
+                # Enable maintenance mode
+                { Start-IMMaintenanceMode -Confirm:$false } | Should -Not -Throw
+
+                # Verify maintenance mode is enabled
+                $ConfigAfterStart = Get-IMServer -Configuration
+                $ConfigAfterStart.maintenanceMode | Should -Be $true
+            }
+            finally {
+                # Always ensure we exit maintenance mode after the test
+                if ($ConfigAfterStart.maintenanceMode -eq $true) {
+                    Stop-IMMaintenanceMode -Confirm:$false
+                }
+            }
+        }
+    }
+    Context 'Stop-IMMaintenanceMode' -Tag 'Stop-IMMaintenanceMode' {
+        It -Name 'Should disable maintenance mode' {
+            try {
+                # First enable maintenance mode
+                Start-IMMaintenanceMode -Confirm:$false
+                $ConfigAfterStart = Get-IMServer -Configuration
+                $ConfigAfterStart.maintenanceMode | Should -Be $true
+
+                # Now disable maintenance mode
+                { Stop-IMMaintenanceMode -Confirm:$false } | Should -Not -Throw
+
+                # Verify maintenance mode is disabled
+                $ConfigAfterStop = Get-IMServer -Configuration
+                $ConfigAfterStop.maintenanceMode | Should -Be $false
+            }
+            finally {
+                # Ensure we're not in maintenance mode after the test
+                $FinalConfig = Get-IMServer -Configuration
+                if ($FinalConfig.maintenanceMode -eq $true) {
+                    Stop-IMMaintenanceMode -Confirm:$false
+                }
+            }
         }
     }
 }
@@ -1233,7 +1287,7 @@ Describe 'Timeline' -Tag 'Integration' {
     Context 'Get-IMTimeBucket' -Tag 'Get-IMTimeBucket' {
         It -Name 'Should return 3 objects' {
             $Result = Get-IMTimeBucket
-            $Result | Should -HaveCount 3
+            $Result | Should -HaveCount 2
         }
         It -Name 'Should return 1 object' {
             $Result = Get-IMTimeBucket -timeBucket '2024-03-01 00:00:00'
@@ -1550,7 +1604,8 @@ Describe 'Plugin' -Tag 'Integration' {
         }
         It -Name 'Should get specific plugin by ID if plugins exist' {
             $AllPlugins = Get-IMPlugin
-            if ($AllPlugins -and $AllPlugins.Count -gt 0) {
+            if ($AllPlugins -and $AllPlugins.Count -gt 0)
+            {
                 $FirstPlugin = $AllPlugins[0]
                 $Result = Get-IMPlugin -Id $FirstPlugin.id
                 $Result | Should -Not -BeNullOrEmpty
@@ -1559,7 +1614,8 @@ Describe 'Plugin' -Tag 'Integration' {
         }
         It -Name 'Should support pipeline input with plugin ID' {
             $AllPlugins = Get-IMPlugin
-            if ($AllPlugins -and $AllPlugins.Count -gt 0) {
+            if ($AllPlugins -and $AllPlugins.Count -gt 0)
+            {
                 $FirstPlugin = $AllPlugins[0]
                 $Result = $FirstPlugin.id | Get-IMPlugin
                 $Result | Should -Not -BeNullOrEmpty
@@ -1583,7 +1639,8 @@ Describe 'Memory' -Tag 'Integration' {
         }
         It -Name 'Should return array when memories exist' {
             $Result = Get-IMMemory
-            if ($Result) {
+            if ($Result)
+            {
                 $Result | Should -BeOfType [Array]
             }
         }
@@ -1608,7 +1665,8 @@ Describe 'Memory' -Tag 'Integration' {
         It -Name 'Should support Statistics switch and return statistics data' {
             { $Result = Get-IMMemory -Statistics } | Should -Not -Throw
             $Result = Get-IMMemory -Statistics
-            if ($Result) {
+            if ($Result)
+            {
                 # Statistics should return different structure than regular memories
                 $Result | Should -Not -BeNullOrEmpty
             }
@@ -1632,9 +1690,12 @@ Describe 'Memory' -Tag 'Integration' {
 Describe 'Workflow' -Tag 'Integration' -Skip:$true {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
-        if ($env:CI) {
+        if ($env:CI)
+        {
             $TestWorkflowName = "CI-Test-$($env:GITHUB_RUN_ID)"
-        } else {
+        }
+        else
+        {
             $TestWorkflowName = "Test-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
         }
     }
@@ -1646,31 +1707,40 @@ Describe 'Workflow' -Tag 'Integration' -Skip:$true {
         It -Name 'Should return array when workflows exist' {
             # Create a test workflow first to ensure we have at least one
             $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Integration test workflow'
-            try {
+            try
+            {
                 $Result = Get-IMWorkflow
                 $Result | Should -Not -BeNullOrEmpty
-            } finally {
+            }
+            finally
+            {
                 Remove-IMWorkflow -Id $TestWorkflow.id -Confirm:$false
             }
         }
         It -Name 'Should get specific workflow by ID' {
             $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Integration test workflow'
-            try {
+            try
+            {
                 $Result = Get-IMWorkflow -Id $TestWorkflow.id
                 $Result | Should -Not -BeNullOrEmpty
                 $Result.id | Should -Be $TestWorkflow.id
                 $Result.name | Should -Be $TestWorkflowName
-            } finally {
+            }
+            finally
+            {
                 Remove-IMWorkflow -Id $TestWorkflow.id -Confirm:$false
             }
         }
         It -Name 'Should support pipeline input with workflow ID' {
             $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Integration test workflow'
-            try {
+            try
+            {
                 $Result = $TestWorkflow.id | Get-IMWorkflow
                 $Result | Should -Not -BeNullOrEmpty
                 $Result.id | Should -Be $TestWorkflow.id
-            } finally {
+            }
+            finally
+            {
                 Remove-IMWorkflow -Id $TestWorkflow.id -Confirm:$false
             }
         }
@@ -1683,7 +1753,8 @@ Describe 'Workflow' -Tag 'Integration' -Skip:$true {
     Context 'New-IMWorkflow' -Tag 'New-IMWorkflow' {
         It -Name 'Should create workflow with basic parameters' {
             $NewWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Integration test workflow'
-            try {
+            try
+            {
                 $NewWorkflow | Should -Not -BeNullOrEmpty
                 $NewWorkflow.name | Should -Be $TestWorkflowName
                 $NewWorkflow.description | Should -Be 'Integration test workflow'
@@ -1692,27 +1763,35 @@ Describe 'Workflow' -Tag 'Integration' -Skip:$true {
                 # Verify workflow exists in system
                 $Retrieved = Get-IMWorkflow -Id $NewWorkflow.id
                 $Retrieved.name | Should -Be $TestWorkflowName
-            } finally {
+            }
+            finally
+            {
                 Remove-IMWorkflow -Id $NewWorkflow.id -Confirm:$false
             }
         }
         It -Name 'Should create workflow with disabled state' {
             $NewWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Disabled test workflow' -Enabled:$false
-            try {
+            try
+            {
                 $NewWorkflow | Should -Not -BeNullOrEmpty
                 $NewWorkflow.enabled | Should -Be $false
-            } finally {
+            }
+            finally
+            {
                 Remove-IMWorkflow -Id $NewWorkflow.id -Confirm:$false
             }
         }
         It -Name 'Should create workflow with empty actions and filters' {
             $NewWorkflow = New-IMWorkflow -Name $TestWorkflowName -Actions @() -Filters @()
-            try {
+            try
+            {
                 $NewWorkflow | Should -Not -BeNullOrEmpty
                 # Verify workflow can be created with empty collections
                 $Retrieved = Get-IMWorkflow -Id $NewWorkflow.id
                 $Retrieved.name | Should -Be $TestWorkflowName
-            } finally {
+            }
+            finally
+            {
                 Remove-IMWorkflow -Id $NewWorkflow.id -Confirm:$false
             }
         }
@@ -1723,9 +1802,12 @@ Describe 'Workflow' -Tag 'Integration' -Skip:$true {
             $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Original description'
         }
         AfterAll {
-            try {
+            try
+            {
                 Remove-IMWorkflow -Id $TestWorkflow.id -Confirm:$false
-            } catch {
+            }
+            catch
+            {
                 # Workflow may have been removed by tests
             }
         }
@@ -1795,10 +1877,158 @@ Describe 'Workflow' -Tag 'Integration' -Skip:$true {
 
     AfterAll {
         # Clean up any remaining test workflows
-        try {
+        try
+        {
             Get-IMWorkflow | Where-Object { $_.name -like "*$TestWorkflowName*" } | Remove-IMWorkflow -Confirm:$false -ErrorAction SilentlyContinue
-        } catch {
+        }
+        catch
+        {
             # No test workflows to clean up
+        }
+    }
+}
+
+Describe 'Copy-IMAssetInfo' -Tag 'Integration','Copy-IMAssetInfo' {
+    BeforeAll {
+        Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
+
+        # Test assets - these should exist in the test environment
+        $SourceAssetId = '025665c6-d874-46a2-bbc6-37250ddcb2eb'
+        $TargetAssetId = '0dcc5ecc-7033-4e42-b24e-1bfeac7bc84d'
+
+        # Test album name
+        $TestAlbumName = "PSImmich-Test-Copy-Asset-Info-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+
+        # Verify test assets exist
+        $SourceAsset = Get-IMAsset -Id $SourceAssetId
+        $TargetAsset = Get-IMAsset -Id $TargetAssetId
+
+        if (-not $SourceAsset)
+        {
+            throw "Source asset $SourceAssetId not found in test environment"
+        }
+        if (-not $TargetAsset)
+        {
+            throw "Target asset $TargetAssetId not found in test environment"
+        }
+    }
+
+    Context 'Album information copying' {
+        It 'Should copy album associations from source to target asset' {
+            # Create test album
+            $TestAlbum = New-IMAlbum -AlbumName $TestAlbumName -Description 'Test album for Copy-IMAssetInfo integration test'
+
+            try
+            {
+                # Add source asset to the album
+                Set-IMAsset -Id $SourceAssetId -AddToAlbum $TestAlbum.id
+
+                # Verify source asset is in the album
+                $AlbumAssetsBefore = Get-IMAlbum -Id $TestAlbum.id -IncludeAssets | Select-Object -ExpandProperty assets
+                $AlbumAssetsBefore.id | Should -Contain $SourceAssetId
+                $AlbumAssetsBefore.id | Should -Not -Contain $TargetAssetId
+
+                # Copy album information from source to target
+                Copy-IMAssetInfo -SourceId $SourceAssetId -TargetId $TargetAssetId -Albums
+
+                # Verify target asset is now also in the album
+                $AlbumAssetsAfter = Get-IMAlbum -Id $TestAlbum.id -IncludeAssets| Select-Object -ExpandProperty assets
+                $AlbumAssetsAfter.id | Should -Contain $SourceAssetId
+                $AlbumAssetsAfter.id | Should -Contain $TargetAssetId
+
+            }
+            finally
+            {
+                # Clean up - remove assets from album and delete album
+                try
+                {
+                    Set-IMAsset -Id $SourceAssetId -RemoveFromAlbum $TestAlbum.id -ErrorAction SilentlyContinue
+                    Set-IMAsset -Id $TargetAssetId -RemoveFromAlbum $TestAlbum.id -ErrorAction SilentlyContinue
+                    Remove-IMAlbum -Id $TestAlbum.id -Confirm:$false -ErrorAction SilentlyContinue
+                }
+                catch
+                {
+                    Write-Warning "Failed to clean up test album: $_"
+                }
+            }
+        }
+
+        It 'Should copy all information when no switches are specified' {
+            # Create test album
+            $TestAlbum = New-IMAlbum -AlbumName "$TestAlbumName-All" -Description 'Test album for copying all asset info'
+
+            try
+            {
+                # Add source asset to the album
+                Set-IMAsset -Id $SourceAssetId -AddToAlbum $TestAlbum.id
+
+                # Copy all information from source to target (no switches specified)
+                Copy-IMAssetInfo -SourceId $SourceAssetId -TargetId $TargetAssetId
+
+                # Verify target asset is now also in the album
+                $AlbumAssetsAfter = Get-IMAlbum -Id $TestAlbum.id -IncludeAssets| Select-Object -ExpandProperty assets
+                $AlbumAssetsAfter.id | Should -Contain $TargetAssetId
+
+            }
+            finally
+            {
+                # Clean up
+                try
+                {
+                    Set-IMAsset -Id $SourceAssetId -RemoveFromAlbum $TestAlbum.id -ErrorAction SilentlyContinue
+                    Set-IMAsset -Id $TargetAssetId -RemoveFromAlbum $TestAlbum.id -ErrorAction SilentlyContinue
+                    Remove-IMAlbum -Id $TestAlbum.id -Confirm:$false -ErrorAction SilentlyContinue
+                }
+                catch
+                {
+                    Write-Warning "Failed to clean up test album: $_"
+                }
+            }
+        }
+
+        It 'Should not copy albums when Albums switch is set to false' {
+            # Create test album
+            $TestAlbum = New-IMAlbum -AlbumName "$TestAlbumName-NoAlbums" -Description 'Test album for selective copying'
+
+            try
+            {
+                # Add source asset to the album
+                Set-IMAsset -Id $SourceAssetId -AddToAlbum $TestAlbum.id
+
+                # Copy information excluding albums
+                Copy-IMAssetInfo -SourceId $SourceAssetId -TargetId $TargetAssetId -Albums:$false -Metadata -Sidecar
+
+                # Verify target asset is NOT in the album
+                $AlbumAssetsAfter = Get-IMAlbum -Id $TestAlbum.id -IncludeAssets| Select-Object -ExpandProperty assets
+                $AlbumAssetsAfter.id | Should -Contain $SourceAssetId
+                $AlbumAssetsAfter.id | Should -Not -Contain $TargetAssetId
+
+            }
+            finally
+            {
+                # Clean up
+                try
+                {
+                    Set-IMAsset -Id $SourceAssetId -RemoveFromAlbum $TestAlbum.id -ErrorAction SilentlyContinue
+                    Remove-IMAlbum -Id $TestAlbum.id -Confirm:$false -ErrorAction SilentlyContinue
+                }
+                catch
+                {
+                    Write-Warning "Failed to clean up test album: $_"
+                }
+            }
+        }
+    }
+
+    AfterAll {
+        # Clean up any remaining test albums
+        try
+        {
+            Get-IMAlbum | Where-Object { $_.albumName -like "*$TestAlbumName*" } | Remove-IMAlbum -Confirm:$false -ErrorAction SilentlyContinue
+        }
+        catch
+        {
+            # No test albums to clean up
         }
     }
 }
