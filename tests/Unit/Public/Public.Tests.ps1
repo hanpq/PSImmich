@@ -1385,6 +1385,50 @@ InModuleScope $ProjectName {
             }
         }
     }
+    Describe 'New-IMFace' -Tag 'Unit', 'New-IMFace' {
+        BeforeAll {
+            Mock InvokeImmichRestMethod {}
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should have mandatory parameters' {
+                $Command = Get-Command New-IMFace
+                $MandatoryParams = @('AssetId', 'PersonId', 'X', 'Y', 'Width', 'Height', 'ImageWidth', 'ImageHeight')
+                foreach ($Param in $MandatoryParams)
+                {
+                    $Command.Parameters[$Param].ParameterSets.Values.IsMandatory | Should -Contain $true
+                }
+            }
+
+            It 'Should validate GUID format for AssetId parameter' {
+                { New-IMFace -AssetId 'invalid-guid' -PersonId '123e4567-e89b-12d3-a456-426614174000' -X 100 -Y 150 -Width 200 -Height 250 -ImageWidth 1920 -ImageHeight 1080 } | Should -Throw
+            }
+
+            It 'Should validate GUID format for PersonId parameter' {
+                { New-IMFace -AssetId '123e4567-e89b-12d3-a456-426614174000' -PersonId 'invalid-guid' -X 100 -Y 150 -Width 200 -Height 250 -ImageWidth 1920 -ImageHeight 1080 } | Should -Throw
+            }
+        }
+
+        Context 'API Calls' {
+            It 'Should call correct endpoint' {
+                $TestParams = @{
+                    AssetId     = 'a7c3b52c-1a2b-3c4d-5e6f-7a8b9c0d1e2f'
+                    PersonId    = 'b8d4c63d-2b3c-4d5e-6f7a-8b9c0d1e2f3a'
+                    X           = 100
+                    Y           = 150
+                    Width       = 200
+                    Height      = 250
+                    ImageWidth  = 1920
+                    ImageHeight = 1080
+                }
+                New-IMFace @TestParams
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                    $Method -eq 'POST' -and $RelativePath -eq '/faces'
+                }
+            }
+        }
+    }
     Describe 'Remove-IMAPIKey' -Tag 'Unit', 'Remove-IMAPIKey' {
         BeforeAll {
             Mock InvokeImmichRestMethod -ModuleName PSImmich { return $null }
@@ -2782,12 +2826,6 @@ InModuleScope $ProjectName {
                 $GuidPattern.RegexPattern | Should -Be '^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$'
             }
 
-            It 'Should validate GUID format for AddToFace parameter' {
-                $Command = Get-Command Set-IMAsset
-                $GuidPattern = $Command.Parameters['AddToFace'].Attributes | Where-Object { $_ -is [System.Management.Automation.ValidatePatternAttribute] }
-                $GuidPattern.RegexPattern | Should -Be '^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$'
-            }
-
             It 'Should validate GUID format for AddToMemory parameter' {
                 $Command = Get-Command Set-IMAsset
                 $GuidPattern = $Command.Parameters['AddToMemory'].Attributes | Where-Object { $_ -is [System.Management.Automation.ValidatePatternAttribute] }
@@ -2944,17 +2982,6 @@ InModuleScope $ProjectName {
         }
 
         Context 'Face and Memory Operations' {
-            It 'Should handle AddToFace parameter' {
-                $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
-                $FaceId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
-
-                Set-IMAsset -Id $TestId -AddToFace $FaceId -Confirm:$false
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq "/faces/$FaceId"
-                }
-            }
-
             It 'Should handle AddToMemory parameter' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 $MemoryId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
@@ -4368,7 +4395,7 @@ InModuleScope $ProjectName {
         }
     }
     # Skipped until we can exit maintenance mode via API
-    Describe 'Start-IMMaintenanceMode' -Tag 'Unit', 'Start-IMMaintenanceMode' -Skip:$true{
+    Describe 'Start-IMMaintenanceMode' -Tag 'Unit', 'Start-IMMaintenanceMode' -Skip:$true {
         BeforeAll {
             Mock InvokeImmichRestMethod {}
         }
@@ -5100,6 +5127,88 @@ InModuleScope $ProjectName {
                 }
             }
         }
+    }
+    Describe 'Set-IMFace' -Tag 'Unit', 'Set-IMFace' {
+        BeforeAll {
+            Mock InvokeImmichRestMethod {}
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should have mandatory PersonId parameter' {
+                $Command = Get-Command Set-IMFace
+                $Command.Parameters['PersonId'].ParameterSets.Values.IsMandatory | Should -Contain $true
+            }
+
+            It 'Should have mandatory FaceId parameter' {
+                $Command = Get-Command Set-IMFace
+                $Command.Parameters['FaceId'].ParameterSets.Values.IsMandatory | Should -Contain $true
+            }
+
+            It 'Should validate GUID format for PersonId parameter' {
+                { Set-IMFace -PersonId 'invalid-guid' -FaceId '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false } | Should -Throw
+            }
+
+            It 'Should validate GUID format for FaceId parameter' {
+                { Set-IMFace -PersonId '123e4567-e89b-12d3-a456-426614174000' -FaceId 'invalid-guid' -Confirm:$false } | Should -Throw
+            }
+
+            It 'Should accept pipeline input for FaceId parameter' {
+                $TestFaceId = '123e4567-e89b-12d3-a456-426614174000'
+                { $TestFaceId | Set-IMFace -PersonId '987fcdeb-51a2-43d5-b789-123456789abc' -Confirm:$false } | Should -Not -Throw
+            }
+        }
+
+        Context 'ShouldProcess Support' {
+            It 'Should support ShouldProcess' {
+                $Command = Get-Command Set-IMFace
+                $CmdletBinding = $Command.ScriptBlock.Attributes | Where-Object { $_ -is [System.Management.Automation.CmdletBindingAttribute] }
+                $CmdletBinding.SupportsShouldProcess | Should -Be $true
+            }
+        }
+
+        Context 'API Calls' {
+            It 'Should call correct endpoint' {
+                $TestPersonId = '987fcdeb-51a2-43d5-b789-123456789abc'
+                $TestFaceId = '123e4567-e89b-12d3-a456-426614174000'
+                Set-IMFace -PersonId $TestPersonId -FaceId $TestFaceId -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                    $Method -eq 'PUT' -and $RelativePath -eq "/faces/$TestPersonId"
+                }
+            }
+
+            It 'Should include FaceId in request body' {
+                $TestPersonId = '987fcdeb-51a2-43d5-b789-123456789abc'
+                $TestFaceId = '123e4567-e89b-12d3-a456-426614174000'
+                Set-IMFace -PersonId $TestPersonId -FaceId $TestFaceId -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.id -eq $TestFaceId
+                }
+            }
+        }
+
+        Context 'Pipeline Support' {
+            It 'Should process pipeline input correctly' {
+                $TestPersonId = '987fcdeb-51a2-43d5-b789-123456789abc'
+                $TestFaceIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
+                $TestFaceIds | Set-IMFace -PersonId $TestPersonId -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 2 -Scope It
+            }
+
+            It 'Should process multiple face objects from pipeline' {
+                $TestPersonId = '987fcdeb-51a2-43d5-b789-123456789abc'
+                $FaceObjects = @(
+                    [PSCustomObject]@{ FaceId = '123e4567-e89b-12d3-a456-426614174000' },
+                    [PSCustomObject]@{ FaceId = '987fcdeb-51a2-43d5-b789-123456789abc' }
+                )
+                $FaceObjects | Set-IMFace -PersonId $TestPersonId -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 2 -Scope It
+            }
+        }
+
     }
     Describe 'Set-IMLibrary' -Tag 'Unit', 'Set-IMLibrary' {
         BeforeAll {
@@ -6742,6 +6851,109 @@ InModuleScope $ProjectName {
             }
         }
     }
+    Describe 'Remove-IMPerson' -Tag 'Unit', 'Remove-IMPerson' {
+        BeforeAll {
+            Mock InvokeImmichRestMethod {}
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should require Ids parameter' {
+                (Get-Command Remove-IMPerson).Parameters['Ids'].Attributes.Mandatory | Should -Be $true
+            }
+
+            It 'Should validate GUID format for Ids parameter' {
+                { Remove-IMPerson -Ids 'invalid-guid' -Confirm:$false } | Should -Throw
+            }
+
+            It 'Should accept pipeline input for Ids parameter' {
+                $TestId = '123e4567-e89b-12d3-a456-426614174000'
+                { $TestId | Remove-IMPerson -Confirm:$false } | Should -Not -Throw
+            }
+
+            It 'Should accept multiple IDs' {
+                $TestIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
+                { Remove-IMPerson -Ids $TestIds -Confirm:$false } | Should -Not -Throw
+            }
+
+            It 'Should accept id alias for pipeline input' {
+                $PersonObject = [PSCustomObject]@{ id = '123e4567-e89b-12d3-a456-426614174000' }
+                { $PersonObject | Remove-IMPerson -Confirm:$false } | Should -Not -Throw
+            }
+        }
+
+        Context 'ShouldProcess Support' {
+            It 'Should support ShouldProcess' {
+                $Command = Get-Command Remove-IMPerson
+                $CmdletBinding = $Command.ScriptBlock.Attributes | Where-Object { $_ -is [System.Management.Automation.CmdletBindingAttribute] }
+                $CmdletBinding.SupportsShouldProcess | Should -Be $true
+            }
+        }
+
+        Context 'API Calls' {
+            It 'Should call correct endpoint for bulk delete' {
+                Remove-IMPerson -Ids '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                    $Method -eq 'Delete' -and $RelativePath -eq '/people'
+                }
+            }
+
+            It 'Should include all person IDs in request body' {
+                $personIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc', 'abcdef01-2345-6789-abcd-ef0123456789')
+                Remove-IMPerson -Ids $personIds -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.ids.Count -eq 3 -and
+                    ($personIds | ForEach-Object { $Body.ids -contains $_ }) -notcontains $false
+                }
+            }
+
+            It 'Should collect IDs from pipeline input' {
+                $personIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
+                $personIds | Remove-IMPerson -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.ids.Count -eq 2 -and
+                    $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000' -and
+                    $Body.ids -contains '987fcdeb-51a2-43d5-b789-123456789abc'
+                }
+            }
+
+            It 'Should process objects with id property from pipeline' {
+                $personObjects = @(
+                    [PSCustomObject]@{ id = '123e4567-e89b-12d3-a456-426614174000' },
+                    [PSCustomObject]@{ id = '987fcdeb-51a2-43d5-b789-123456789abc' }
+                )
+                $personObjects | Remove-IMPerson -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.ids.Count -eq 2 -and
+                    $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000' -and
+                    $Body.ids -contains '987fcdeb-51a2-43d5-b789-123456789abc'
+                }
+            }
+        }
+
+        Context 'Bulk Operations' {
+            It 'Should use single API call for multiple people' {
+                $personIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc', 'abcdef01-2345-6789-abcd-ef0123456789')
+                Remove-IMPerson -Ids $personIds -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Method -eq 'Delete' -and $RelativePath -eq '/people'
+                }
+            }
+
+            It 'Should handle mixed pipeline and parameter input' {
+                $pipelineIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
+                $pipelineIds | Remove-IMPerson -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Body.ids.Count -eq 2
+                }
+            }
+        }
+    }
     Describe 'Set-IMPartner' -Tag 'Unit', 'Set-IMPartner' {
         BeforeAll {
             Mock InvokeImmichRestMethod {
@@ -8069,6 +8281,143 @@ InModuleScope $ProjectName {
             }
         }
     }
+    Describe 'Get-IMTopLargestAsset' -Tag 'Unit', 'Get-IMTopLargestAsset' {
+        BeforeAll {
+            Mock InvokeImmichRestMethod -ModuleName PSImmich {
+                return @(
+                    [PSCustomObject]@{
+                        id = '123e4567-e89b-12d3-a456-426614174000'
+                        type = 'IMAGE'
+                        originalFileName = 'large-image.jpg'
+                        updatedAt = '2024-01-01T10:00:00Z'
+                        exifInfo = @{
+                            fileSizeInByte = 52428800  # 50MB
+                            exifImageWidth = 4000
+                            exifImageHeight = 3000
+                        }
+                    },
+                    [PSCustomObject]@{
+                        id = '987fcdeb-51a2-43d5-b789-123456789abc'
+                        type = 'VIDEO'
+                        originalFileName = 'large-video.mp4'
+                        updatedAt = '2024-01-02T15:30:00Z'
+                        exifInfo = @{
+                            fileSizeInByte = 104857600  # 100MB
+                            exifImageWidth = 1920
+                            exifImageHeight = 1080
+                        }
+                    }
+                )
+            }
+
+            Mock AddCustomType -MockWith {
+                param($InputObject, $TypeName)
+                $InputObject | ForEach-Object {
+                    $_.PSTypeNames.Insert(0, "PSImmich.ObjectType.$TypeName")
+                }
+                return $InputObject
+            } -ModuleName PSImmich
+
+            Mock ConvertTo-ApiParameters -MockWith {
+                return @{ size = $BoundParameters.Size }
+            } -ModuleName PSImmich
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should have Size parameter with correct validation' {
+                $Function = Get-Command Get-IMTopLargestAsset
+                $SizeParam = $Function.Parameters['Size']
+                $SizeParam.ParameterType.Name | Should -Be 'Int32'
+
+                $ValidateRange = $SizeParam.Attributes | Where-Object { $_ -is [System.Management.Automation.ValidateRangeAttribute] }
+                $ValidateRange.MinRange | Should -Be 1
+                $ValidateRange.MaxRange | Should -Be 1000
+            }
+
+            It 'Should include default Size of 100 when not explicitly provided' {
+                # The function should add the default Size value to parameters
+                Get-IMTopLargestAsset
+
+                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $BoundParameters.ContainsKey('Size') -and $BoundParameters.Size -eq 100
+                }
+            }
+
+            It 'Should accept custom Size parameter' {
+                Get-IMTopLargestAsset -Size 50
+
+                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -ParameterFilter {
+                    $BoundParameters.Size -eq 50
+                }
+            }
+
+            It 'Should have Session parameter of ImmichSession type' {
+                $Function = Get-Command Get-IMTopLargestAsset
+                $Function.Parameters['Session'].ParameterType.Name | Should -Be 'ImmichSession'
+            }
+        }
+
+        Context 'API Calls' {
+            It 'Should call correct REST method and endpoint' {
+                Get-IMTopLargestAsset
+
+                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Method -eq 'POST' -and $RelativePath -eq '/search/large-assets'
+                }
+            }
+        }
+
+        Context 'Response Processing' {
+            It 'Should call AddCustomType with IMLargeAsset type' {
+                Get-IMTopLargestAsset
+
+                Should -Invoke AddCustomType -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Type -eq 'IMLargeAsset'
+                }
+            }
+
+            It 'Should return array of asset objects with custom type' {
+                $Result = Get-IMTopLargestAsset
+
+                $Result | Should -HaveCount 2
+                $Result[0].id | Should -Be '123e4567-e89b-12d3-a456-426614174000'
+                $Result[0].type | Should -Be 'IMAGE'
+                $Result[1].id | Should -Be '987fcdeb-51a2-43d5-b789-123456789abc'
+                $Result[1].type | Should -Be 'VIDEO'
+            }
+
+            It 'Should preserve exifInfo for size calculations' {
+                $Result = Get-IMTopLargestAsset
+
+                $Result[0].exifInfo.fileSizeInByte | Should -Be 52428800
+                $Result[0].exifInfo.exifImageWidth | Should -Be 4000
+                $Result[1].exifInfo.fileSizeInByte | Should -Be 104857600
+            }
+        }
+
+        Context 'Parameter Conversion' {
+            It 'Should call ConvertTo-ApiParameters correctly' {
+                Get-IMTopLargestAsset -Size 250
+
+                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $BoundParameters.ContainsKey('Size') -and $BoundParameters.Size -eq 250 -and
+                    $CmdletName -eq 'Get-IMTopLargestAsset'
+                }
+            }
+
+            It 'Should pass converted parameters to REST method' {
+                Mock ConvertTo-ApiParameters -MockWith {
+                    return @{ size = 150 }
+                } -ModuleName PSImmich
+
+                Get-IMTopLargestAsset
+
+                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.size -eq 150
+                }
+            }
+        }
+    }
     Describe 'Get-IMUser' -Tag 'Unit', 'Get-IMUser' {
         BeforeAll {
             Mock InvokeImmichRestMethod {
@@ -8191,7 +8540,6 @@ InModuleScope $ProjectName {
             }
         }
     }
-
     Describe 'Get-IMStack' -Tag 'Unit', 'Get-IMStack' {
         BeforeAll {
             Mock InvokeImmichRestMethod {
@@ -8210,7 +8558,6 @@ InModuleScope $ProjectName {
             }
         }
     }
-
     Describe 'New-IMStack' -Tag 'Unit', 'New-IMStack' {
         BeforeAll {
             Mock InvokeImmichRestMethod {
@@ -8937,6 +9284,75 @@ InModuleScope $ProjectName {
                     $Body.ids.Count -eq 3 -and
                     ($duplicateIds | ForEach-Object { $Body.ids -contains $_ }) -notcontains $false
                 }
+            }
+        }
+    }
+    Describe 'Remove-IMFace' -Tag 'Unit', 'Remove-IMFace' {
+        BeforeAll {
+            Mock InvokeImmichRestMethod {}
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should require Id parameter' {
+                (Get-Command Remove-IMFace).Parameters['Id'].Attributes.Mandatory | Should -Be $true
+            }
+
+            It 'Should validate GUID format for Id parameter' {
+                { Remove-IMFace -Id 'invalid-guid' -Confirm:$false } | Should -Throw
+            }
+
+            It 'Should accept pipeline input for Id parameter' {
+                $TestId = '123e4567-e89b-12d3-a456-426614174000'
+                { $TestId | Remove-IMFace -Confirm:$false } | Should -Not -Throw
+            }
+
+            It 'Should accept multiple IDs' {
+                $TestIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
+                { Remove-IMFace -Id $TestIds -Confirm:$false } | Should -Not -Throw
+            }
+        }
+
+        Context 'ShouldProcess Support' {
+            It 'Should support ShouldProcess' {
+                $Command = Get-Command Remove-IMFace
+                $CmdletBinding = $Command.ScriptBlock.Attributes | Where-Object { $_ -is [System.Management.Automation.CmdletBindingAttribute] }
+                $CmdletBinding.SupportsShouldProcess | Should -Be $true
+            }
+        }
+
+        Context 'API Calls' {
+            It 'Should call correct endpoint for single ID' {
+                $TestId = '123e4567-e89b-12d3-a456-426614174000'
+                Remove-IMFace -Id $TestId -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                    $Method -eq 'DELETE' -and $RelativePath -eq "/faces/$TestId"
+                }
+            }
+
+            It 'Should call endpoint multiple times for multiple IDs' {
+                $TestIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
+                Remove-IMFace -Id $TestIds -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 2 -Scope It
+            }
+
+            It 'Should include Force parameter in body when specified' {
+                $TestId = '123e4567-e89b-12d3-a456-426614174000'
+                Remove-IMFace -Id $TestId -Force -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                    $Method -eq 'DELETE' -and $RelativePath -eq "/faces/$TestId"
+                }
+            }
+        }
+
+        Context 'Pipeline Support' {
+            It 'Should process pipeline input correctly' {
+                $TestIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
+                $TestIds | Remove-IMFace -Confirm:$false
+
+                Should -Invoke InvokeImmichRestMethod -Exactly 2 -Scope It
             }
         }
     }

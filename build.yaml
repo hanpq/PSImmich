@@ -78,8 +78,8 @@ Pester:
       Tag:
       ExcludeTag:
     Output:
-      Verbosity: Normal
-      #Verbosity: Detailed
+      #Verbosity: Normal
+      Verbosity: Detailed
       #Verbosity: Diagnostic
     CodeCoverage:
       Path:

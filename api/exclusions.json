@@ -274,6 +274,46 @@
             "Path": "/duplicates/{id}",
             "Method": "DELETE",
             "Reason": "Batch-version of this api is implemented as Remove-IMDuplicate"
+        },
+        {
+            "Path": "/notifications",
+            "Method": "GET",
+            "Reason": "Web application 'me' context only - not suitable for PowerShell automation"
+        },
+        {
+            "Path": "/notifications",
+            "Method": "PUT",
+            "Reason": "Web application 'me' context only - not suitable for PowerShell automation"
+        },
+        {
+            "Path": "/notifications",
+            "Method": "DELETE",
+            "Reason": "Web application 'me' context only - not suitable for PowerShell automation"
+        },
+        {
+            "Path": "/notifications/{id}",
+            "Method": "GET",
+            "Reason": "Web application 'me' context only - not suitable for PowerShell automation"
+        },
+        {
+            "Path": "/notifications/{id}",
+            "Method": "PUT",
+            "Reason": "Web application 'me' context only - not suitable for PowerShell automation"
+        },
+        {
+            "Path": "/notifications/{id}",
+            "Method": "DELETE",
+            "Reason": "Web application 'me' context only - not suitable for PowerShell automation"
+        },
+        {
+            "Path": "/people/{id}",
+            "Method": "DELETE",
+            "Reason": "Batch-version of this api is implemented as Remove-IMPerson"
+        },
+        {
+            "Path": "/search/statistics",
+            "Method": "POST",
+            "Reason": "Unclear usefulness in our scenario, just returns a count, probably useful for web UI"
         }
     ]
 }

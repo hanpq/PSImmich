@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <Configuration>
     <ViewDefinitions>
         <View>
@@ -129,7 +129,7 @@
                 </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
-                        <Wrap/>
+                        <Wrap />
                         <TableColumnItems>
                             <TableColumnItem>
                                 <PropertyName>type</PropertyName>
@@ -288,6 +288,203 @@
                             </TableColumnItem>
                             <TableColumnItem>
                                 <PropertyName>createdAt</PropertyName>
+                            </TableColumnItem>
+                        </TableColumnItems>
+                    </TableRowEntry>
+                </TableRowEntries>
+            </TableControl>
+        </View>
+        <View>
+            <Name>PSImmich.ObjectType.IMLargeAsset</Name>
+            <ViewSelectedBy>
+                <TypeName>PSImmich.ObjectType.IMLargeAsset</TypeName>
+            </ViewSelectedBy>
+            <TableControl>
+                <TableHeaders>
+                    <TableColumnHeader>
+                        <Label>Id</Label>
+                        <Width>37</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Type</Label>
+                        <Width>6</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>FileName</Label>
+                        <Width>30</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Size (MB)</Label>
+                        <Width>10</Width>
+                        <Alignment>Right</Alignment>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Resolution</Label>
+                        <Width>12</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Updated</Label>
+                        <Width>20</Width>
+                    </TableColumnHeader>
+                </TableHeaders>
+                <TableRowEntries>
+                    <TableRowEntry>
+                        <TableColumnItems>
+                            <TableColumnItem>
+                                <PropertyName>id</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>type</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>originalFileName</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <ScriptBlock>
+                                    if ($_.exifInfo.fileSizeInByte) {
+                                    [math]::Round($_.exifInfo.fileSizeInByte / 1MB, 2)
+                                    } else {
+                                    'N/A'
+                                    }
+                                </ScriptBlock>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <ScriptBlock>
+                                    if ($_.exifInfo.exifImageWidth -and $_.exifInfo.exifImageHeight)
+                                    {
+                                    "$($_.exifInfo.exifImageWidth)x$($_.exifInfo.exifImageHeight)"
+                                    } else {
+                                    'N/A'
+                                    }
+                                </ScriptBlock>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>updatedAt</PropertyName>
+                            </TableColumnItem>
+                        </TableColumnItems>
+                    </TableRowEntry>
+                </TableRowEntries>
+            </TableControl>
+        </View>
+        <View>
+            <Name>PSImmich.ObjectType.IMQueue</Name>
+            <ViewSelectedBy>
+                <TypeName>PSImmich.ObjectType.IMQueue</TypeName>
+            </ViewSelectedBy>
+            <TableControl>
+                <TableHeaders>
+                    <TableColumnHeader>
+                        <Label>Name</Label>
+                        <Width>25</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Status</Label>
+                        <Width>10</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Waiting</Label>
+                        <Width>8</Width>
+                        <Alignment>Right</Alignment>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Active</Label>
+                        <Width>8</Width>
+                        <Alignment>Right</Alignment>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Completed</Label>
+                        <Width>10</Width>
+                        <Alignment>Right</Alignment>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Failed</Label>
+                        <Width>8</Width>
+                        <Alignment>Right</Alignment>
+                    </TableColumnHeader>
+                </TableHeaders>
+                <TableRowEntries>
+                    <TableRowEntry>
+                        <TableColumnItems>
+                            <TableColumnItem>
+                                <PropertyName>name</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <ScriptBlock>
+                                    if ($_.isPaused) { 'Paused' } else { 'Active' }
+                                </ScriptBlock>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>waiting</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>active</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>completed</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>failed</PropertyName>
+                            </TableColumnItem>
+                        </TableColumnItems>
+                    </TableRowEntry>
+                </TableRowEntries>
+            </TableControl>
+        </View>
+        <View>
+            <Name>PSImmich.ObjectType.IMQueueJob</Name>
+            <ViewSelectedBy>
+                <TypeName>PSImmich.ObjectType.IMQueueJob</TypeName>
+            </ViewSelectedBy>
+            <TableControl>
+                <TableHeaders>
+                    <TableColumnHeader>
+                        <Label>Id</Label>
+                        <Width>8</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Status</Label>
+                        <Width>10</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Name</Label>
+                        <Width>20</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Progress</Label>
+                        <Width>10</Width>
+                        <Alignment>Right</Alignment>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Created</Label>
+                        <Width>20</Width>
+                    </TableColumnHeader>
+                    <TableColumnHeader>
+                        <Label>Updated</Label>
+                        <Width>20</Width>
+                    </TableColumnHeader>
+                </TableHeaders>
+                <TableRowEntries>
+                    <TableRowEntry>
+                        <TableColumnItems>
+                            <TableColumnItem>
+                                <PropertyName>id</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>status</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>name</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <ScriptBlock>
+                                    if ($_.progress) { "$($_.progress)%" } else { 'N/A' }
+                                </ScriptBlock>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>createdAt</PropertyName>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>updatedAt</PropertyName>
                             </TableColumnItem>
                         </TableColumnItems>
                     </TableRowEntry>

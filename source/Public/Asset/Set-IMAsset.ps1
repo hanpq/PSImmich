@@ -115,11 +115,6 @@
         [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $AddToFace,
-
-        [Parameter()]
-        [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [string]
         $AddToMemory,
 
         [Parameter()]
@@ -181,10 +176,6 @@
                         {
                             $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/tags/$AddTag/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$object }
                         }
-                        if ($PSBoundParameters.ContainsKey('AddToFace'))
-                        {
-                            $null = InvokeImmichRestMethod -Method PUT -RelativePath "/faces/$AddToFace" -ImmichSession:$Session -Body:@{id = [string[]]$object }
-                        }
                         if ($PSBoundParameters.ContainsKey('AddToMemory'))
                         {
                             $null = InvokeImmichRestMethod -Method PUT -RelativePath "/memories/$AddToMemory/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$object }
@@ -223,10 +214,6 @@
                     if ($PSBoundParameters.ContainsKey('RemoveTag'))
                     {
                         $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/tags/$RemoveTag/assets" -ImmichSession:$Session -Body:@{ids = [string[]]($BodyParameters.ids) }
-                    }
-                    if ($PSBoundParameters.ContainsKey('AddToFace'))
-                    {
-                        $null = InvokeImmichRestMethod -Method PUT -RelativePath "/faces/$AddToFace" -ImmichSession:$Session -Body:@{id = [string[]]($BodyParameters.ids) }
                     }
                     if ($PSBoundParameters.ContainsKey('AddToMemory'))
                     {

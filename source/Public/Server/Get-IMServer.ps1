@@ -224,5 +224,9 @@
         {
             InvokeImmichRestMethod -Method Get -RelativePath '/server/version-check' -ImmichSession:$Session
         }
+        'versioncheckstate'
+        {
+            InvokeImmichRestMethod -Method Get -RelativePath '/system-metadata/version-check-state' -ImmichSession:$Session
+        }
     }
 }
