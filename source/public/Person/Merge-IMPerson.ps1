@@ -33,17 +33,18 @@
 
         [Parameter(Mandatory)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [ApiParameter('ids')]
         [string[]]
         $FromPersonID
     )
 
     if ($PSCmdlet.ShouldProcess(("Merge people($($FromPersonID -join ',')) with $ToPersonID"), 'POST'))
     {
-        $BodyParameters = @{}
-        $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
+        # The bulk endpoint keeps the first ID as the surviving person.
+        $BodyParameters = @{
+            ids = @($ToPersonID) + @($FromPersonID)
+        }
 
-        InvokeImmichRestMethod -Method POST -RelativePath "/people/$ToPersonID/merge" -ImmichSession:$Session -Body:$BodyParameters
+        InvokeImmichRestMethod -Method POST -RelativePath '/people/merge' -ImmichSession:$Session -Body:$BodyParameters
     }
 }
 #endregion

@@ -7201,8 +7201,11 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
                     $Method -eq 'POST' -and
-                    $RelativePath -eq '/people/12345678-1234-5678-9012-123456789abc/merge' -and
-                    $Body.ids.Count -eq 2
+                    $RelativePath -eq '/people/merge' -and
+                    $Body.ids.Count -eq 3 -and
+                    $Body.ids[0] -eq '12345678-1234-5678-9012-123456789abc' -and
+                    $Body.ids[1] -eq '23456789-2345-6789-0123-23456789abcd' -and
+                    $Body.ids[2] -eq '34567890-3456-7890-1234-3456789abcde'
                 }
             }
         }
