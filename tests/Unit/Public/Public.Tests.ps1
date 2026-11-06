@@ -7689,11 +7689,18 @@ InModuleScope $ProjectName {
             }
         }
         Context '-Theme' {
-            It 'Should get theme with correct API call' {
+            BeforeAll {
+                Mock InvokeImmichRestMethod { return [pscustomobject]@{ theme = [pscustomobject]@{ customCss = 'body { color: red; }' } } }
+            }
+            It 'Should get theme from the public config with correct API call' {
                 Get-IMServer -Theme
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/theme'
+                    $Method -eq 'Get' -and $RelativePath -eq '/public/config' -and $noauth
                 }
+            }
+            It 'Should return the theme object with customCss' {
+                $Result = Get-IMServer -Theme
+                $Result.customCss | Should -Be 'body { color: red; }'
             }
         }
         Context '-MediaTypes' {

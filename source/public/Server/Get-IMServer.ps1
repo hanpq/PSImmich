@@ -202,7 +202,8 @@
         }
         'theme'
         {
-            InvokeImmichRestMethod -Method Get -RelativePath '/server/theme' -ImmichSession:$Session
+            $Result = InvokeImmichRestMethod -noauth -Method Get -RelativePath '/public/config' -ImmichSession:$Session
+            $Result.theme
         }
         'ping'
         {
