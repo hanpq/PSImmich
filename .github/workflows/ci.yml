@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    # Release PR merges only touch release metadata; the PR checks and release.yml already test them.
+    paths-ignore:
+      - .release-please-manifest.json
+      - version.txt
+      - CHANGELOG.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux PowerShell
+            os: ubuntu-latest
+            coverage_flag: linux
+          - name: macOS PowerShell
+            os: macos-latest
+            coverage_flag: macos
+          - name: Windows PowerShell
+            os: windows-latest
+            coverage_flag: windows-core
+          - name: Windows PowerShell Desktop
+            os: windows-2022
+            coverage_flag: windows-desktop
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Build and test (PowerShell 7)
+        if: matrix.coverage_flag != 'windows-desktop'
+        shell: pwsh
+        run: ./build.ps1 -Task Test -TestSuite Module
+
+      - name: Build and test (Windows PowerShell 5.1)
+        if: matrix.coverage_flag == 'windows-desktop'
+        shell: powershell
+        run: ./build.ps1 -Task Test -TestSuite Module
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: output/testResults/JaCoCo_coverage.xml
+          flags: ${{ matrix.coverage_flag }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  infrastructure:
+    name: Build and release infrastructure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Test build and release automation
+        shell: pwsh
+        run: ./build.ps1 -Task Test -TestSuite Infrastructure
+
+  integration:
+    name: Immich integration
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Test against Immich
+        shell: pwsh
+        env:
+          PSIMMICHURI: ${{ secrets.PSIMMICHURI }}
+          PSIMMICHAPIKEY: ${{ secrets.PSIMMICHAPIKEY }}
+          PSIMMICHUSER: ${{ secrets.PSIMMICHUSER }}
+          PSIMMICHPASSWORD: ${{ secrets.PSIMMICHPASSWORD }}
+        run: |
+          foreach ($name in @('PSIMMICHURI', 'PSIMMICHAPIKEY', 'PSIMMICHUSER', 'PSIMMICHPASSWORD')) {
+            if (-not [Environment]::GetEnvironmentVariable($name)) {
+              throw "The $name secret is required for Immich integration tests."
+            }
+          }
+          ./build.ps1 -Task Test -TestSuite Integration

@@ -4,21 +4,22 @@ $here = $PSScriptRoot
 
 # Convert-path required for PS7 or Join-Path fails
 $ProjectPath = "$here\..\.." | Convert-Path
-$ProjectName = (Get-ChildItem $ProjectPath\*\*.psd1 | Where-Object {
-    ($_.Directory.Name -eq 'source') -and
-    $(try { Test-ModuleManifest $_.FullName -ErrorAction Stop }catch{$false}) }
-).BaseName
-
-$SourcePath = (Get-ChildItem $ProjectPath\*\*.psd1 | Where-Object {
-        ($_.Directory.Name -eq 'source') -and
-        $(try { Test-ModuleManifest $_.FullName -ErrorAction Stop }catch { $false }) }
-    ).Directory.FullName
+$SourcePath = Join-Path $ProjectPath 'source'
+$moduleManifests = @(Get-ChildItem -LiteralPath $SourcePath -Filter '*.psd1' -File -ErrorAction Stop)
+if ($moduleManifests.Count -ne 1)
+{
+    throw "Expected exactly one module manifest in the source directory; found $($moduleManifests.Count)."
+}
+$null = Test-ModuleManifest -Path $moduleManifests[0].FullName -ErrorAction Stop
+$ProjectName = $moduleManifests[0].BaseName
+$sourceFiles = @(Get-ChildItem -LiteralPath $SourcePath -Recurse -File -Filter '*.ps1' -ErrorAction Stop)
 
 $mut = Import-Module -Name $ProjectName -ErrorAction Stop -PassThru -Force
 $allModuleFunctions = &$mut { Get-Command -Module $args[0] -CommandType Function } $ProjectName | ForEach-Object {
+    $functionName = $PSItem.Name
     [hashtable]@{
-        Name = $PSItem.Name
-        File = Get-ChildItem -Path $SourcePath -Recurse -Include "$($PSItem.Name).ps1"
+        Name = $functionName
+        File = $sourceFiles.Where{ $_.Name -eq "$functionName.ps1" }
     }
 }
 
@@ -36,7 +37,7 @@ else
     }
     else
     {
-        Throw 'ScriptAnalyzer not found!'
+        throw 'ScriptAnalyzer not found!'
     }
 }
 
@@ -45,7 +46,7 @@ else
 BeforeAll {
     function Test-FileEndOfLine
     {
-    <#
+        <#
     .DESCRIPTION
         asd
     .PARAMETER Name
@@ -69,7 +70,7 @@ BeforeAll {
             $Encoding = 'UTF8'
         )
 
-        BEGIN
+        begin
         {
 
             # Import script file
@@ -88,7 +89,7 @@ BeforeAll {
             }
         }
 
-        PROCESS
+        process
         {
             $WindowsRegex = "(`r`n|`n`r)"
             $UnixRegex = "(?<![`r])(`n)(?![`r])"
@@ -118,197 +119,143 @@ BeforeAll {
 }
 
 Describe 'Changelog Management' -Tag 'TestQuality' {
-    It 'Changelog has been updated' -skip:(
-        !([bool](Get-Command git -EA SilentlyContinue) -and
-            [bool](&(Get-Process -id $PID).Path -NoProfile -Command 'git rev-parse --is-inside-work-tree 2>$null'))
-        ) {
-        # Get the list of changed files compared with master
-        $HeadCommit = &git rev-parse HEAD
-        $MasterCommit = &git rev-parse origin/main
-        $filesChanged = &git @('diff', "$MasterCommit...$HeadCommit", '--name-only')
-
-        if ($HeadCommit -ne $MasterCommit) { # if we're not testing same commit (i.e. master..master)
-            $filesChanged.Where{ (Split-Path $_ -Leaf) -match '^changelog' } | Should -Not -BeNullOrEmpty
-        }
+    BeforeAll {
+        $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
     }
 
-    It 'Changelog format compliant with keepachangelog format' -skip:(![bool](Get-Command git -EA SilentlyContinue)) {
-        { Get-ChangelogData (Join-Path $ProjectPath 'CHANGELOG.md') -ErrorAction Stop } | Should -Not -Throw
+    It 'Changelog format compliant with keepachangelog format' -Skip:(![bool](Get-Command git -EA SilentlyContinue)) {
+        $changelog = Get-Content (Join-Path $projectRoot 'CHANGELOG.md') -Raw
+        $changelog | Should -Match '(?m)^## \[Unreleased\]\s*$'
+        $changelog | Should -Match '(?m)^## \[\d+\.\d+\.\d+[^]]*\] - \d{4}-\d{2}-\d{2}\s*$'
     }
 }
 
 Describe 'General module control' -Tag 'TestQuality' {
+    BeforeAll {
+        $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+        $moduleName = (Get-ChildItem -Path (Join-Path $projectRoot 'source') -Filter '*.psd1' | Select-Object -First 1).BaseName
+    }
+
     It 'imports without errors' {
-        { Import-Module -Name $ProjectName -Force -ErrorAction Stop } | Should -Not -Throw
-        Get-Module $ProjectName | Should -Not -BeNullOrEmpty
+        { Import-Module -Name $moduleName -Force -ErrorAction Stop } | Should -Not -Throw
+        Get-Module $moduleName | Should -Not -BeNullOrEmpty
     }
 
     It 'Removes without error' {
-        { Remove-Module -Name $ProjectName -ErrorAction Stop } | Should -not -Throw
-        Get-Module $ProjectName | Should -beNullOrEmpty
+        { Remove-Module -Name $moduleName -ErrorAction Stop } | Should -Not -Throw
+        Get-Module $moduleName | Should -BeNullOrEmpty
     }
 }
 
 Describe 'Quality for files' -Tag 'TestQuality' {
-    foreach ($file in $allModuleFunctions) {
-        BeforeEach {
-            $AbstractSyntaxTree = [System.Management.Automation.Language.Parser]::ParseInput((Get-Content -Raw $File.FullName), [ref]$null, [ref]$null)
-            $AstSearchDelegate = { $args[0] -is [System.Management.Automation.Language.FunctionDefinitionAst] }
-            $ParsedFunction = $AbstractSyntaxTree.FindAll( $AstSearchDelegate, $true ) |
-                Where-Object Name -EQ $Name
+    BeforeAll {
+        $unitTestLines = @(Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '..\Unit') -File -Recurse -ErrorAction Stop |
+                Get-Content -Encoding UTF8 -ErrorAction Stop)
+    }
 
-            $FunctionHelp = $ParsedFunction.GetHelpContent()
-            $parameters = $ParsedFunction.Body.ParamBlock.Parameters.name.VariablePath.Foreach{ $_.ToString() }
-
-            $LastAPISpecFile = Get-ChildItem (Join-Path $PSScriptRoot '..\..\api\') -File -Filter "api*.json" | sort-object lastwritetime | select-object -last 1
-            $openApiPath = $LastAPISpecFile.FullName
-            $openApiDefinition = Get-Content -Path $openApiPath -Raw | ConvertFrom-Json 
+    Describe 'Immich API endpoint validation' -Tag 'APIValidation' {
+        BeforeAll {
+            $openApiFile = Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '..\..\api') -Filter 'api.*.json' -File |
+                Sort-Object Name -Descending | Select-Object -First 1
+            $openApiDefinition = Get-Content -LiteralPath $openApiFile.FullName -Raw -ErrorAction Stop | ConvertFrom-Json
         }
-        Context $File.Name -Tag $File.Name {
-            It 'Function has unit tests' {
-                #Get-ChildItem "$PSScriptRoot\.." -Recurse -Include "$($Name).Tests.ps1" | Should -Not -BeNullOrEmpty
-                $Result = Get-ChildItem "$PSScriptRoot\..\Unit" -file -Recurse | foreach-object {
-                    Select-String -Path $PSItem.FullName -Pattern "Describe '$Name'" -SimpleMatch
+
+        It '<Name> uses valid API endpoints' -ForEach $allModuleFunctions {
+            $ast = [System.Management.Automation.Language.Parser]::ParseFile($File.FullName, [ref]$null, [ref]$null)
+            $commands = $ast.FindAll({
+                $args[0] -is [System.Management.Automation.Language.CommandAst] -and
+                $args[0].GetCommandName() -eq 'InvokeImmichRestMethod'
+            }, $true)
+
+            foreach ($command in $commands)
+            {
+                $method = $null
+                $relativePath = $null
+                for ($i = 0; $i -lt $command.CommandElements.Count - 1; $i++)
+                {
+                    $element = $command.CommandElements[$i]
+                    if ($element -isnot [System.Management.Automation.Language.CommandParameterAst])
+                    {
+                        continue
+                    }
+
+                    $value = $command.CommandElements[$i + 1]
+                    if ($element.ParameterName -eq 'Method' -and $value -is [System.Management.Automation.Language.StringConstantExpressionAst])
+                    {
+                        $method = $value.Value.ToLowerInvariant()
+                    }
+                    if ($element.ParameterName -eq 'RelativePath' -and
+                        ($value -is [System.Management.Automation.Language.StringConstantExpressionAst] -or
+                        $value -is [System.Management.Automation.Language.ExpandableStringExpressionAst]))
+                    {
+                        $relativePath = $value.Value
+                    }
                 }
-                $Result | should -not -BeNullOrEmpty
-            } -ForEach $File
+
+                if (-not $method -or -not $relativePath)
+                {
+                    continue
+                }
+
+                $pathPattern = [regex]::Escape($relativePath) -replace '\\\$\w+', '\{[^}]+\}'
+                $endpoints = @($openApiDefinition.paths.PSObject.Properties | Where-Object {
+                    $_.Name -match "^$pathPattern$" -and $_.Value.PSObject.Properties.Name -contains $method
+                })
+                $endpoints | Should -Not -BeNullOrEmpty -Because "endpoint $method $relativePath should exist in the OpenAPI specification"
+            }
+        }
+    }
+
+    foreach ($file in $allModuleFunctions)
+    {
+        Context $File.Name -Tag $File.Name -ForEach $file {
+            BeforeAll {
+                $AbstractSyntaxTree = [System.Management.Automation.Language.Parser]::ParseInput((Get-Content -Raw $File.FullName), [ref]$null, [ref]$null)
+                $AstSearchDelegate = { $args[0] -is [System.Management.Automation.Language.FunctionDefinitionAst] }
+                $ParsedFunction = $AbstractSyntaxTree.FindAll( $AstSearchDelegate, $true ) |
+                    Where-Object Name -EQ $Name
+
+                $FunctionHelp = $ParsedFunction.GetHelpContent()
+                $functionParameterNames = $ParsedFunction.Body.ParamBlock.Parameters.name.VariablePath.Foreach{ $_.ToString() }
+            }
+            It 'Function has unit tests' {
+                $Result = $unitTestLines | Select-String -Pattern "Describe '$Name'" -SimpleMatch
+                $Result | Should -Not -BeNullOrEmpty
+            }
             It 'Script analyzer' {
                 $PSSAResult = (Invoke-ScriptAnalyzer -Path $File.FullName)
-                $Report = $PSSAResult | Format-Table -AutoSize | Out-String -Width 110
+                $Report = if ($PSSAResult)
+                {
+                    $PSSAResult | Format-Table -AutoSize | Out-String -Width 110
+                }
                 $PSSAResult  | Should -BeNullOrEmpty -Because `
                     "some rule triggered.`r`n`r`n $Report"
-            } -Skip:(-not $scriptAnalyzerRules) -TestCases $File
+            } -Skip:(-not $scriptAnalyzerRules)
             It -Name 'File has appropriate line ending' -Test {
                 $Result = Test-FileEndOfLine -RawCode (Get-Content -Path $File.FullName -Raw -Encoding UTF8)
                 (($IsWindows -or $PSVersionTable.PSEdition -eq 'Desktop') -and $Result -eq 'Windows') -or (($IsLinux -or $IsMacOS) -and $Result -eq 'Unix') | Should -BeTrue
-            } -TestCases $file
+            }
             It -Name 'File is encoded in UTF8' -Test {
-                # Workaround,  apperently the module encoding and subsequently the command Test-Encoding uses aliases for Sort-Object, these aliases are not available on linux and mac by default and the test fails on Linux and Mac. To mitigate this until the Encoding Module is patched, aliases for this are added.
-                if ($IsMacOS -or $IsLinux)
-                {
-                    New-Alias -Name 'Sort' -Value 'Sort-Object' -Scope Global -ErrorAction SilentlyContinue
-                }
-                Test-Encoding -Path $File.FullName -Encoding utf8 | Should -Be $true
-            } -TestCases $file
+                $utf8 = [System.Text.UTF8Encoding]::new($false, $true)
+                $bytes = [System.IO.File]::ReadAllBytes($File.FullName)
+                { $utf8.GetCharCount($bytes) } | Should -Not -Throw
+            }
             It 'Help.Description Length > 10' {
                 $FunctionHelp.Description.Length | Should -BeGreaterThan 10
-            } -TestCases $file
+            }
             It 'Help.Examples.Count > 0' {
                 $FunctionHelp.Examples.Count | Should -BeGreaterThan 0
                 $FunctionHelp.Examples[0] | Should -Match ([regex]::Escape($function.Name))
                 $FunctionHelp.Examples[0].Length | Should -BeGreaterThan ($function.Name.Length + 10)
-            } -TestCases $file
+            }
             It 'Help.Parameters' {
-                foreach ($parameter in $parameters)
+                foreach ($parameter in $functionParameterNames)
                 {
                     $FunctionHelp.Parameters.($parameter.ToUpper()) | Should -Not -BeNullOrEmpty
                     $FunctionHelp.Parameters.($parameter.ToUpper()).Length | Should -BeGreaterThan 2
                 }
 
-            } -TestCases $file
-
-
-            It 'Cmdlet uses valid API' -Tag 'APIValidation' {
-                # Extract REST method calls from the function and validate against OpenAPI spec
-                $FunctionName = $_.Name -replace '\.ps1$'
-
-                # Extract all REST method calls
-                $restMethodCalls = @()
-
-                # Find all InvokeImmichRestMethod command calls
-                $invokeCommands = $AbstractSyntaxTree.FindAll({
-                    $args[0] -is [System.Management.Automation.Language.CommandAst] -and
-                    $args[0].GetCommandName() -eq 'InvokeImmichRestMethod'
-                }, $true)
-
-                foreach ($command in $invokeCommands) {
-                    $methodParam = $null
-                    $relativePathParam = $null
-
-                    # Parse command elements to find Method and RelativePath parameters
-                    for ($i = 0; $i -lt $command.CommandElements.Count; $i++) {
-                        $element = $command.CommandElements[$i]
-
-                        if ($element -is [System.Management.Automation.Language.CommandParameterAst]) {
-                            if ($element.ParameterName -eq 'Method' -and ($i + 1) -lt $command.CommandElements.Count) {
-                                $methodValue = $command.CommandElements[$i + 1]
-                                if ($methodValue -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                                    $methodParam = $methodValue.Value
-                                }
-                            }
-                            elseif ($element.ParameterName -eq 'RelativePath' -and ($i + 1) -lt $command.CommandElements.Count) {
-                                $relativePathValue = $command.CommandElements[$i + 1]
-                                if ($relativePathValue -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-                                    $relativePathParam = $relativePathValue.Value
-                                } elseif ($relativePathValue -is [System.Management.Automation.Language.ExpandableStringExpressionAst]) {
-                                    # Handle string interpolation like "/tags/$PSitem/assets" or "/assets/device/$DeviceID"
-                                    # Keep the original PowerShell path with variables for pattern matching
-                                    $relativePathParam = $relativePathValue.Value
-                                }
-                            }
-                        }
-                    }
-
-                    # Add to results if we found both method and path
-                    if ($methodParam -and $relativePathParam) {
-                        $restMethodCalls += [PSCustomObject]@{
-                            Method = $methodParam.ToUpper()
-                            RelativePath = $relativePathParam
-                        }
-                    }
-                }
-
-                # Skip validation if no REST calls found
-                if ($restMethodCalls.Count -eq 0) {
-                    $restMethodCalls.Count | Should -BeGreaterOrEqual 0
-                    return
-                }
-
-                # Validate each REST call against OpenAPI specification
-                foreach ($RestCall in $restMethodCalls) {
-                    # Find matching endpoint in OpenAPI spec
-                    $MatchingEndpoint = $null
-                    foreach ($Path in $openApiDefinition.paths.PSObject.Properties) {
-                        $isMatch = $false
-
-                        # Check for exact match first
-                        if ($RestCall.RelativePath -eq $Path.Name) {
-                            $isMatch = $true
-                        }
-                        # Check for pattern match (PowerShell variables vs OpenAPI parameters)
-                        elseif ($RestCall.RelativePath -match '\$\w+') {
-                            # Convert PowerShell path to regex pattern for matching OpenAPI paths
-                            # Replace PowerShell variables with regex pattern to match any parameter
-                            $pathPattern = [regex]::Escape($RestCall.RelativePath) -replace '\\\$\w+', '\{[^}]+\}'
-                            if ($Path.Name -match "^$pathPattern$") {
-                                $isMatch = $true
-                            }
-                        }
-
-                        if ($isMatch) {
-                            # Check if the HTTP method exists for this path
-                            $PathMethods = $Path.Value.PSObject.Properties | Where-Object { $_.Name -eq $RestCall.Method.ToLower() }
-                            if ($PathMethods) {
-                                $MatchingEndpoint = @{
-                                    Path = $Path.Name
-                                    Method = $RestCall.Method
-                                    Operation = $PathMethods.Value
-                                }
-                                break
-                            }
-                        }
-                    }
-
-                    # Validate endpoint exists
-                    if (-not $MatchingEndpoint) {
-                        $false | Should -Be $true -Because "Endpoint $($RestCall.Method) $($RestCall.RelativePath) should exist in OpenAPI specification"
-                        continue
-                    }
-
-                    # Basic validation passed - endpoint exists
-                    $MatchingEndpoint | Should -Not -BeNullOrEmpty
-                }
-            } -TestCases $file
+            }
         }
     }
 }

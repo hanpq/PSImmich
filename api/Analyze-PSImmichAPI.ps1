@@ -57,8 +57,8 @@ function Get-ExclusionConfig
 function Get-ImplementedAPIs
 {
     $sourceBasePath = Join-Path (Split-Path $PSScriptRoot -Parent) 'source'
-    $publicPath = Join-Path $sourceBasePath 'Public'
-    $classesPath = Join-Path $sourceBasePath 'Classes'
+    $publicPath = Join-Path $sourceBasePath 'public'
+    $classesPath = Join-Path $sourceBasePath 'classes'
 
     if (-not (Test-Path $publicPath))
     {
@@ -66,11 +66,11 @@ function Get-ImplementedAPIs
     }
 
     Write-Host 'Analyzing source code in: ' -NoNewline -ForegroundColor Cyan
-    Write-Host 'source\Public and source\Classes' -ForegroundColor White
+    Write-Host 'source\public and source\classes' -ForegroundColor White
 
     $implementedAPIs = @()
 
-    # Get files from both Public functions and Classes
+    # Get files from both public functions and classes
     $codeFiles = @()
     $codeFiles += Get-ChildItem $publicPath -Recurse -Filter '*.ps1'
     if (Test-Path $classesPath)

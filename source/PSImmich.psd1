@@ -8,7 +8,7 @@
 
 @{
     RootModule           = 'PSImmich.psm1'
-    ModuleVersion        = '0.0.1'
+    ModuleVersion        = '2.3.1'
     CompatiblePSEditions = @('Desktop', 'Core')
     PowerShellVersion    = '5.1'
     GUID                 = '4c1238d7-f5de-400e-8543-3ea095a0ff34'
