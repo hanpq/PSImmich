@@ -20,7 +20,7 @@ Import the generated module from `output/PSImmich/<version>/` to try it locally.
 
 Local tests run unit, QA and infrastructure suites by default. Use `-Task Test -TestSuite Module` for unit/QA tests or `-Task Test -TestSuite Infrastructure` for build/release tests. Run `-Task Test -TestSuite Integration` against a live Immich instance after setting `PSIMMICHURI`, `PSIMMICHAPIKEY`, `PSIMMICHUSER` and `PSIMMICHPASSWORD`. CI runs module tests with coverage across all supported platforms, infrastructure tests once on Linux PowerShell 7, and live integration tests on same-repository PRs and pushes when these four secrets are set. Fork PRs skip live integration tests. Release publishing runs the module suite.
 
-Coverage instruments the built module that the tests execute, then uses ModuleBuilder's source mappings to report the original `source/Public` and `source/Private` files in `output/testResults/JaCoCo_coverage.xml`. The module test run fails if coverage is below the configured target (currently 1%).
+Coverage instruments the built module that the tests execute, then uses ModuleBuilder's source mappings to report the original `source/public` and `source/private` files in `output/testResults/JaCoCo_coverage.xml`. The module test run fails if coverage is below the configured target (currently 1%).
 
 The QA suite in `tests/QA/module.tests.ps1` reports each file-quality check separately. It discovers source files and reads unit-test files once per run, and parses each function file once in its context's `BeforeAll`. Keep these shared inputs read-only so individual checks remain independent.
 
@@ -84,7 +84,7 @@ The build uses these pinned dependencies from `output/RequiredModules`; you do n
 
 ## Pipeline customizations
 
-- `source/Format/` is copied into the built module alongside `en-US` and `include`; the generic kit build script and its build test have been extended to preserve the existing formatting assets.
+- `source/format/` is copied into the built module alongside `en-US` and `include`; the generic kit build script and its build test have been extended to preserve the existing formatting assets.
 - Live integration tests use a dedicated `Integration` suite and a same-repository CI job with Immich credentials. Default local verification excludes the live suite; fork PRs do not receive those secrets.
 - The legacy README test-count badge and its update task were removed. The module is published to the PowerShell Gallery and optionally ProGet, with Linux, macOS, Windows PowerShell 7 and Windows PowerShell 5.1 CI targets.
 

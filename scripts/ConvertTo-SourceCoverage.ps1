@@ -55,7 +55,7 @@ $sourceLines = @(
     foreach ($mapping in $mappedLines)
     {
         $relativePath = $mapping.SourceFile -replace '^\.[\\/]', '' -replace '\\', '/'
-        if ($relativePath -notmatch '^(Private|Public)/')
+        if ($relativePath -cnotmatch '^(private|public)/')
         {
             continue
         }
@@ -73,7 +73,7 @@ $sourceLines = @(
 )
 if ($sourceLines.Count -eq 0)
 {
-    throw 'No coverage lines mapped to source/Public or source/Private.'
+    throw 'No coverage lines mapped to source/public or source/private.'
 }
 
 $report = [System.Xml.XmlDocument]::new()

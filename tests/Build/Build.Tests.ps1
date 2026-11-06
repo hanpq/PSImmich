@@ -105,7 +105,7 @@ Describe 'Module packaging' {
         @{ Parts = @(); ExpectedCopyPaths = $null; ExpectedPrefix = $null; ExpectedSuffix = $null }
         @{ Parts = @('en-US', 'prefix.ps1'); ExpectedCopyPaths = @('en-US'); ExpectedPrefix = 'prefix.ps1'; ExpectedSuffix = $null }
         @{ Parts = @('en-US', 'include', 'prefix.ps1', 'suffix.ps1'); ExpectedCopyPaths = @('en-US', 'include'); ExpectedPrefix = 'prefix.ps1'; ExpectedSuffix = 'suffix.ps1' }
-        @{ Parts = @('en-US', 'include', 'Format', 'prefix.ps1', 'suffix.ps1'); ExpectedCopyPaths = @('en-US', 'include', 'Format'); ExpectedPrefix = 'prefix.ps1'; ExpectedSuffix = 'suffix.ps1' }
+        @{ Parts = @('en-US', 'include', 'format', 'prefix.ps1', 'suffix.ps1'); ExpectedCopyPaths = @('en-US', 'include', 'format'); ExpectedPrefix = 'prefix.ps1'; ExpectedSuffix = 'suffix.ps1' }
     ) {
         function Build-Module
         {
@@ -266,7 +266,7 @@ Describe 'Build test runner' {
         $moduleDirectory = Join-Path $OutputDirectory 'ExampleModule\1.2.3'
         New-Item -ItemType Directory -Path $moduleDirectory -Force | Out-Null
         # The runner converts against the real source folder, so map to any existing function file.
-        $mappedSourceFile = Get-ChildItem -Path (Join-Path $projectRoot 'source\Public'), (Join-Path $projectRoot 'source\Private') `
+        $mappedSourceFile = Get-ChildItem -Path (Join-Path $projectRoot 'source\public'), (Join-Path $projectRoot 'source\private') `
             -Filter '*.ps1' -File -ErrorAction SilentlyContinue | Select-Object -First 1
         $mappedSourcePath = './{0}/{1}' -f $mappedSourceFile.Directory.Name, $mappedSourceFile.Name
         Set-Content -LiteralPath (Join-Path $moduleDirectory 'ExampleModule.psm1') -Value @(

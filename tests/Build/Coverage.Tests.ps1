@@ -8,18 +8,18 @@ Describe 'Built module coverage source mapping' {
     BeforeEach {
         $fixture = Join-Path $TestDrive ([guid]::NewGuid().ToString())
         $source = Join-Path $fixture 'source'
-        New-Item -ItemType Directory -Path (Join-Path $source 'Public'), (Join-Path $source 'Private') -Force | Out-Null
-        Set-Content -LiteralPath (Join-Path $source 'Public\First.ps1') -Value @(
+        New-Item -ItemType Directory -Path (Join-Path $source 'public'), (Join-Path $source 'private') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $source 'public\First.ps1') -Value @(
             'function Test-First {', "'hit'", "'miss'", '}'
         )
-        Set-Content -LiteralPath (Join-Path $source 'Private\Second.ps1') -Value @(
+        Set-Content -LiteralPath (Join-Path $source 'private\Second.ps1') -Value @(
             'function Test-Second {', "'hit'", '}'
         )
         $builtModule = Join-Path $fixture 'ExampleModule.psm1'
         Set-Content -LiteralPath $builtModule -Value @(
             "#Region './prefix.ps1' -1", '', "Write-Output 'init'", "#EndRegion './prefix.ps1' 2",
-            "#Region '.\Public\First.ps1' -1", '', 'function Test-First {', "'hit'", "'miss'", '}', "#EndRegion '.\Public\First.ps1' 5",
-            "#Region './Private/Second.ps1' -1", '', 'function Test-Second {', "'hit'", '}', "#EndRegion './Private/Second.ps1' 4"
+            "#Region '.\public\First.ps1' -1", '', 'function Test-First {', "'hit'", "'miss'", '}', "#EndRegion '.\public\First.ps1' 5",
+            "#Region './private/Second.ps1' -1", '', 'function Test-Second {', "'hit'", '}', "#EndRegion './private/Second.ps1' 4"
         )
         $reportPath = Join-Path $fixture 'JaCoCo_coverage.xml'
         Set-Content -LiteralPath $reportPath -Value @'
@@ -42,14 +42,14 @@ Describe 'Built module coverage source mapping' {
 
         [xml]$report = Get-Content -LiteralPath $reportPath -Raw
         $report.report.sessioninfo.id | Should -Be 'test-session'
-        @($report.report.package.name) | Should -Be @('source/Private', 'source/Public')
-        $public = $report.SelectSingleNode('/report/package[@name="source/Public"]/sourcefile')
+        @($report.report.package.name) | Should -Be @('source/private', 'source/public')
+        $public = $report.SelectSingleNode('/report/package[@name="source/public"]/sourcefile')
         $public.name | Should -Be 'First.ps1'
         @($public.line.nr) | Should -Be @('2', '3')
         $public.line[0].ci | Should -Be '2'
         $public.line[0].mi | Should -Be '1'
         $public.line[1].ci | Should -Be '0'
-        $private = $report.SelectSingleNode('/report/package[@name="source/Private"]/sourcefile')
+        $private = $report.SelectSingleNode('/report/package[@name="source/private"]/sourcefile')
         $private.name | Should -Be 'Second.ps1'
         $private.line.nr | Should -Be '2'
         $private.line.ci | Should -Be '1'
@@ -73,7 +73,7 @@ Describe 'Built module coverage source mapping' {
     }
 
     It 'fails rather than publishing coverage mapped to nonexistent source files' {
-        Remove-Item -LiteralPath (Join-Path $source 'Public\First.ps1')
+        Remove-Item -LiteralPath (Join-Path $source 'public\First.ps1')
         $original = Get-Content -LiteralPath $reportPath -Raw
 
         { & $conversionScript -ReportPath $reportPath -BuiltModulePath $builtModule -SourceDirectory $source } |

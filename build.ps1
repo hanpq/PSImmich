@@ -205,7 +205,7 @@ function Build-ProjectModule
 
     # Optional source layout; modules without these files or folders still build.
     $sourceDirectory = Split-Path -Parent $SourceManifest
-    $copyPaths = @(@('en-US', 'include', 'Format') | Where-Object { Test-Path -LiteralPath (Join-Path $sourceDirectory $_) })
+    $copyPaths = @(@('en-US', 'include', 'format') | Where-Object { Test-Path -LiteralPath (Join-Path $sourceDirectory $_) })
     if ($copyPaths.Count -gt 0)
     {
         $buildParameters.CopyPaths = $copyPaths
