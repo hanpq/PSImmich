@@ -181,10 +181,13 @@ row is a **candidate** until its DTO delta is checked and a test covers it.
 | `POST /search/large-assets` | None confirmed (`POST /search/metadata` is a body-match candidate only) | No size-sort field verified | Get-IMTopLargestAsset | Decision needed (see below) |
 | `GET /server/features` | None found | `ServerFeaturesDto` is served only by this route | Get-IMServer | Retain with reason unless maintainer decides otherwise |
 
-Routes with **no replacement found** by body or sibling matching. Each needs a
-maintainer decision before removal or retention:
+Routes with **no replacement found** by body or sibling matching. Under the
+deprecation policy these are **retained** while they remain in the spec:
 
-- `PUT /admin/users/{id}`, `PUT /admin/users/{id}/preferences`
+- `PUT /admin/users/{id}` (`updateUserAdmin`; verified in the spec as this same
+  operation, so it has no separate successor. Set-IMUser is retained; the
+  maintainer still needs to confirm this)
+- `PUT /admin/users/{id}/preferences`
 - `PUT /api-keys/{id}` (Rename-IMAPIKey)
 - `PUT /assets`, `PUT /assets/{id}` (Set-IMAsset, Copy-IMAssetInfo)
 - `PUT /libraries/{id}` (Set-IMLibrary)
@@ -196,17 +199,18 @@ maintainer decision before removal or retention:
 
 Their create (`POST`) counterparts are close matches, but no PUT replacement
 exists in the spec. The analyzer's `REMOVE` label is not an instruction to delete.
+Policy: deprecated routes stay in use while present in the spec. The Immich app
+itself still uses deprecated routes, so deprecation alone is not a removal reason.
 
-### Decisions needed from the maintainer
+### Maintainer decisions
 
-1. Approve or reject retaining the no-replacement routes above, with the
-   listed cmdlets as the affected user surface.
-2. `Get-IMServer` splitting: keep one cmdlet that merges `/public/config`,
-   `/config` and `/admin/config`, or move each part to its own parameter set.
-3. `Get-IMJob` start/stop/force semantics: whether `/queues` plus
-   `QueueUpdateDto` is enough, or the commands must be retained on a different route.
-4. `Get-IMTopLargestAsset`: retain on the deprecated route, replace with
-   `/search/metadata` (different sort/paging), or remove.
+1. Retain all no-replacement routes above while they remain in the spec.
+   Open: confirm the `PUT /admin/users/{id}` treatment.
+2. `Get-IMServer` config split: separate parameter sets per endpoint
+   (`/public/config`, `/config`, `/admin/config`).
+3. `Get-IMJob` start/stop/force: map to `/queues` (`queues-only`).
+4. `Get-IMTopLargestAsset`: the maintainer chose removal in an earlier answer.
+   Under the new policy this route is still in the spec, so confirm before deleting.
 
 ## Reconciliation of the 279 target operations
 

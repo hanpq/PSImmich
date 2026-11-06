@@ -188,9 +188,13 @@ anything:
    operation, with the field-level delta.
 4. If a replacement exists, implement it and migrate the cmdlet, keeping the
    public UX where possible; document any user-visible change.
-5. If no replacement exists and the functionality is gone, **stop and ask the
-   maintainer** before removing the cmdlet or parameter. Do not remove it on
-   your own. If it is still present in the spec, retain it with a recorded reason.
+5. If no replacement exists, **keep the route and its cmdlets**. Deprecation
+   alone is never a reason to remove functionality: the Immich app itself may
+   still depend on a deprecated route. Record the reason in the assessment and
+   revisit when the spec adds a replacement or removes the route.
+6. Removal is allowed only when the route is physically absent from the target
+   spec. Then remove the functionality, or ask the maintainer if no equivalent
+   exists, and record the user impact.
 
 Descriptions in the spec rarely name the replacement; do not rely on them.
 Track removed baseline operations separately from the target ledger.
@@ -281,8 +285,9 @@ fields or return success-shaped fallbacks.
 
 Migration decisions must specify old-to-new endpoint/DTO mappings and any
 breaking user impact. Do not remove a cmdlet merely because its route is
-deprecated, and do not remove functionality that has no replacement without
-maintainer approval. If older-server support is required, use verified
+deprecated. Move to a replacement only when one is clearly the successor;
+keep deprecated routes that have no replacement; remove functionality only
+when its route is physically absent from the target spec. If older-server support is required, use verified
 version/capability handling and test both branches; do not guess fallback behavior.
 
 Add `ShouldProcess` to destructive operations. Obtain approval for live
@@ -367,10 +372,13 @@ states each one with evidence:
    the maintainer has approved, or `blocked` with an owner. No `needs-change`,
    `missing` or unreviewed `covered` rows remain. An exclusion added by the
    assistant alone does not count.
-3. Every removed route used by source has a tested migration to a verified
-   replacement, or a maintainer-approved intentional removal with user impact noted.
-4. Every deprecated route used by source is migrated to its replacement, or
-   retained with a recorded reason. Analyzer `REMOVE` labels are not instructions to delete.
+3. Every route physically removed from the target spec and used by source has a
+   tested migration to a verified replacement, or a maintainer-approved removal
+   with user impact noted.
+4. Every deprecated route used by source is either migrated to a verified
+   successor (a replacement that the spec or release notes present as its
+   successor) or retained with a recorded reason. Analyzer `REMOVE` labels are
+   not instructions to delete.
 5. `.\build.ps1 -Task Build` and `.\build.ps1 -Task Test -TestSuite Module` pass,
    apart from failures recorded as pre-existing with their cause.
 6. Live integration tests pass against an authorized target-version demo
