@@ -278,6 +278,22 @@ arrays and nesting, session forwarding, pipeline binding, validation,
 empty/error responses, pagination and output shape. Placeholder tests are
 not evidence of parity.
 
+Live integration rules (mandatory when a live instance is used):
+
+- Use only the maintainer's authorized demo instance dedicated to integration
+  tests. Confirm its version with `GET /server/version` before running tests and
+  record it; it must match the target release.
+- Check that `PSIMMICHURI` and `PSIMMICHAPIKEY` are set (names only, never print
+  values). If they are missing, pause and ask the maintainer to add them.
+- Never run integration tests concurrently or in parallel. Run one suite at a
+  time and wait for it to finish, including before any retry.
+- Tests must revert every state change they make. Create only disposable
+  resources, clean them up in `AfterAll`/`finally` blocks, and never modify
+  pre-existing assets, users, settings or jobs. If a test cannot restore state,
+  stop and report it.
+- Do not send credentials or demo-instance details to third-party services or
+  commit them to the repository.
+
 Only with an authorized disposable target-version server, set `PSIMMICHURI`,
 `PSIMMICHAPIKEY`, `PSIMMICHUSER`, and `PSIMMICHPASSWORD` securely and run:
 
@@ -301,6 +317,25 @@ Re-run endpoint and contract inventories after implementation. Require:
 
 If live validation or final-spec verification is unavailable, report that
 limitation instead of calling the upgrade fully verified.
+
+## 6a. Definition of done
+
+An upgrade is complete only when every item below is true, and the handoff
+states each one with evidence:
+
+1. The target spec is verified (`info.version`, commit, SHA256) and committed.
+2. Every eligible non-deprecated target endpoint is `verified`, `excluded` with
+   a reason, or `blocked` with an owner. No `needs-change` or `missing` rows remain.
+3. Every removed route used by source has a tested migration or a documented
+   intentional removal, with user impact noted.
+4. Relevant deprecated routes are migrated or explicitly retained with a reason.
+5. `.\build.ps1 -Task Build` and `.\build.ps1 -Task Test -TestSuite Module` pass,
+   apart from failures recorded as pre-existing with their cause.
+6. Live integration tests pass against an authorized target-version demo
+   instance, run one at a time, with state restored afterwards.
+7. README compatibility and coverage figures are updated, and the assessment
+   records the batch commits, test results and remaining scope decisions.
+8. The maintainer has been told that PR creation, review, merge and release remain theirs.
 
 ## 7. Document and release deliberately
 

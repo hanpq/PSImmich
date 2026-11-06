@@ -174,6 +174,35 @@ Validation: `.\build.ps1 -Task Build` passes. `.\build.ps1 -Task Test -TestSuite
 
 Carried-over uncommitted worktree edits (`.github/copilot-instructions.md`, `BUILDING.md`, `.github/skills/`) were not made for this assessment and must be reviewed separately before commit. [UPGRADE-3.4.0.md](UPGRADE-3.4.0.md) is preserved as historical evidence.
 
+Implementation batches on `upgrade/immich-3.3.6` (each validated with the module unit/QA suite;
+8 baseline QA failures for Queue, UserSession and UserStatistics remain unchanged):
+
+- `f1ad1fe` fix(server): read theme from the public config endpoint
+- `9257eae` fix(person): migrate person merging to the bulk endpoint
+- `7f56875` fix(api): send booleans and ISO 8601 datetimes for Immich 3.3.6
+- `03ba477` test(integration): align expectations with Immich 3.3.6
+- `f7810da` fix(search): page metadata and smart search and send memory dates for Immich 3.3.6
+
+Live integration history (demo server version verified as 3.3.6, sequential runs only):
+
+- Initial run: 181 passed, 30 failed of 229.
+- After `7f56875`/`03ba477`: 14 failed.
+- After `f7810da`: 11 failed of 229. All remaining failures are album-related and deferred:
+  `Get-IMAlbum -IncludeAssets`/`list-id with assets`/`list-shared-false`, `Set-IMAsset` and
+  `Set-IMAlbum` add/remove readbacks, `Copy-IMAssetInfo` (3 tests), and `Add-IMAlbumUser`/
+  `Set-IMAlbumUser` (live shared-user state). They wait for the album-ID search filter
+  (`SearchFilter` on `POST /search/smart`) and the 3.3.6 `GET /albums/{id}` change, which has no
+  `withoutAssets` parameter and no `assets` property.
+
+Verified 3.3.6 causes fixed: boolean body values were strings; datetimes lacked an offset
+(HTTP 400); `nextPage` is a string but `page` must be an integer; memory `for` is date-only;
+`Get-IMServer` config/features and asset single-ID properties changed.
+
+Cleanup: during the first live run the failed `New-IMUser` test left user `test@domain.com`.
+With maintainer approval it was soft-deleted (`DELETE /admin/users/{id}`, 200). It is still in
+the 7-day trash; a permanent purge needs `-Force` or the server trash policy and has not been
+done. Pre-existing demo data (`TestAlbum`, the other two users) was not touched.
+
 Next actionable items, in order:
 
 1. Deprecated-but-present reads remain: `/server/config`, `/server/features`, `/system-config`, `/system-config/defaults`, and `/jobs`. Decide whether to migrate them to `/admin/config`, `/config` or `/queues` (DTO comparison first).
