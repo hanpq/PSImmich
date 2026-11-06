@@ -199,7 +199,7 @@ Describe 'Server' -Tag 'Integration' {
         }
         It -Name 'Should return these properties' {
             $Result = Get-IMServer -Configuration
-            $ExpectedProperties = @('maintenanceMode', 'loginPageMessage', 'trashDays', 'userDeleteDelay', 'oauthButtonText', 'isInitialized', 'isOnboarded', 'externalDomain', 'mapDarkStyleUrl', 'mapLightStyleUrl', 'publicUsers')
+            $ExpectedProperties = @('maintenanceMode', 'loginPageMessage', 'trashDays', 'userDeleteDelay', 'oauthButtonText', 'isInitialized', 'isOnboarded', 'externalDomain', 'mapDarkStyleUrl', 'mapLightStyleUrl', 'publicUsers', 'minFaces', 'oauthAccountManagementUrl')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
@@ -209,7 +209,7 @@ Describe 'Server' -Tag 'Integration' {
         }
         It -Name 'Should return these properties' {
             $Result = Get-IMServer -Features
-            $ExpectedProperties = @('ocr', 'importFaces', 'duplicateDetection', 'smartSearch', 'passwordLogin', 'configFile', 'facialRecognition', 'map', 'reverseGeocoding', 'sidecar', 'search', 'trash', 'oauth', 'oauthAutoLaunch', 'email')
+            $ExpectedProperties = @('ocr', 'importFaces', 'duplicateDetection', 'smartSearch', 'passwordLogin', 'configFile', 'facialRecognition', 'map', 'reverseGeocoding', 'sidecar', 'search', 'trash', 'oauth', 'oauthAutoLaunch', 'email', 'realtimeTranscoding')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
     }
@@ -319,7 +319,7 @@ Describe 'Asset' -Tag 'Integration' {
     Context -Name 'Get-IMAsset - Specifying a single ID' -Tag 'Get-IMAsset' {
         It -Name 'Should return a object with the correct properties' {
             $Result = Get-IMAsset -Id '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            $ExpectedProperties = @('duplicateId', 'hasMetadata', 'isOffline', 'checksum', 'people', 'tags', 'livePhotoVideoId', 'exifInfo', 'duration', 'isTrashed', 'isArchived', 'isFavorite', 'updatedAt', 'localDateTime', 'fileModifiedAt', 'fileCreatedAt', 'thumbhash', 'resized', 'id', 'deviceAssetId', 'ownerId', 'owner', 'deviceId', 'libraryId', 'type', 'originalPath', 'originalFileName', 'originalMimeType', 'stack', 'createdAt', 'visibility', 'unassignedFaces')
+            $ExpectedProperties = @('duplicateId', 'hasMetadata', 'isOffline', 'checksum', 'people', 'tags', 'livePhotoVideoId', 'exifInfo', 'duration', 'isTrashed', 'isArchived', 'isFavorite', 'updatedAt', 'localDateTime', 'fileModifiedAt', 'fileCreatedAt', 'thumbhash', 'resized', 'id', 'ownerId', 'owner', 'libraryId', 'type', 'originalPath', 'originalFileName', 'originalMimeType', 'stack', 'createdAt', 'visibility', 'width', 'height', 'isEdited')
             Compare-Object -ReferenceObject $ExpectedProperties -DifferenceObject $Result.PSObject.Properties.Name | Select-Object -ExpandProperty inputobject | Should -BeNullOrEmpty
         }
         It -Name 'Should return OCR data' {
@@ -441,7 +441,7 @@ Describe 'Asset' -Tag 'Integration' {
         It -Name 'Should upload the file' {
             $Result = Import-IMAsset -FilePath "$PSScriptRoot\Immich.png"
             $Result | Should -HaveCount 1
-            $Result.DeviceAssetID | Should -Be 'Immich.png'
+            $Result.originalFileName | Should -Be 'Immich.png'
             Remove-IMAsset -Id $Result.Id -Force
         }
     } #-Skip:($PSVersionTable.PSEdition -eq 'Desktop')
@@ -449,7 +449,7 @@ Describe 'Asset' -Tag 'Integration' {
         It -Name 'Should restore single asset' {
             $Result = Import-IMAsset -FilePath "$PSScriptRoot\Immich.png"
             $Result | Should -HaveCount 1
-            $Result.DeviceAssetID | Should -Be 'Immich.png'
+            $Result.originalFileName | Should -Be 'Immich.png'
             Remove-IMAsset -Id $Result.Id
             $Remove = Get-IMAsset -Id $Result.id
             $Remove.isTrashed | Should -BeTrue
@@ -462,7 +462,7 @@ Describe 'Asset' -Tag 'Integration' {
         It -Name 'Should restore all asset' {
             $Result = Import-IMAsset -FilePath "$PSScriptRoot\Immich.png"
             $Result | Should -HaveCount 1
-            $Result.DeviceAssetID | Should -Be 'Immich.png'
+            $Result.originalFileName | Should -Be 'Immich.png'
             Remove-IMAsset -Id $Result.Id
             $Remove = Get-IMAsset -Id $Result.id
             $Remove.isTrashed | Should -BeTrue
@@ -1015,7 +1015,7 @@ Describe 'Job' -Tag 'Integration' {
         It 'Should start emptyTrash job' {
             $Result = Import-IMAsset -FilePath "$PSScriptRoot\Immich.png"
             $Result | Should -HaveCount 1
-            $Result.DeviceAssetID | Should -Be 'Immich.png'
+            $Result.originalFileName | Should -Be 'Immich.png'
             Remove-IMAsset -Id $Result.Id
             $Remove = Get-IMAsset -Id $Result.id
             $Remove.isTrashed | Should -BeTrue
