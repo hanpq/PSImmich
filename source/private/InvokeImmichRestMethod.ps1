@@ -99,17 +99,17 @@
             {
                 'boolean'
                 {
-                    $NewBody.$Key = $Body.$Key.ToString().ToLower()
+                    $NewBody.$Key = [bool]$Body.$Key
                     break
                 }
                 'SwitchParameter'
                 {
-                    $NewBody.$Key = ($Body.$Key -as [boolean]).ToString().ToLower()
+                    $NewBody.$Key = [bool]$Body.$Key
                     break
                 }
                 'datetime'
                 {
-                    $NewBody.$Key = $Body.$Key.ToString('yyyy-MM-ddTHH:mm:ss')
+                    $NewBody.$Key = ([DateTimeOffset]$Body.$Key).UtcDateTime.ToString('o')
                     break
                 }
                 'SecureString'
@@ -160,7 +160,7 @@
                 }
                 'datetime'
                 {
-                    "$($QueryParameter)=$($QueryParameters.$QueryParameter.ToString('yyyy-MM-ddTHH:mm:ss'))"
+                    "$($QueryParameter)=$(([DateTimeOffset]$QueryParameters.$QueryParameter).UtcDateTime.ToString('o'))"
                 }
                 default
                 {

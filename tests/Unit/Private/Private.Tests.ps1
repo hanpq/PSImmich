@@ -248,6 +248,30 @@ InModuleScope $ProjectName {
                     } } | Should -Not -Throw
             }
         }
+        Context 'When calling post with boolean and datetime body values' {
+            It 'Should send booleans as JSON booleans and datetimes as UTC ISO 8601' {
+                InvokeImmichRestMethod -Method post -immichsession:$Session -RelativePath '/auth/login' -Body:@{
+                    flag     = $true
+                    switchOn = [switch]$true
+                    when     = [datetime]::SpecifyKind([datetime]'2026-11-06T10:00:00', 'Utc')
+                }
+                Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Body -match '"flag":true' -and
+                    $Body -match '"switchOn":true' -and
+                    $Body -match '"when":"2026-11-06T10:00:00(\.0+)?Z"'
+                }
+            }
+        }
+        Context 'When calling get with datetime query' {
+            It 'Should format the datetime as UTC ISO 8601' {
+                InvokeImmichRestMethod -Method get -immichsession:$Session -RelativePath '/auth/login' -QueryParameters:@{
+                    since = [datetime]::SpecifyKind([datetime]'2026-11-06T10:00:00', 'Utc')
+                }
+                Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Uri -match 'since=2026-11-06T10:00:00(\.0+)?Z$'
+                }
+            }
+        }
     }
     Describe 'ValidateToken' -Tag 'Unit', 'ValidateToken' {
         BeforeAll {

@@ -105,8 +105,8 @@
             $FormData += @{
                 deviceAssetId  = $FileInfo.Name
                 deviceId       = 'PSImmich'
-                fileCreatedAt  = $FileInfo.CreationTime.ToString('yyyy-MM-ddTHH:mm:ss')
-                fileModifiedAt = $FileInfo.LastWriteTime.ToString('yyyy-MM-ddTHH:mm:ss')
+                fileCreatedAt  = ([DateTimeOffset]$FileInfo.CreationTime).UtcDateTime.ToString('o')
+                fileModifiedAt = ([DateTimeOffset]$FileInfo.LastWriteTime).UtcDateTime.ToString('o')
             }
 
             # Use unified HttpClient approach via private function
