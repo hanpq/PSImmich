@@ -542,13 +542,9 @@ Describe 'Asset' -Tag 'Integration' {
             # Using -Type (PowerShell) which should translate to 'type' (API)
 
             # Test with boolean parameters that would fail if not translated correctly
-            $Result = Search-IMAsset -Query 'Road' -IsFavorite:$false -IsEncoded:$true -Type 'IMAGE'
-
-            # If the parameter translation worked, we should get a valid response (even if empty)
-            # If it failed, we'd get an API error about unknown parameters
-            $Result | Should -Not -BeNull
-            # Result should be an array (even if empty)
-            $Result.GetType().BaseType.Name | Should -Be 'Array'
+            # If the parameter translation worked, the call succeeds (possibly with no results).
+            # If it failed, the API rejects the request and the call throws.
+            { Search-IMAsset -Query 'Road' -IsFavorite:$false -IsEncoded:$true -Type 'IMAGE' } | Should -Not -Throw
         }
 
         It -Name 'Should handle DateTime parameters with correct API translation' {

@@ -260,7 +260,7 @@
 
     while ($Result.NextPage)
     {
-        $BodyParameters.page = $Result.NextPage
+        $BodyParameters.page = [int]$Result.NextPage
         $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/metadata' -ImmichSession:$Session -Body $BodyParameters | Select-Object -ExpandProperty assets
         $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
     }

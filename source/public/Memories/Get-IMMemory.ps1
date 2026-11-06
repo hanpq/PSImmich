@@ -157,12 +157,20 @@
         {
             $QueryParameters = @{}
             $QueryParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
+            if ($PSBoundParameters.ContainsKey('For'))
+            {
+                $QueryParameters.for = $For.ToString('yyyy-MM-dd')
+            }
             InvokeImmichRestMethod -Method Get -RelativePath '/memories' -ImmichSession:$Session -QueryParameters $QueryParameters
         }
         elseif ($PSCmdlet.ParameterSetName -eq 'statistics')
         {
             $QueryParameters = @{}
             $QueryParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
+            if ($PSBoundParameters.ContainsKey('For'))
+            {
+                $QueryParameters.for = $For.ToString('yyyy-MM-dd')
+            }
             InvokeImmichRestMethod -Method Get -RelativePath '/memories/statistics' -ImmichSession:$Session -QueryParameters $QueryParameters
         }
     }

@@ -6391,6 +6391,15 @@ InModuleScope $ProjectName {
                     $QueryParameters.for -eq $TestDate
                 }
             }
+
+            It 'Should send For as a date-only value when given a datetime' {
+                Get-IMMemory -For ([datetime]'2024-01-15T13:45:00')
+
+                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $RelativePath -eq '/memories' -and
+                    $QueryParameters.for -eq '2024-01-15'
+                }
+            }
         }
 
         Context 'Session Parameter' {
@@ -7372,6 +7381,23 @@ InModuleScope $ProjectName {
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
                     $Method -eq 'POST' -and
                     $RelativePath -eq '/search/metadata'
+                }
+            }
+
+            It 'Should send the next page token as an integer when paging' {
+                Mock InvokeImmichRestMethod {
+                    if ($Body.page)
+                    {
+                        return [PSCustomObject]@{ assets = [PSCustomObject]@{ items = @(); nextPage = $null } }
+                    }
+                    return [PSCustomObject]@{ assets = [PSCustomObject]@{ items = @([PSCustomObject]@{ id = 'a1' }); nextPage = '2' } }
+                }
+
+                Find-IMAsset -OriginalFileName 'unsp' -Size 1
+
+                Should -Invoke InvokeImmichRestMethod -Exactly -Times 2 -ParameterFilter {
+                    $RelativePath -eq '/search/metadata' -and
+                    ($null -eq $Body.page -or $Body.page -is [int])
                 }
             }
 

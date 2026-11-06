@@ -243,7 +243,7 @@
 
     while ($Result.NextPage)
     {
-        $Body.page = $Result.NextPage
+        $Body.page = [int]$Result.NextPage
         $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/smart' -ImmichSession:$Session -Body $Body | Select-Object -ExpandProperty assets
         $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
     }
