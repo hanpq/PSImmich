@@ -39,7 +39,7 @@ param(
     [string]$FunctionName,
 
     [Parameter()]
-    [string]$Path = "source\Public",
+    [string]$Path = "source\public",
 
     [Parameter()]
     [string]$OpenApiSpec = "api\api.2.2.0.json"

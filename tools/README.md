@@ -22,7 +22,7 @@ This utility validates that PowerShell function parameters decorated with `[ApiP
 .\tools\Validate-ApiParameters.ps1 -FunctionName "Set-IMUserPreference"
 
 # Use custom paths
-.\tools\Validate-ApiParameters.ps1 -Path "source\Public" -OpenApiSpec "api\api.2.2.0.json"
+.\tools\Validate-ApiParameters.ps1 -Path "source\public" -OpenApiSpec "api\api.2.2.0.json"
 ```
 
 **Output:** 
