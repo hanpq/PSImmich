@@ -8322,24 +8322,24 @@ InModuleScope $ProjectName {
             Mock InvokeImmichRestMethod -ModuleName PSImmich {
                 return @(
                     [PSCustomObject]@{
-                        id = '123e4567-e89b-12d3-a456-426614174000'
-                        type = 'IMAGE'
+                        id               = '123e4567-e89b-12d3-a456-426614174000'
+                        type             = 'IMAGE'
                         originalFileName = 'large-image.jpg'
-                        updatedAt = '2024-01-01T10:00:00Z'
-                        exifInfo = @{
-                            fileSizeInByte = 52428800  # 50MB
-                            exifImageWidth = 4000
+                        updatedAt        = '2024-01-01T10:00:00Z'
+                        exifInfo         = @{
+                            fileSizeInByte  = 52428800  # 50MB
+                            exifImageWidth  = 4000
                             exifImageHeight = 3000
                         }
                     },
                     [PSCustomObject]@{
-                        id = '987fcdeb-51a2-43d5-b789-123456789abc'
-                        type = 'VIDEO'
+                        id               = '987fcdeb-51a2-43d5-b789-123456789abc'
+                        type             = 'VIDEO'
                         originalFileName = 'large-video.mp4'
-                        updatedAt = '2024-01-02T15:30:00Z'
-                        exifInfo = @{
-                            fileSizeInByte = 104857600  # 100MB
-                            exifImageWidth = 1920
+                        updatedAt        = '2024-01-02T15:30:00Z'
+                        exifInfo         = @{
+                            fileSizeInByte  = 104857600  # 100MB
+                            exifImageWidth  = 1920
                             exifImageHeight = 1080
                         }
                     }
@@ -8622,7 +8622,6 @@ InModuleScope $ProjectName {
             }
         }
     }
-
     Describe 'Remove-IMStackAsset' -Tag 'Unit', 'Remove-IMStackAsset' {
         BeforeAll {
             Mock InvokeImmichRestMethod {
@@ -8638,7 +8637,6 @@ InModuleScope $ProjectName {
             }
         }
     }
-
     Describe 'Set-IMStack' -Tag 'Unit', 'Set-IMStack' {
         BeforeAll {
             Mock InvokeImmichRestMethod {
@@ -8654,7 +8652,6 @@ InModuleScope $ProjectName {
             }
         }
     }
-
     Describe 'Get-IMPlugin' -Tag 'Unit', 'Get-IMPlugin' {
         BeforeAll {
             Mock InvokeImmichRestMethod {
@@ -8835,7 +8832,6 @@ InModuleScope $ProjectName {
             }
         }
     }
-
     Describe 'New-IMWorkflow' -Tag 'Unit', 'New-IMWorkflow' -Skip:$true {
         BeforeAll {
             Mock InvokeImmichRestMethod {
@@ -8895,7 +8891,6 @@ InModuleScope $ProjectName {
             }
         }
     }
-
     Describe 'Set-IMWorkflow' -Tag 'Unit', 'Set-IMWorkflow' -Skip:$true {
         BeforeAll {
             Mock InvokeImmichRestMethod {}
@@ -8970,7 +8965,6 @@ InModuleScope $ProjectName {
             }
         }
     }
-
     Describe 'Remove-IMWorkflow' -Tag 'Unit', 'Remove-IMWorkflow' -Skip:$true {
         BeforeAll {
             Mock InvokeImmichRestMethod {
@@ -9039,6 +9033,22 @@ InModuleScope $ProjectName {
             }
         }
     }
+
+    Describe 'Set-IMQueue' -Tag 'Unit', 'Set-IMQueue' {
+    }
+    Describe 'Clear-IMQueue' -Tag 'Unit', 'Clear-IMQueue' {
+    }
+    Describe 'Get-IMQueue' -Tag 'Unit', 'Get-IMQueue' {
+    }
+    Describe 'Get-IMQueueJob' -Tag 'Unit', 'Get-IMQueueJob' {
+    }
+
+    Describe 'Get-IMUserStatistic' -Tag 'Unit', 'Get-IMUserStatistic' {
+    }
+    Describe 'Get-ImUserSession' -Tag 'Unit', 'Get-ImUserSession' {
+
+    }
+
     Describe 'Copy-IMAssetInfo' -Tag 'Unit', 'Copy-IMAssetInfo' {
         BeforeAll {
             Mock InvokeImmichRestMethod {
@@ -9182,7 +9192,6 @@ InModuleScope $ProjectName {
             }
         }
     }
-
     Describe 'Remove-IMDuplicate' -Tag 'Remove-IMDuplicate' {
         BeforeAll {
             Mock InvokeImmichRestMethod {}

@@ -56,11 +56,11 @@
     {
         $StatusText = if ($IsPaused)
         {
-            'pause' 
+            'pause'
         }
         else
         {
-            'resume' 
+            'resume'
         }
         if ($PSCmdlet.ShouldProcess($Name, "$StatusText queue"))
         {

@@ -1,4 +1,4 @@
-﻿function Get-IMUserStatistics
+﻿function Get-IMUserStatistic
 {
     <#
     .SYNOPSIS
