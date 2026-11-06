@@ -128,9 +128,14 @@ and embedded version before using the output. If it selects the wrong spec,
 stop relying on that run; use an explicit-spec inventory or deliberately
 improve the tool with tests. Do not alter historical timestamps to hide this.
 
-Treat detected missing calls as review candidates, not confirmed missing
-features. The scanner can miss dynamic/splatted calls and does not detect
-source calls to endpoints physically absent from the target.
+The analyzer's `Work Items Summary` is the **required backlog**, not optional
+noise. Every `REMOVE` (deprecated but still implemented) and `IMPLEMENT`
+(missing) entry must end in one of: an implemented and tested batch, an
+explicit exclusion with a reason approved by the maintainer, or a `blocked`
+row with an owner. Do not start implementation until every entry has a ledger
+row (section 4). Analyzer output is a starting point, not proof: it can miss
+dynamic/splatted calls and cannot detect source calls to endpoints physically
+absent from the target, so also run the inventory in section 4.5.
 
 Parameter-mapping preflight:
 
@@ -151,6 +156,12 @@ that have no PowerShell parameter at all.
 
 ## 4. Build the actionable parity ledger
 
+**Gate:** do not begin implementation until every target operation has a row
+with one status, and every analyzer `REMOVE`/`IMPLEMENT` item is covered by a
+row. The analyzer's counts (covered, excluded, work items) must reconcile to
+the spec's total operation count; record the reconciliation in the assessment.
+Record the scope as full parity with the target unless the maintainer narrows it.
+
 For **every target operation**, assign one status:
 `verified`, `needs-change`, `missing`, `excluded`, or `blocked`.
 Track removed baseline operations separately. A useful row is:
@@ -161,6 +172,28 @@ Track removed baseline operations separately. A useful row is:
 
 Use operation IDs and release notes to recognize relocated/replaced endpoints,
 but verify their DTOs instead of assuming a path rename is sufficient.
+
+**Deprecated routes: find the replacement first.** Immich usually replaces a
+deprecated route rather than deleting its functionality. For each deprecated
+operation still used by source, determine its replacement before deciding
+anything:
+
+1. Compare request body property names and response DTOs against non-deprecated
+   operations in the same spec (for example, `PUT /system-config` and
+   `PUT /admin/config` share the same 22 properties).
+2. Check sibling methods on the same path and new paths in the same domain
+   (`/queues` for `/jobs`, `/public/config` and `/config` for `/server/config`).
+3. Read the replacement's schema and confirm which fields moved, were split
+   across DTOs, or were dropped. Record the mapping as old operation → new
+   operation, with the field-level delta.
+4. If a replacement exists, implement it and migrate the cmdlet, keeping the
+   public UX where possible; document any user-visible change.
+5. If no replacement exists and the functionality is gone, **stop and ask the
+   maintainer** before removing the cmdlet or parameter. Do not remove it on
+   your own. If it is still present in the spec, retain it with a recorded reason.
+
+Descriptions in the spec rarely name the replacement; do not rely on them.
+Track removed baseline operations separately from the target ledger.
 
 Audit [exclusions.json](../../../api/exclusions.json) against the target.
 Count only exact method/path exclusions still present. An exclusion means a
@@ -193,13 +226,17 @@ proving request/response behavior.
 ## 5. Implement in bounded, testable batches
 
 Assessment-only requests stop after the ledger and ordered backlog.
-For implementation, prioritize:
+For implementation, start only after the section 4 gate is met, then prioritize:
 
 1. Existing cmdlets broken by removals or contract changes.
-2. Migration away from deprecated routes while preserving intended UX.
+2. Migration away from deprecated routes to their verified replacements while
+   preserving intended UX.
 3. Missing read operations, then create/update/delete and asset workflows.
 4. Cross-cutting schema, permissions, authentication, pagination and binary
    transport work.
+
+Working a priority tier does not end the upgrade. Advance to the next tier
+until every backlog row is resolved as section 6a requires.
 
 Split these priorities into coherent feature/change batches, not one large
 upgrade commit or a commit per file. For each batch:
@@ -244,8 +281,9 @@ fields or return success-shaped fallbacks.
 
 Migration decisions must specify old-to-new endpoint/DTO mappings and any
 breaking user impact. Do not remove a cmdlet merely because its route is
-deprecated. If older-server support is required, use verified version/capability
-handling and test both branches; do not guess fallback behavior.
+deprecated, and do not remove functionality that has no replacement without
+maintainer approval. If older-server support is required, use verified
+version/capability handling and test both branches; do not guess fallback behavior.
 
 Add `ShouldProcess` to destructive operations. Obtain approval for live
 database restore/delete, maintenance changes, account changes and similar
@@ -324,11 +362,15 @@ An upgrade is complete only when every item below is true, and the handoff
 states each one with evidence:
 
 1. The target spec is verified (`info.version`, commit, SHA256) and committed.
-2. Every eligible non-deprecated target endpoint is `verified`, `excluded` with
-   a reason, or `blocked` with an owner. No `needs-change` or `missing` rows remain.
-3. Every removed route used by source has a tested migration or a documented
-   intentional removal, with user impact noted.
-4. Relevant deprecated routes are migrated or explicitly retained with a reason.
+2. Every analyzer `REMOVE` and `IMPLEMENT` item, and every eligible
+   non-deprecated target endpoint, is `verified`, `excluded` with a reason that
+   the maintainer has approved, or `blocked` with an owner. No `needs-change`,
+   `missing` or unreviewed `covered` rows remain. An exclusion added by the
+   assistant alone does not count.
+3. Every removed route used by source has a tested migration to a verified
+   replacement, or a maintainer-approved intentional removal with user impact noted.
+4. Every deprecated route used by source is migrated to its replacement, or
+   retained with a recorded reason. Analyzer `REMOVE` labels are not instructions to delete.
 5. `.\build.ps1 -Task Build` and `.\build.ps1 -Task Test -TestSuite Module` pass,
    apart from failures recorded as pre-existing with their cause.
 6. Live integration tests pass against an authorized target-version demo

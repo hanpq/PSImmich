@@ -163,6 +163,64 @@ assumed to apply.
 | Documentation whitespace | `git --no-pager diff --check` on tracked changes; trailing-whitespace scan on new file | Tracked diff check passed (exit 0); new-file scan run as recorded in the handoff |
 | Build, unit, QA, infrastructure, integration | Not run | Assessment-only scope; no behavioral verification claimed |
 
+## Deprecated route replacement map (3.3.6)
+
+Replacements were found by matching request-body properties and sibling paths
+in `api.3.3.6.json`. Descriptions in the spec do not name replacements. Each
+row is a **candidate** until its DTO delta is checked and a test covers it.
+
+| Deprecated route | Candidate replacement | Evidence | Source usage | Status |
+| --- | --- | --- | --- | --- |
+| `POST /people/{id}/merge` | `POST /people/merge` | Body `ids`, bulk form | Merge-IMPerson | Migrated (`9257eae`) |
+| `PUT /people/{id}` | `PUT /people` (`PeopleUpdateDto`) | Bulk form with required item `id` | Not called (Set-IMPerson already uses `PUT /people`) | No source change needed |
+| `POST /partners/{id}` | `POST /partners` (`PartnerCreateDto.sharedWithId`) | Sibling path | Not called (Add-IMPartner uses `POST /partners`) | No source change needed |
+| `PUT /tags/{id}` | `PUT /tags` (`TagUpsertDto`) | Bulk form | Set-IMTag, Set-IMAsset | Verify DTO, then migrate |
+| `GET /system-config`, `PUT /system-config`, `GET /system-config/defaults` | `GET /admin/config`, `PUT /admin/config`, `GET /admin/config/defaults` | 22 identical body properties | Get-IMServer, Set-IMServer | Strong match. Verify response DTO, then migrate |
+| `GET /server/config` | Split: `GET /public/config` (`loginPageMessage`, `oauth`), `GET /config` (`machineLearning.facialRecognition.minFaces`), `GET /admin/config` | No single DTO | Get-IMServer | Design decision needed (see below) |
+| `GET /jobs`, `PUT /jobs/{name}` | `GET /queues`, `PUT /queues/{name}` | `QueueResponseDto`, `QueueUpdateDto` (`isPaused` only) | Get-IMJob, Start/Suspend/Resume/Clear-IMJob | Partial. `start`/`stop`/`force` commands have no verified field mapping (see below) |
+| `POST /search/large-assets` | None confirmed (`POST /search/metadata` is a body-match candidate only) | No size-sort field verified | Get-IMTopLargestAsset | Decision needed (see below) |
+| `GET /server/features` | None found | `ServerFeaturesDto` is served only by this route | Get-IMServer | Retain with reason unless maintainer decides otherwise |
+
+Routes with **no replacement found** by body or sibling matching. Each needs a
+maintainer decision before removal or retention:
+
+- `PUT /admin/users/{id}`, `PUT /admin/users/{id}/preferences`
+- `PUT /api-keys/{id}` (Rename-IMAPIKey)
+- `PUT /assets`, `PUT /assets/{id}` (Set-IMAsset, Copy-IMAssetInfo)
+- `PUT /libraries/{id}` (Set-IMLibrary)
+- `PUT /memories/{id}` (Set-IMMemory)
+- `PUT /stacks/{id}` (Set-IMStack)
+- `PUT /workflows/{id}` (Set-IMWorkflow)
+- `PUT /sessions/{id}` (not called by source)
+- `PUT /users/me`, `PUT /users/me/preferences` (not called by source)
+
+Their create (`POST`) counterparts are close matches, but no PUT replacement
+exists in the spec. The analyzer's `REMOVE` label is not an instruction to delete.
+
+### Decisions needed from the maintainer
+
+1. Approve or reject retaining the no-replacement routes above, with the
+   listed cmdlets as the affected user surface.
+2. `Get-IMServer` splitting: keep one cmdlet that merges `/public/config`,
+   `/config` and `/admin/config`, or move each part to its own parameter set.
+3. `Get-IMJob` start/stop/force semantics: whether `/queues` plus
+   `QueueUpdateDto` is enough, or the commands must be retained on a different route.
+4. `Get-IMTopLargestAsset`: retain on the deprecated route, replace with
+   `/search/metadata` (different sort/paging), or remove.
+
+## Reconciliation of the 279 target operations
+
+| Bucket | Count | Source |
+| --- | ---: | --- |
+| Covered by the analyzer (not verified) | 140 | Analyzer summary |
+| Excluded (`exclusions.json`) | 63 | Includes 4 stale entries |
+| Work items (18 REMOVE, 58 IMPLEMENT) | 76 | Analyzer |
+| Total | 279 | 140 + 63 + 76 |
+
+The analyzer's counts are not parity evidence. The per-operation ledger
+(one status per row) is **not yet written**. Until it is, the upgrade is not
+complete under section 4 of the upgrade skill.
+
 ## Next handoff
 
 Continue on branch `upgrade/immich-3.3.6`. Committed batches:
