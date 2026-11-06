@@ -5,7 +5,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.3.2] - 2025-11-25
+### [2.3.3] (planned)
+
+The following changes were previously listed under 2.3.2 and are planned for the next release.
 
 ### Added
 

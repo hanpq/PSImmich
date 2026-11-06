@@ -1,29 +1,15 @@
 @{
-    PSDependOptions                      = @{
-        AddToPath  = $true
-        Target     = 'output\RequiredModules'
-        Parameters = @{
-            Repository = 'PSGallery'
-        }
+    Build = @{
+        Configuration    = '1.6.0'
+        ModuleBuilder    = '3.1.8'
+        Pester           = '5.7.1'
+        PSScriptAnalyzer = '1.24.0'
     }
-
-    InvokeBuild                          = '5.11.3'
-    PSScriptAnalyzer                     = 'latest'
-    Pester                               = 'latest'
-    Plaster                              = 'latest'
-    ModuleBuilder                        = '3.1.8'
-    ChangelogManagement                  = 'latest'
-    Sampler                              = '0.118.1'
-    'Sampler.GitHubTasks'                = '0.3.4'
-    Encoding                             = 'latest'
-    PlatyPS                              = 'latest'
-    'Alt3.Docusaurus.Powershell'         = 'latest'
-    'Microsoft.PowerShell.PSResourceGet' = @{
-        Name           = 'Microsoft.PowerShell.PSResourceGet'
-        DependencyType = 'PSGalleryModule'
-        Parameters     = @{
-            Repository      = 'PSGallery'
-            AllowPrerelease = $true
-        }
+    Publish = @{
+        'Microsoft.PowerShell.PSResourceGet' = '1.2.0'
+    }
+    Documentation = @{
+        'Alt3.Docusaurus.Powershell' = '1.0.37'
+        platyPS                       = '0.14.2'
     }
 }

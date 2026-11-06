@@ -1,0 +1,117 @@
+name: Prepare release
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Release channel
+        type: choice
+        options:
+          - beta
+          - stable
+        default: beta
+        required: true
+
+permissions: {}
+
+concurrency:
+  group: release-please-main
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Protect pending stable promotion
+        if: inputs.channel == 'beta'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          GITHUB_API_URL: ${{ github.api_url }}
+        run: |
+          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json' }
+          $page = 1
+          do {
+            $pulls = @(Invoke-RestMethod -Headers $headers -Uri "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/pulls?state=open&base=main&per_page=100&page=$page" | ForEach-Object { $_ })
+            foreach ($pr in $pulls) {
+              if ('stable-promotion' -in $pr.labels.name -or
+                  ($pr.head.ref -ceq 'release-please--branches--main' -and $pr.title -match '^chore\(main\): release \d+\.\d+\.\d+$')) {
+                throw "Stable promotion #$($pr.number) is pending. Merge or close it before preparing a beta."
+              }
+              if ($pr.head.ref -ceq 'release-please--branches--main') {
+                $file = Invoke-RestMethod -Headers $headers -Uri "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/contents/.release-please-manifest.json?ref=$($pr.head.sha)"
+                if ($file.encoding -ne 'base64') { throw 'Expected a base64 release manifest.' }
+                $version = ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($file.content)) | ConvertFrom-Json).'.'
+                if ($version -cnotmatch '^\d+\.\d+\.\d+-beta[0-9]{3,}$') {
+                  throw "Release PR #$($pr.number) does not contain beta metadata. Refusing to overwrite it."
+                }
+              }
+            }
+            $page++
+          } while ($pulls.Count -eq 100)
+      - name: Create stable promotion pull request
+        if: inputs.channel == 'stable'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_API_URL: ${{ github.api_url }}
+        run: |
+          ./scripts/New-StablePromotion.ps1
+      - uses: googleapis/release-please-action@v4
+        if: inputs.channel == 'beta'
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          target-branch: main
+          config-file: release-please-config.json
+          skip-github-release: true
+
+  finalize:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'release-please--branches--main' &&
+      contains(github.event.pull_request.labels.*.name, 'autorelease: pending')
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      # Never check out the PR head or execute scripts from it with a release token.
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Validate merged release pull request
+        id: release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          GITHUB_API_URL: ${{ github.api_url }}
+          RELEASE_PR_NUMBER: ${{ github.event.pull_request.number }}
+          RELEASE_MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          $channel = ./scripts/Assert-ReleasePullRequest.ps1 `
+            -Repository $env:GITHUB_REPOSITORY `
+            -PullRequestNumber $env:RELEASE_PR_NUMBER `
+            -MergeSha $env:RELEASE_MERGE_SHA
+          $config = if ($channel -eq 'stable') { 'release-please-stable-config.json' } else { 'release-please-config.json' }
+          "config=$config" >> $env:GITHUB_OUTPUT
+      - uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          target-branch: main
+          config-file: ${{ steps.release.outputs.config }}
+          skip-github-pull-request: true

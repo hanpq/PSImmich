@@ -1,0 +1,161 @@
+name: Release
+
+on:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+
+      - name: Validate release metadata
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_REF: ${{ github.ref_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          $project = ./scripts/Assert-ReleaseMetadata.ps1 `
+            -Tag $env:RELEASE_TAG `
+            -RefTag $env:RELEASE_REF `
+            -IsPrerelease ([bool]::Parse($env:RELEASE_PRERELEASE))
+          "MODULE_NAME=$($project.Name)" >> $env:GITHUB_ENV
+          "MODULE_VERSION=$($project.Version)" >> $env:GITHUB_ENV
+          "MODULE_PATH=output/$($project.Name)/$($project.ModuleVersion)" >> $env:GITHUB_ENV
+
+      - name: Build and test release
+        shell: pwsh
+        run: ./build.ps1 -Task Test -TestSuite Module
+
+      - name: Package module
+        shell: pwsh
+        run: ./build.ps1 -Task Package
+
+      - name: Validate packaged release metadata
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_REF: ${{ github.ref_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          ./scripts/Assert-ReleaseMetadata.ps1 `
+            -Tag $env:RELEASE_TAG `
+            -RefTag $env:RELEASE_REF `
+            -IsPrerelease ([bool]::Parse($env:RELEASE_PRERELEASE)) `
+            -BuiltModulePath (Join-Path $PWD $env:MODULE_PATH)
+
+      - name: Publish to PowerShell Gallery
+        shell: pwsh
+        env:
+          GALLERYAPITOKEN: ${{ secrets.GALLERYAPITOKEN }}
+        run: |
+          if (-not $env:GALLERYAPITOKEN) {
+            throw 'The GALLERYAPITOKEN secret is required to publish a release.'
+          }
+          $version = $env:MODULE_VERSION
+          $modulePath = Join-Path $PWD $env:MODULE_PATH
+          try {
+            Publish-Module -Path $modulePath -NuGetApiKey $env:GALLERYAPITOKEN -Repository PSGallery -ErrorAction Stop
+          }
+          catch {
+            if ($_.Exception.Message -like '*is already available in the repository*') {
+              Write-Host "$env:MODULE_NAME $version is already available in the PowerShell Gallery."
+            }
+            else {
+              throw
+            }
+          }
+
+      - name: Publish to ProGet
+        shell: pwsh
+        env:
+          PSTOOLS_APITOKEN: ${{ secrets.PSTOOLS_APITOKEN }}
+          PSTOOLS_SOURCE: ${{ secrets.PSTOOLS_SOURCE }}
+        run: |
+          if (-not $env:PSTOOLS_APITOKEN) {
+            Write-Host 'ProGet publishing skipped; PSTOOLS_APITOKEN is not configured.'
+            exit 0
+          }
+          if (-not $env:PSTOOLS_SOURCE) {
+            throw 'PSTOOLS_SOURCE must be configured when ProGet publishing is enabled.'
+          }
+
+          ./build.ps1 -Task InstallDependencies
+          $version = $env:MODULE_VERSION
+          $modulePath = Join-Path $PWD $env:MODULE_PATH
+          $manifestPath = Join-Path $modulePath "$env:MODULE_NAME.psd1"
+          $manifest = Get-Content -Path $manifestPath
+          $manifest = $manifest | Where-Object { $_ -notmatch "^\s*Prerelease\s*=\s*''" }
+          Set-Content -Path $manifestPath -Value $manifest -Encoding UTF8
+
+          $modulePathRoot = Join-Path $PWD 'output/RequiredModules'
+          $env:PSModulePath = $modulePathRoot + [IO.Path]::PathSeparator + $env:PSModulePath
+          Import-Module Microsoft.PowerShell.PSResourceGet -RequiredVersion 1.2.0 -ErrorAction Stop
+
+          $repositoryName = 'ModuleRelease-ProGet'
+          try {
+            Register-PSResourceRepository -Name $repositoryName -Uri $env:PSTOOLS_SOURCE -Trusted -ErrorAction Stop
+            Set-PSResourceRepository -Name $repositoryName -ApiVersion nugetServer -ErrorAction Stop
+            try {
+              Publish-PSResource -ApiKey $env:PSTOOLS_APITOKEN -Path $modulePath -Repository $repositoryName -SkipDependenciesCheck -ErrorAction Stop
+            }
+            catch {
+              if ($_.Exception.Message -like '*is already available in the repository*') {
+                Write-Host "$env:MODULE_NAME $version is already available in ProGet."
+              }
+              else {
+                throw
+              }
+            }
+          }
+          finally {
+            Unregister-PSResourceRepository -Name $repositoryName -Confirm:$false -ErrorAction SilentlyContinue
+          }
+
+      - name: Upload GitHub release package
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload $env:GITHUB_REF_NAME "output/$env:MODULE_NAME.$env:MODULE_VERSION.zip" --clobber
+
+      - name: Check documentation update credentials
+        id: docs
+        if: github.event.release.prerelease == false
+        shell: pwsh
+        env:
+          DOCS_GITHUB_TOKEN: ${{ secrets.GITHUBTOKEN }}
+        run: |
+          if ($env:DOCS_GITHUB_TOKEN) {
+            "enabled=true" >> $env:GITHUB_OUTPUT
+          }
+          else {
+            Write-Host 'Documentation update skipped; GITHUBTOKEN is not configured.'
+            "enabled=false" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Check out getps.dev
+        if: steps.docs.outputs.enabled == 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: hanpq/getps.dev
+          ref: main
+          path: getps.dev
+          token: ${{ secrets.GITHUBTOKEN }}
+
+      - name: Update getps.dev documentation
+        if: steps.docs.outputs.enabled == 'true'
+        shell: pwsh
+        env:
+          DOCS_GITHUB_TOKEN: ${{ secrets.GITHUBTOKEN }}
+        run: |
+          ./scripts/Update-Docs.ps1 -ModulePath $env:MODULE_PATH -DocsRepositoryPath getps.dev
