@@ -26,6 +26,6 @@
         $Session = $null
     )
 
-    InvokeImmichRestMethod -Method Get -RelativePath '/albums/statistics' -ImmichSession:$Session
+    [AlbumStatisticsResponseDto]::new((Invoke-ImmichApiGetAlbumStatistics -ImmichSession $Session))
 }
 #endregion

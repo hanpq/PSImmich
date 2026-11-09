@@ -46,9 +46,9 @@
             </TableControl>
         </View>
         <View>
-            <Name>PSImmich.ObjectType.IMAlbum</Name>
+            <Name>AlbumResponseDto</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMAlbum</TypeName>
+                <TypeName>AlbumResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
@@ -72,10 +72,6 @@
                         <Label>Assets</Label>
                         <Width>6</Width>
                     </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Owner</Label>
-                        <Width>40</Width>
-                    </TableColumnHeader>
                 </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
@@ -93,10 +89,7 @@
                                 <PropertyName>shared</PropertyName>
                             </TableColumnItem>
                             <TableColumnItem>
-                                <PropertyName>assetcount</PropertyName>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <ScriptBlock>$PSItem.owner.email</ScriptBlock>
+                                <PropertyName>assetCount</PropertyName>
                             </TableColumnItem>
                         </TableColumnItems>
                     </TableRowEntry>

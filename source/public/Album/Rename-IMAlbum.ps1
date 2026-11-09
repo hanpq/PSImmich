@@ -57,7 +57,7 @@
         $Id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Update'))
             {
-                InvokeImmichRestMethod -Method PATCH -RelativePath "/albums/$PSItem" -ImmichSession:$Session -Body:$BodyParameters
+                Invoke-ImmichApiUpdateAlbumInfo -Id $PSItem -Body $BodyParameters -ImmichSession $Session
             }
         }
     }

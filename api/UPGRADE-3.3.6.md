@@ -232,16 +232,23 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Status | Count |
 | --- | ---: |
 | Excluded (`exclusions.json`, method and path) | 59 |
-| Tested (generated function named under `tests/Unit`) | 2 |
-| Reachable (generated function used by module source) | 4 |
-| Unreachable | 214 |
+| Tested (generated function named under `tests/Unit`) | 3 |
+| Reachable (generated function used by module source) | 22 |
+| Unreachable | 195 |
 | Total | 279 |
 
-Wired for 6 of 220 non-excluded operations (2.7%). This is a route metric, not
-parameter or contract parity. The 214 unreachable operations are the backlog.
+Wired for 25 of 220 non-excluded operations (11.4%). This is a route metric, not
+parameter or contract parity. The 195 unreachable operations are the backlog.
 The largest unreachable domains are admin (30), assets (19), server (14), people
-(12) and albums (12). 20 unreachable operations are deprecated; each needs the
+(12) and shared links or libraries (8 each). 20 unreachable operations are deprecated; each needs the
 replacement-or-retain decision under the maintainer policy before implementation.
+
+Album batch (uncommitted at this writing): `Get-IMAlbum` and the album write cmdlets
+call the generated functions. `Get-IMAlbum -Shared` now sends the spec's `isShared`
+query parameter; it previously sent `shared`. `-IncludeAssets` no longer uses the
+undefined `withoutAssets` query. It pages `POST /search/metadata` filtered by `albumIds`
+and attaches the items as `assets`. The `IMAlbum` view is now `AlbumResponseDto`, and the
+Owner column is dropped because 3.3.6 `AlbumResponseDto` has no `owner`.
 
 ## Next handoff
 

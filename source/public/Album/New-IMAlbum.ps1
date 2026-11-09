@@ -72,7 +72,7 @@
 
     process
     {
-        InvokeImmichRestMethod -Method Post -RelativePath '/albums' -ImmichSession:$Session -Body $BodyParameters
+        Invoke-ImmichApiCreateAlbum -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [AlbumResponseDto]::new($PSItem) }
     }
 
 }

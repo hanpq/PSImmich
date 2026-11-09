@@ -555,18 +555,26 @@ InModuleScope $ProjectName {
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters for query parameters' {
+            It 'Should send isShared query parameter when Shared is specified' {
                 Get-IMAlbum -Shared $true
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RelativePath -eq '/albums' -and $QueryParameters.isShared -eq $true
+                }
             }
 
-            It 'Should add custom type to results' {
+            It 'Should not send a shared query parameter when Shared is omitted' {
                 Get-IMAlbum
 
-                Should -Invoke AddCustomType -Times 2 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
-                    $Type -eq 'IMAlbum'
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RelativePath -eq '/albums' -and -not ($QueryParameters -and $QueryParameters.ContainsKey('isShared'))
                 }
+            }
+
+            It 'Should return AlbumResponseDto objects' {
+                $result = Get-IMAlbum
+
+                $result | ForEach-Object { $PSItem.GetType().Name | Should -Be 'AlbumResponseDto' }
             }
         }
 
@@ -579,28 +587,50 @@ InModuleScope $ProjectName {
                 }
             }
 
-            It 'Should include withoutAssets query parameter when IncludeAssets is false' {
+            It 'Should not send a withoutAssets query parameter, which the spec does not define' {
                 Get-IMAlbum -AlbumId '123e4567-e89b-12d3-a456-426614174000'
 
                 Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $QueryParameters.withoutAssets -eq $true
+                    -not ($QueryParameters -and $QueryParameters.ContainsKey('withoutAssets'))
                 }
             }
 
-            It 'Should set withoutAssets to false when IncludeAssets is true' {
-                Get-IMAlbum -AlbumId '123e4567-e89b-12d3-a456-426614174000' -IncludeAssets
+            It 'Should return AlbumResponseDto without assets when IncludeAssets is omitted' {
+                $result = Get-IMAlbum -AlbumId '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $QueryParameters.withoutAssets -eq $false
+                $result.GetType().Name | Should -Be 'AlbumResponseDto'
+                $result.PSObject.Properties.Name | Should -Not -Contain 'assets'
+            }
+        }
+
+        Context 'When including assets' {
+            BeforeAll {
+                Mock Invoke-ImmichApiSearchAssets {
+                    if ($Body.page -eq 1)
+                    {
+                        return @{ assets = @{ items = @(@{ id = 'asset-1' }); nextPage = '2' } }
+                    }
+                    return @{ assets = @{ items = @(@{ id = 'asset-2' }); nextPage = $null } }
+                } -ModuleName 'PSImmich'
+            }
+
+            It 'Should page through metadata search filtered by the album ID' {
+                $result = Get-IMAlbum -AlbumId '123e4567-e89b-12d3-a456-426614174000' -IncludeAssets
+
+                Should -Invoke Invoke-ImmichApiSearchAssets -Times 2 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
+                    $Body.albumIds -contains '123e4567-e89b-12d3-a456-426614174000'
                 }
+                $result.assets.id | Should -Be @('asset-1', 'asset-2')
             }
         }
 
         Context 'When filtering by asset ID' {
-            It 'Should convert AssetId parameter to API parameters' {
+            It 'Should send assetId query parameter' {
                 Get-IMAlbum -AssetId '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
+                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RelativePath -eq '/albums' -and $QueryParameters.assetId -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
             }
         }
 
@@ -646,10 +676,9 @@ InModuleScope $ProjectName {
         BeforeAll {
             Mock InvokeImmichRestMethod {
                 return @{
-                    totalAlbums  = 25
-                    sharedAlbums = 8
-                    ownedAlbums  = 17
-                    assetCount   = 1250
+                    notShared = 9
+                    owned     = 17
+                    shared    = 8
                 }
             }
         }
@@ -663,11 +692,13 @@ InModuleScope $ProjectName {
                 }
             }
 
-            It 'Should return statistics object' {
+            It 'Should return AlbumStatisticsResponseDto' {
                 $result = Get-IMAlbumStatistic
 
-                $result.totalAlbums | Should -Be 25
-                $result.sharedAlbums | Should -Be 8
+                $result.GetType().Name | Should -Be 'AlbumStatisticsResponseDto'
+                $result.owned | Should -Be 17
+                $result.shared | Should -Be 8
+                $result.notShared | Should -Be 9
             }
         }
 

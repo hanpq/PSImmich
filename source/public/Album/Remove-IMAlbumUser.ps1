@@ -52,7 +52,7 @@
         $UserId | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'DELETE'))
             {
-                InvokeImmichRestMethod -Method DELETE -RelativePath "/albums/$AlbumId/user/$psitem" -ImmichSession:$Session
+                Invoke-ImmichApiRemoveUserFromAlbum -Id $AlbumId -UserId $PSItem -ImmichSession $Session
             }
         }
     }
