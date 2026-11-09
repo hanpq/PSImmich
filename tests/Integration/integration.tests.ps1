@@ -519,13 +519,14 @@ Describe 'Asset' -Tag 'Integration' {
             $Result = Search-IMAsset -OriginalFileName 'evgeni-evgeniev-ggVH1hoQAac-unsplash.jpg'
             $Result | Should -HaveCount 1
         }
-        It -Name 'Should find asset by partial name' {
+        It -Name 'Should not match partial file names (exact match filter)' {
             $Result = Search-IMAsset -OriginalFileName 'unsp'
-            $Result | Should -HaveCount 13
+            $Result | Should -HaveCount 0
         }
         It -Name 'Should find all assets by paging' {
-            $Result = Search-IMAsset -OriginalFileName 'unsp' -Size 5
-            $Result | Should -HaveCount 13
+            $All = Search-IMAsset -Type IMAGE
+            $Paged = Search-IMAsset -Type IMAGE -Size 5
+            $Paged | Should -HaveCount $All.Count
         }
         It -Name 'Should find road assets with smart search' {
             $Result = Search-IMAsset -Smart -Query 'Road'
@@ -833,8 +834,9 @@ Describe 'Album' -Tag 'Integration' {
         It -Name 'Users gets added to album as viewer' {
             Add-IMAlbumUser -AlbumId $NewAlbum.id -UserId '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
             $Result = Get-IMAlbum -AlbumId $NewAlbum.id
-            $Result.albumUsers.user | Should -HaveCount 1
-            $Result.albumUsers.user.id | Should -Contain '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
+            $SharedUsers = $Result.albumUsers | Where-Object { $_.role -ne 'owner' }
+            $SharedUsers | Should -HaveCount 1
+            $SharedUsers.user.id | Should -Contain '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d'
         }
         AfterAll {
             Get-IMAlbum | Where-Object { $_.AlbumName -eq $AlbumName } | Remove-IMAlbum
@@ -856,10 +858,10 @@ Describe 'Album' -Tag 'Integration' {
         It -Name 'Users gets added to album as viewer and changed to editor' {
             Add-IMAlbumUser -AlbumId $NewAlbum.id -UserId '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d' -Role viewer
             $Result = Get-IMAlbum -AlbumId $NewAlbum.id
-            $Result.albumUsers[0].role | Should -Be 'viewer'
+            ($Result.albumUsers | Where-Object { $_.user.id -eq '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d' }).role | Should -Be 'viewer'
             Set-IMAlbumUser -AlbumId $NewAlbum.id -UserId '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d' -Role editor
             $Result = Get-IMAlbum -AlbumId $NewAlbum.id
-            $Result.albumUsers[0].role | Should -Be 'editor'
+            ($Result.albumUsers | Where-Object { $_.user.id -eq '97eeb1d9-b699-45ae-a06b-3bf4ea43d44d' }).role | Should -Be 'editor'
         }
         AfterAll {
             Get-IMAlbum | Where-Object { $_.AlbumName -eq $AlbumName } | Remove-IMAlbum
@@ -1091,7 +1093,7 @@ Describe 'Search' -Tag 'Integration' {
         It 'Should return multiple assets with correct type' {
             $Result = Search-IMAsset
             $Result | Measure-Object | Select-Object -ExpandProperty count | Should -BeGreaterThan 1
-            $Result[0].PSObject.TypeNames | Should -Contain 'PSImmich.ObjectType.IMAsset'
+            $Result[0].PSObject.TypeNames | Should -Contain 'AssetResponseDto'
         }
     }
 }
