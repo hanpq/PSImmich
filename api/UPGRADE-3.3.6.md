@@ -497,4 +497,43 @@ Next actionable items, in order:
 3. Audit schema deltas for the representative contracts listed above against `api.3.3.6.json`.
 4. Repair the parameter validator path normalization before using it as a gate.
 
+### Live integration hardening (sequential runs against the demo server, 3.3.6)
+
+Final full run of `tests/Integration` (26 files, one process): **621 passed, 0 failed, 26 skipped**
+(647 discovered). Skips are data-dependent and reported with reasons in each file: no plugins,
+queues, memories, people with thumbnails, backups, licence, profile picture or unstacked assets on
+the demo server, plus one timeline-update case the server does not allow (see below).
+
+Commits made during live hardening, newest first:
+
+- `75fe079` test(activity): cover Add-IMActivity pipeline binding
+- `6334615` fix(api-key): send default all permission when none is specified
+- `c937ece` test(partner): check shared-by direction and skip unsupported timeline update
+- `2ff1512` test(session): check server version value rather than integer type
+- `52113d7` fix(session): accept relative URIs without a leading slash
+- `b1bb461` test(shared-link): read album from link details and tolerate removed links
+- `4f3150a` test(asset): assert edit response assetId
+- `d9a1ada` fix(asset): send explicit false for unspecified copy switches
+- `0d9eca6` test(album): correct shared filter expectation and user removal cleanup
+- `9df5610` fix(search): send nested filter dates in UTC ISO 8601
+
+Dated learnings (2026-11):
+
+- Body datetimes nested under `filter.*` need a timezone; timezone-less values return 400.
+  `ConvertTo-ImmichRequestBody` normalizes them.
+- The server defaults omitted body booleans to true. `ConvertTo-ApiParameters` emits only bound
+  parameters, so unspecified switches must be sent as explicit `false` (`Copy-IMAssetInfo`).
+- Required body values with defaults must be written into `$PSBoundParameters` before conversion
+  (`New-IMAPIKey` `permissions`).
+- `SharedLinkResponseDto.album` is optional: omitted by create, present on GET.
+- `Invoke-ImmichMethod` must prepend `/` to relative URIs because the session `ApiUri` has no
+  trailing slash.
+- Partners added by this account appear under `direction=shared-by`. `PUT /partners/{id}` with
+  `inTimeline` is accepted only for partners that share with the current user (`shared-with`).
+  The timeline integration test is skipped until a partner that shares with the test account exists.
+- `Rename-IMAPIKey` is not destructive, so it does not get `ShouldProcess`; its `-WhatIf` test is removed.
+
+Not yet verified: `Should -Throw` expectations for unknown GUIDs are assumed; `Set-IMPerson` colour
+read-back on 3.3.6 is unconfirmed; persistent test users were allowed but not created.
+
 Manual PR creation, review, merge and release remain with the maintainer.
