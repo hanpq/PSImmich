@@ -7697,7 +7697,7 @@ InModuleScope $ProjectName {
             It 'Should get config with correct API call' {
                 Get-IMServer -AppliedSystemConfiguration
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/system-config'
+                    $Method -eq 'Get' -and $RelativePath -eq '/admin/config'
                 }
             }
             It 'Should get applied system config as JSON when ReturnRawJSON is used' {
@@ -7705,7 +7705,7 @@ InModuleScope $ProjectName {
                 $result = Get-IMServer -AppliedSystemConfiguration -ReturnRawJSON
                 $result | Should -BeOfType [string]
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/system-config'
+                    $Method -eq 'Get' -and $RelativePath -eq '/admin/config'
                 }
             }
         }
@@ -7802,7 +7802,7 @@ InModuleScope $ProjectName {
             It 'Should get default system config with correct API call' {
                 Get-IMServer -DefaultSystemConfiguration
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/system-config/defaults'
+                    $Method -eq 'Get' -and $RelativePath -eq '/admin/config/defaults'
                 }
             }
             It 'Should get default system config as JSON when ReturnRawJSON is used' {
@@ -7810,7 +7810,7 @@ InModuleScope $ProjectName {
                 $result = Get-IMServer -DefaultSystemConfiguration -ReturnRawJSON
                 $result | Should -BeOfType [string]
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/system-config/defaults'
+                    $Method -eq 'Get' -and $RelativePath -eq '/admin/config/defaults'
                 }
             }
         }
@@ -7848,7 +7848,7 @@ InModuleScope $ProjectName {
                 $config = @{ ffmpeg = @{ crf = 25 } }
                 Set-IMServer -RawJSON ($config | ConvertTo-Json)
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/system-config'
+                    $Method -eq 'Put' -and $RelativePath -eq '/admin/config'
                 }
             }
         }

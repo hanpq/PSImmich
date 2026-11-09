@@ -166,7 +166,7 @@
         }
         'appliedsystemconfiguration'
         {
-            $Result = InvokeImmichRestMethod -Method Get -RelativePath '/system-config' -ImmichSession:$Session
+            $Result = InvokeImmichRestMethod -Method Get -RelativePath '/admin/config' -ImmichSession:$Session
             if ($ReturnRawJSON)
             {
                 $Result | ConvertTo-Json -Depth 10
@@ -178,7 +178,7 @@
         }
         'defaultsystemconfiguration'
         {
-            $Result = InvokeImmichRestMethod -Method Get -RelativePath '/system-config/defaults' -ImmichSession:$Session
+            $Result = InvokeImmichRestMethod -Method Get -RelativePath '/admin/config/defaults' -ImmichSession:$Session
             if ($ReturnRawJSON)
             {
                 $Result | ConvertTo-Json -Depth 10

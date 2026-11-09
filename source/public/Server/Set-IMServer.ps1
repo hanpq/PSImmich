@@ -32,7 +32,7 @@
 
     if ($PSCmdlet.ShouldProcess('Config', 'Set'))
     {
-        InvokeImmichRestMethod -Method Put -RelativePath '/system-config' -ImmichSession:$Session -RawBody:$RawJSONConfig
+        InvokeImmichRestMethod -Method Put -RelativePath '/admin/config' -ImmichSession:$Session -RawBody:$RawJSONConfig
     }
 }
 #endregion
