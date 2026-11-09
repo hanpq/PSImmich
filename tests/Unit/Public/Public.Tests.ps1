@@ -2561,6 +2561,127 @@ InModuleScope $ProjectName {
             }
         }
     }
+    Describe 'Get-IMAssetEdit' -Tag 'Unit', 'Get-IMAssetEdit' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetAssetEdits -ModuleName PSImmich {
+                return [pscustomobject]@{
+                    assetId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+                    edits   = @([pscustomobject]@{ id = 'edit-1'; action = 'rotate'; parameters = [pscustomobject]@{ angle = 90 } })
+                }
+            }
+        }
+
+        It 'Should call Invoke-ImmichApiGetAssetEdits with the asset ID' {
+            Get-IMAssetEdit -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+
+            Should -Invoke Invoke-ImmichApiGetAssetEdits -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+            }
+        }
+
+        It 'Should return AssetEditsResponseDto objects' {
+            $result = Get-IMAssetEdit -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+
+            $result.GetType().Name | Should -Be 'AssetEditsResponseDto'
+            $result.edits[0].action | Should -Be 'rotate'
+        }
+
+        It 'Should accept Id from pipeline by property name' {
+            [pscustomobject]@{ id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' } | Get-IMAssetEdit
+
+            Should -Invoke Invoke-ImmichApiGetAssetEdits -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+            }
+        }
+
+        It 'Should reject an invalid GUID' {
+            { Get-IMAssetEdit -Id 'not-a-guid' } | Should -Throw
+        }
+    }
+
+    Describe 'Set-IMAssetEdit' -Tag 'Unit', 'Set-IMAssetEdit' {
+        BeforeAll {
+            Mock Invoke-ImmichApiEditAsset -ModuleName PSImmich {
+                return [pscustomobject]@{ assetId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'; edits = @() }
+            }
+        }
+
+        It 'Should send the edits in the edits array of the body' {
+            Set-IMAssetEdit -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Edit @{ action = 'rotate'; parameters = @{ angle = 90 } }
+
+            Should -Invoke Invoke-ImmichApiEditAsset -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and
+                @($Body.edits).Count -eq 1 -and
+                $Body.edits[0].action -eq 'rotate' -and
+                $Body.edits[0].parameters.angle -eq 90
+            }
+        }
+
+        It 'Should send multiple edits in order' {
+            $Edits = @(
+                @{ action = 'crop'; parameters = @{ x = 0; y = 0; width = 800; height = 600 } }
+                @{ action = 'mirror'; parameters = @{ axis = 'horizontal' } }
+            )
+            Set-IMAssetEdit -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Edit $Edits
+
+            Should -Invoke Invoke-ImmichApiEditAsset -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                @($Body.edits).Count -eq 2 -and
+                $Body.edits[0].action -eq 'crop' -and
+                $Body.edits[0].parameters.width -eq 800 -and
+                $Body.edits[1].action -eq 'mirror' -and
+                $Body.edits[1].parameters.axis -eq 'horizontal'
+            }
+        }
+
+        It 'Should return AssetEditsResponseDto objects' {
+            $result = Set-IMAssetEdit -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Edit @{ action = 'rotate'; parameters = @{ angle = 90 } }
+
+            $result.GetType().Name | Should -Be 'AssetEditsResponseDto'
+        }
+
+        It 'Should support ShouldProcess' {
+            $function = Get-Command Set-IMAssetEdit
+            $function.ScriptBlock.Attributes | Where-Object { $_.TypeId.Name -eq 'CmdletBindingAttribute' } |
+                ForEach-Object { $_.SupportsShouldProcess } | Should -Be $true
+        }
+
+        It 'Should require Edit' {
+            $function = Get-Command Set-IMAssetEdit
+            $function.Parameters['Edit'].Attributes | Where-Object { $_.TypeId.Name -eq 'ParameterAttribute' } |
+                ForEach-Object { $_.Mandatory } | Should -Contain $true
+        }
+    }
+
+    Describe 'Remove-IMAssetEdit' -Tag 'Unit', 'Remove-IMAssetEdit' {
+        BeforeAll {
+            Mock Invoke-ImmichApiRemoveAssetEdits -ModuleName PSImmich {}
+        }
+
+        It 'Should support ShouldProcess' {
+            $function = Get-Command Remove-IMAssetEdit
+            $function.ScriptBlock.Attributes | Where-Object { $_.TypeId.Name -eq 'CmdletBindingAttribute' } |
+                ForEach-Object { $_.SupportsShouldProcess } | Should -Be $true
+        }
+
+        It 'Should call Invoke-ImmichApiRemoveAssetEdits when confirmed' {
+            Remove-IMAssetEdit -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiRemoveAssetEdits -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+            }
+        }
+
+        It 'Should not call the API with -WhatIf' {
+            Remove-IMAssetEdit -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -WhatIf
+
+            Should -Invoke Invoke-ImmichApiRemoveAssetEdits -ModuleName PSImmich -Times 0 -Exactly -Scope It
+        }
+
+        It 'Should reject an invalid GUID' {
+            { Remove-IMAssetEdit -Id 'not-a-guid' -Confirm:$false } | Should -Throw
+        }
+    }
+
     Describe 'Save-IMAsset' -Tag 'Unit', 'Save-IMAsset' {
         BeforeAll {
             Mock Invoke-ImmichApiDownloadAsset { } -ModuleName PSImmich
