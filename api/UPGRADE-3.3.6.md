@@ -225,6 +225,25 @@ The analyzer's counts are not parity evidence. The per-operation ledger
 (one status per row) is **not yet written**. Until it is, the upgrade is not
 complete under section 4 of the upgrade skill.
 
+## Current status: Reachable to Tested conversion
+
+Every non-excluded operation is now `Tested`: `Get-ImmichApiCoverage.ps1` reports
+Tested 186, Reachable 0, Excluded 93 (279 operations). Unit tests mock the generated
+`Invoke-ImmichApi<Operation>` wrappers and assert on their parameters, so the coverage
+tool counts them as tested. Earlier tests mocked `InvokeImmichRestMethod`, which left
+operations at Reachable.
+
+Conversion commits on `upgrade/immich-3.3.6`: `66a555b` (tag, activity), `00158c4` (album),
+`21f157f` (library), `802fe28` (user), `bcf8a57` (server), `2bc9ed3` (person),
+`ecef992` (asset jobs and delete), `756aa9d` (asset copy, OCR, random), `d7c4529`
+(job, duplicate, access token).
+
+Validation: targeted run `.\build.ps1 -Task Test -TestSuite Module -Tag ...` for the
+job, duplicate and access token tags passed 87 tests, 0 failures. The full module
+suite and the TestQuality group have not been run for this batch. Some legacy
+`InvokeImmichRestMethod` mocks remain in the Get-IMJob, Set-IMAsset and other describes.
+They do not block the Tested count and can be converted in a later cleanup.
+
 ## Route coverage baseline (generated internal layer)
 
 Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
