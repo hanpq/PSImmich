@@ -2221,7 +2221,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMAsset' -Tag 'Unit', 'Remove-IMAsset' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
+            Mock Invoke-ImmichApiDeleteAssets -ModuleName PSImmich {
                 # Mock returns nothing for DELETE operations
                 return $null
             }
@@ -2267,27 +2267,23 @@ InModuleScope $ProjectName {
                     ForEach-Object { $_.SupportsShouldProcess } | Should -Be $true
             }
 
-            It 'Should call InvokeImmichRestMethod when confirmed for single asset' {
+            It 'Should call the delete wrapper when confirmed for single asset' {
                 $TestAssetId = 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 Remove-IMAsset -Ids $TestAssetId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets' -and
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids -contains $TestAssetId
                 }
             }
 
-            It 'Should call InvokeImmichRestMethod when confirmed for multiple assets' {
+            It 'Should call the delete wrapper when confirmed for multiple assets' {
                 $TestAssetIds = @(
                     'a1b2c3d4-e5f6-4789-a012-123456789abc',
                     'b2c3d4e5-f6a7-4890-b123-234567890bcd'
                 )
                 Remove-IMAsset -Ids $TestAssetIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets' -and
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids.Count -eq 2 -and
                     $Body.ids -contains $TestAssetIds[0] -and
                     $Body.ids -contains $TestAssetIds[1]
@@ -2304,9 +2300,7 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 $TestAssetId | Remove-IMAsset -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets' -and
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids -contains $TestAssetId
                 }
             }
@@ -2315,9 +2309,7 @@ InModuleScope $ProjectName {
                 $assetObject = [PSCustomObject]@{ Ids = $TestAssetId }
                 $assetObject | Remove-IMAsset -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets' -and
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids -contains $TestAssetId
                 }
             }
@@ -2326,9 +2318,7 @@ InModuleScope $ProjectName {
                 $assetObject = [PSCustomObject]@{ id = $TestAssetId }
                 $assetObject | Remove-IMAsset -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets' -and
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids -contains $TestAssetId
                 }
             }
@@ -2336,9 +2326,7 @@ InModuleScope $ProjectName {
             It 'Should handle multiple assets from pipeline' {
                 @($TestAssetId, $TestAssetId2) | Remove-IMAsset -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets' -and
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids.Count -eq 2 -and
                     $Body.ids -contains $TestAssetId -and
                     $Body.ids -contains $TestAssetId2
@@ -2352,9 +2340,7 @@ InModuleScope $ProjectName {
                 )
                 $assetObjects | Remove-IMAsset -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets' -and
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids.Count -eq 2
                 }
             }
@@ -2368,7 +2354,7 @@ InModuleScope $ProjectName {
             It 'Should include force in body parameters when Force is specified' {
                 Remove-IMAsset -Ids $TestAssetId -Force -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.force -eq $true
                 }
             }
@@ -2376,7 +2362,7 @@ InModuleScope $ProjectName {
             It 'Should not include force in body parameters when Force is not specified' {
                 Remove-IMAsset -Ids $TestAssetId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $null -eq $Body.force -or $Body.force -eq $false
                 }
             }
@@ -2394,20 +2380,19 @@ InModuleScope $ProjectName {
                 $TestAssetId = 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 Remove-IMAsset -Ids $TestAssetId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
         }
 
         Context 'API Integration' {
-            It 'Should call correct REST endpoint' {
+            It 'Should call the delete wrapper with the asset ID' {
                 $TestAssetId = 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 Remove-IMAsset -Ids $TestAssetId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets'
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.ids -contains $TestAssetId
                 }
             }
 
@@ -2419,7 +2404,7 @@ InModuleScope $ProjectName {
                 )
                 Remove-IMAsset -Ids $TestAssetIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids.Count -eq 3 -and
                     $Body.ids -contains $TestAssetIds[0] -and
                     $Body.ids -contains $TestAssetIds[1] -and
@@ -3405,7 +3390,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Start-IMVideoTranscode' -Tag 'Unit', 'Start-IMVideoTranscode' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRunAssetJobs { return @{ Status = 'Success' } } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -3453,7 +3438,7 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Start-IMVideoTranscode -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It
             }
         }
 
@@ -3462,16 +3447,14 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Start-IMVideoTranscode -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/assets/jobs'
-                }
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
             It 'Should send correct body parameters' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Start-IMVideoTranscode -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.assetIds -contains $TestId -and $Body.name -eq 'transcode-video'
                 }
             }
@@ -3484,7 +3467,7 @@ InModuleScope $ProjectName {
 
                 Start-IMVideoTranscode -Id $TestIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.assetIds.Count -eq 2 -and $Body.assetIds -contains $TestIds[0] -and $Body.assetIds -contains $TestIds[1]
                 }
             }
@@ -3497,15 +3480,15 @@ InModuleScope $ProjectName {
                 $Command.Parameters.ContainsKey('Session') | Should -Be $true
                 $Command.Parameters['Session'].ParameterType.Name | Should -Be 'ImmichSession'
 
-                # Verify that InvokeImmichRestMethod is called when session handling occurs
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 0 -Scope It
+                # Verify the wrapper is not called when only parameter definitions are checked
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 0 -Scope It
             }
 
             It 'Should use default session when no session parameter provided' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Start-IMVideoTranscode -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -3513,7 +3496,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Update-IMAssetMetadata' -Tag 'Unit', 'Update-IMAssetMetadata' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRunAssetJobs { return @{ Status = 'Success' } } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -3561,7 +3544,7 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetMetadata -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It
             }
         }
 
@@ -3570,16 +3553,14 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetMetadata -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/assets/jobs'
-                }
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
             It 'Should send correct body parameters for metadata refresh' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetMetadata -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.assetIds -contains $TestId -and $Body.name -eq 'refresh-metadata'
                 }
             }
@@ -3592,7 +3573,7 @@ InModuleScope $ProjectName {
 
                 Update-IMAssetMetadata -Id $TestIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.assetIds.Count -eq 2 -and $Body.assetIds -contains $TestIds[0] -and $Body.assetIds -contains $TestIds[1]
                 }
             }
@@ -3605,15 +3586,15 @@ InModuleScope $ProjectName {
                 $Command.Parameters.ContainsKey('Session') | Should -Be $true
                 $Command.Parameters['Session'].ParameterType.Name | Should -Be 'ImmichSession'
 
-                # Verify that InvokeImmichRestMethod is called when session handling occurs
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 0 -Scope It
+                # Verify the wrapper is not called when only parameter definitions are checked
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 0 -Scope It
             }
 
             It 'Should use default session when no session parameter provided' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetMetadata -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -3621,7 +3602,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Update-IMAssetThumbnail' -Tag 'Unit', 'Update-IMAssetThumbnail' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRunAssetJobs { return @{ Status = 'Success' } } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -3669,7 +3650,7 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetThumbnail -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It
             }
         }
 
@@ -3678,16 +3659,14 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetThumbnail -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/assets/jobs'
-                }
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
             It 'Should send correct body parameters for thumbnail regeneration' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetThumbnail -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.assetIds -contains $TestId -and $Body.name -eq 'regenerate-thumbnail'
                 }
             }
@@ -3700,7 +3679,7 @@ InModuleScope $ProjectName {
 
                 Update-IMAssetThumbnail -Id $TestIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.assetIds.Count -eq 2 -and $Body.assetIds -contains $TestIds[0] -and $Body.assetIds -contains $TestIds[1]
                 }
             }
@@ -3713,15 +3692,15 @@ InModuleScope $ProjectName {
                 $Command.Parameters.ContainsKey('Session') | Should -Be $true
                 $Command.Parameters['Session'].ParameterType.Name | Should -Be 'ImmichSession'
 
-                # Verify that InvokeImmichRestMethod is called when session handling occurs
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 0 -Scope It
+                # Verify the wrapper is not called when only parameter definitions are checked
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 0 -Scope It
             }
 
             It 'Should use default session when no session parameter provided' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetThumbnail -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
