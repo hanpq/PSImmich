@@ -196,7 +196,7 @@ Describe 'Session' -Tag 'Integration' {
         It 'Should return the server version' {
             $Result = Invoke-ImmichMethod -Method GET -RelativeURI 'server/version'
             $Result | Should -Not -BeNullOrEmpty
-            $Result.major | Should -BeOfType [int]
+            $Result.major | Should -BeGreaterOrEqual 1
         }
         It 'Should return the server ping response' {
             $Result = Invoke-ImmichMethod -Method GET -RelativeURI 'server/ping'
