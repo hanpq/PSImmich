@@ -514,45 +514,43 @@ Describe 'Asset' -Tag 'Integration' {
             $Result.PSObject.Properties.Name | Should -Contain 'videos'
         }
     }
-    Context 'Find-IMAsset' -Tag 'Find-IMAsset' {
+    Context 'Search-IMAsset' -Tag 'Search-IMAsset' {
         It -Name 'Should find asset by name' {
-            $Result = Find-IMAsset -OriginalFileName 'evgeni-evgeniev-ggVH1hoQAac-unsplash.jpg'
+            $Result = Search-IMAsset -OriginalFileName 'evgeni-evgeniev-ggVH1hoQAac-unsplash.jpg'
             $Result | Should -HaveCount 1
         }
         It -Name 'Should find asset by partial name' {
-            $Result = Find-IMAsset -OriginalFileName 'unsp'
+            $Result = Search-IMAsset -OriginalFileName 'unsp'
             $Result | Should -HaveCount 13
         }
         It -Name 'Should find all assets by paging' {
-            $Result = Find-IMAsset -OriginalFileName 'unsp' -Size 5
+            $Result = Search-IMAsset -OriginalFileName 'unsp' -Size 5
             $Result | Should -HaveCount 13
         }
-    }
-    Context 'Search-IMAsset' -Tag 'Search-IMAsset' {
-        It -Name 'Should find road assets' {
-            $Result = Search-IMAsset -Query 'Road'
+        It -Name 'Should find road assets with smart search' {
+            $Result = Search-IMAsset -Smart -Query 'Road'
             $Result.Count | Should -BeGreaterThan 0
         }
 
         It -Name 'Should correctly translate PascalCase parameters to API camelCase' {
             # This test uses parameters that have different PowerShell vs API naming
             # If ConvertTo-ApiParameters isn't working, the API call would fail or return unexpected results
-            # Using -IsFavorite (PowerShell) which should translate to 'isFavorite' (API)
-            # Using -IsEncoded (PowerShell) which should translate to 'isEncoded' (API)
-            # Using -Type (PowerShell) which should translate to 'type' (API)
+            # Using -IsFavorite (PowerShell) which should translate to filter.isFavorite.eq (API)
+            # Using -IsEncoded (PowerShell) which should translate to filter.isEncoded.eq (API)
+            # Using -Type (PowerShell) which should translate to filter.type.eq (API)
 
             # Test with boolean parameters that would fail if not translated correctly
             # If the parameter translation worked, the call succeeds (possibly with no results).
             # If it failed, the API rejects the request and the call throws.
-            { Search-IMAsset -Query 'Road' -IsFavorite:$false -IsEncoded:$true -Type 'IMAGE' } | Should -Not -Throw
+            { Search-IMAsset -IsFavorite:$false -IsEncoded:$true -Type 'IMAGE' } | Should -Not -Throw
         }
 
         It -Name 'Should handle DateTime parameters with correct API translation' {
             # Test DateTime parameters that need correct translation
-            # CreatedAfter (PowerShell) -> createdAfter (API)
-            # TakenBefore (PowerShell) -> takenBefore (API)
+            # CreatedAfter (PowerShell) -> filter.createdAt.gte (API)
+            # TakenBefore (PowerShell) -> filter.takenAt.lte (API)
 
-            $Result = Search-IMAsset -Query 'Road'
+            $Result = Search-IMAsset -Smart -Query 'Road'
 
             # If parameter translation worked, we get valid results
             $Result[0].OriginalFileName | should -be 'evgeni-evgeniev-ggVH1hoQAac-unsplash.jpg'
@@ -1089,9 +1087,9 @@ Describe 'Search' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
-    Context 'Find-IMAsset' -Tag 'Find-IMAsset' {
+    Context 'Search-IMAsset' -Tag 'Search-IMAsset' {
         It 'Should return multiple assets with correct type' {
-            $Result = Find-IMAsset
+            $Result = Search-IMAsset
             $Result | Measure-Object | Select-Object -ExpandProperty count | Should -BeGreaterThan 1
             $Result[0].PSObject.TypeNames | Should -Contain 'PSImmich.ObjectType.IMAsset'
         }

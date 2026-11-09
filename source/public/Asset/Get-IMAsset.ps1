@@ -112,23 +112,11 @@
             }
             'personId'
             {
-                Find-IMAsset -PersonIds $PersonId -Session:$Session
+                Search-IMAsset -PersonIds $PersonId -Session:$Session
             }
             'tagid'
             {
-                $Body = @{
-                    tagIds = @($TagId)
-                }
-
-                $Response = Invoke-ImmichApiSearchAssets -Body $Body -ImmichSession $Session
-                $Response.assets.items | ForEach-Object { [AssetResponseDto]::new($PSItem) }
-
-                while ($Response.assets.nextPage)
-                {
-                    $Body.page = $Response.assets.nextPage
-                    $Response = Invoke-ImmichApiSearchAssets -Body $Body -ImmichSession $Session
-                    $Response.assets.items | ForEach-Object { [AssetResponseDto]::new($PSItem) }
-                }
+                Search-IMAsset -TagIds $TagId -Session:$Session
             }
             'random'
             {
@@ -139,7 +127,7 @@
             }
             'list'
             {
-                Find-IMAsset
+                Search-IMAsset -Session:$Session
             }
         }
     }

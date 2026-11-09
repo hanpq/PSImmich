@@ -292,8 +292,17 @@ the list query no longer sends an empty `albumId`. The asset cmdlets declared `S
 but never checked it; they now honor `-WhatIf` and `-Confirm`. No shared-link route is deprecated
 in 3.3.6, so no legacy paths remain. No format view existed for shared links, so no type name changed.
 
-Search batch: `Find-IMExploreData`, `Find-IMPerson`, `Find-IMPlace`, `Find-IMAsset`, `Search-IMAsset`,
-and `Get-IMTopLargestAsset` call the generated functions. Results are DTO objects:
+Search batch: `Find-IMExploreData`, `Find-IMPerson`, `Find-IMPlace`, and `Get-IMTopLargestAsset`
+call the generated functions. `Find-IMAsset` was merged into `Search-IMAsset`. The default
+(metadata) route is `POST /search/metadata`, and `-Smart` selects `POST /search/smart`. Both
+routes send filters through the `filter` object (`SearchFilter`) rather than the deprecated flat
+fields. Mapping: `-City` to `filter.city.eq`, `-AlbumIds`/`-PersonIds`/`-TagIds` to `filter.*.any`,
+dates to `gte`/`lte`, and `-IsNotInAlbum` to `filter.hasAlbums.eq = false`. `-Query` and `-Language`
+are Smart-only. `-Order`, `-WithPeople`, and `-WithStacked` are Metadata-only. `-DeviceId`,
+`-DeviceAssetId`, `-IsVisible`, and `-WithDeleted` were removed because the 3.3.6 DTOs no longer
+define them. Metadata paging uses `cursor`/`nextCursor`. Smart paging still uses the deprecated
+`page`/`nextPage`, because 3.3.6 has no replacement. `Get-IMAlbum` still sends the deprecated
+`albumIds` to the search route and is out of scope for this batch. Results are DTO objects:
 `SearchExploreResponseDto`, `PersonResponseDto`, `PlacesResponseDto`, and `AssetResponseDto`.
 `Get-IMTopLargestAsset` was sending a JSON body to `POST /search/large-assets`, but the 3.3.6
 spec defines only the `size` query parameter. It now sends `size` as a query parameter, and it

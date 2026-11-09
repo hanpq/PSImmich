@@ -1731,7 +1731,7 @@ InModuleScope $ProjectName {
                 }
             } -ModuleName PSImmich
 
-            Mock Find-IMAsset {
+            Mock Search-IMAsset {
                 return @(
                     @{ id = 'person-asset1'; originalFileName = 'person1.jpg' }
                     @{ id = 'person-asset2'; originalFileName = 'person2.jpg' }
@@ -1746,9 +1746,9 @@ InModuleScope $ProjectName {
         }
 
         Context 'Parameter Set: list (default)' {
-            It 'Should call Find-IMAsset when no parameters are provided' {
+            It 'Should call Search-IMAsset when no parameters are provided' {
                 Get-IMAsset
-                Should -Invoke Find-IMAsset -Exactly 1 -Scope It -ModuleName PSImmich
+                Should -Invoke Search-IMAsset -Exactly 1 -Scope It -ModuleName PSImmich
             }
         }
 
@@ -1811,8 +1811,8 @@ InModuleScope $ProjectName {
                 $result = Get-IMAsset -PersonId $testPersonId
 
                 $result | Should -HaveCount 2
-                Should -Invoke Find-IMAsset -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
-                    $personIds -eq $testPersonId
+                Should -Invoke Search-IMAsset -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $PersonIds -eq $testPersonId
                 }
             }
 
@@ -1827,8 +1827,8 @@ InModuleScope $ProjectName {
                 $result = Get-IMAsset -TagId $testTagId
 
                 $result | Should -HaveCount 2
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/search/metadata' -and $Body.tagIds -contains $testTagId
+                Should -Invoke Search-IMAsset -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $TagIds -contains $testTagId
                 }
             }
 
@@ -7153,12 +7153,12 @@ InModuleScope $ProjectName {
             }
         }
     }
-    Describe 'Find-IMAsset' -Tag 'Unit', 'Find-IMAsset' {
+    Describe 'Search-IMAsset' -Tag 'Unit', 'Search-IMAsset' {
         BeforeAll {
             Mock Invoke-ImmichApiSearchAssets -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     assets = [PSCustomObject]@{
-                        items    = @(
+                        items      = @(
                             [PSCustomObject]@{
                                 id               = 'asset1-guid-here-1234567890abcdef'
                                 type             = 'IMAGE'
@@ -7172,69 +7172,11 @@ InModuleScope $ProjectName {
                                 fileCreatedAt    = '2024-01-02T11:00:00Z'
                             }
                         )
-                        nextPage = $null
+                        nextCursor = $null
                     }
                 }
             }
-        }
 
-        Context 'Parameter Validation' {
-            It 'Should have OriginalFileName parameter' {
-                $function = Get-Command Find-IMAsset
-                $function.Parameters.Keys | Should -Contain 'OriginalFileName'
-            }
-
-            It 'Should have Type parameter with ValidateSet' {
-                $function = Get-Command Find-IMAsset
-                $typeParam = $function.Parameters['Type']
-                $validateSetAttribute = $typeParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ValidateSetAttribute' }
-                $validateSetAttribute.ValidValues | Should -Contain 'IMAGE'
-                $validateSetAttribute.ValidValues | Should -Contain 'VIDEO'
-            }
-        }
-
-        Context 'Asset Search' {
-            It 'Should POST to the internal search assets endpoint with the metadata filter' {
-                $result = Find-IMAsset -OriginalFileName 'vacation.jpg'
-
-                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Body.originalFileName -eq 'vacation.jpg'
-                }
-                $result.Count | Should -Be 2
-                $result[0].GetType().Name | Should -Be 'AssetResponseDto'
-            }
-
-            It 'Should send the next page token as an integer when paging' {
-                Mock Invoke-ImmichApiSearchAssets -ModuleName PSImmich {
-                    if ($Body.page)
-                    {
-                        return [PSCustomObject]@{ assets = [PSCustomObject]@{ items = @(); nextPage = $null } }
-                    }
-                    return [PSCustomObject]@{ assets = [PSCustomObject]@{ items = @([PSCustomObject]@{ id = 'a1' }); nextPage = '2' } }
-                }
-
-                $result = Find-IMAsset -OriginalFileName 'unsp' -Size 1
-
-                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Exactly -Times 2
-                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Body.page -is [int] -and $Body.page -eq 2
-                }
-                $result.Count | Should -Be 1
-            }
-
-            It 'Should map query parameters into the request body' {
-                Find-IMAsset -OriginalFileName 'beach.jpg' -Type 'IMAGE' -isFavorite:$true
-
-                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Body.originalFileName -eq 'beach.jpg' -and
-                    $Body.type -eq 'IMAGE' -and
-                    $Body.isFavorite -eq $true
-                }
-            }
-        }
-    }
-    Describe 'Search-IMAsset' -Tag 'Unit', 'Search-IMAsset' {
-        BeforeAll {
             Mock Invoke-ImmichApiSearchSmart -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     assets = [PSCustomObject]@{
@@ -7259,32 +7201,208 @@ InModuleScope $ProjectName {
         }
 
         Context 'Parameter Validation' {
-            It 'Should have search-specific parameters' {
+            It 'Should default to the Metadata parameter set' {
                 $function = Get-Command Search-IMAsset
-                $function.Parameters.Keys | Should -Contain 'Query'
-                $function.Parameters.Keys | Should -Contain 'OCR'
-                $function.Parameters.Keys | Should -Contain 'PersonIds'
+                $function.DefaultParameterSet | Should -Be 'Metadata'
+            }
+
+            It 'Should have a Smart switch and no Find-IMAsset command' {
+                $function = Get-Command Search-IMAsset
+                $function.Parameters['Smart'].SwitchParameter | Should -BeTrue
+                Get-Command Find-IMAsset -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+            }
+
+            It 'Should make Query mandatory only in the Smart parameter set' {
+                $function = Get-Command Search-IMAsset
+                $queryParam = $function.Parameters['Query']
+                $queryParam.ParameterSets.Keys | Should -Be 'Smart'
+                $queryParam.ParameterSets['Smart'].IsMandatory | Should -BeTrue
+            }
+
+            It 'Should restrict Order to the Metadata parameter set' {
+                $function = Get-Command Search-IMAsset
+                $function.Parameters['Order'].ParameterSets.Keys | Should -Be 'Metadata'
+            }
+
+            It 'Should restrict Language to the Smart parameter set' {
+                $function = Get-Command Search-IMAsset
+                $function.Parameters['Language'].ParameterSets.Keys | Should -Be 'Smart'
+            }
+
+            It 'Should not expose removed deprecated parameters' {
+                $function = Get-Command Search-IMAsset
+                $function.Parameters.Keys | Should -Not -Contain 'DeviceId'
+                $function.Parameters.Keys | Should -Not -Contain 'DeviceAssetId'
+                $function.Parameters.Keys | Should -Not -Contain 'IsVisible'
+                $function.Parameters.Keys | Should -Not -Contain 'WithDeleted'
+            }
+
+            It 'Should have Type parameter with ValidateSet' {
+                $function = Get-Command Search-IMAsset
+                $typeParam = $function.Parameters['Type']
+                $validateSetAttribute = $typeParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ValidateSetAttribute' }
+                $validateSetAttribute.ValidValues | Should -Contain 'IMAGE'
+                $validateSetAttribute.ValidValues | Should -Contain 'VIDEO'
             }
         }
 
-        Context 'Asset Search Operations' {
-            It 'Should POST to the smart search endpoint and return AssetResponseDto objects' {
-                $result = Search-IMAsset -Query 'sunset beach'
+        Context 'Metadata search (default)' {
+            It 'Should POST to the metadata search endpoint and return AssetResponseDto objects' {
+                $result = Search-IMAsset -OriginalFileName 'vacation.jpg'
 
-                Should -Invoke Invoke-ImmichApiSearchSmart -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Body.query -eq 'sunset beach'
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.filter.originalFileName.eq -eq 'vacation.jpg'
                 }
+                Should -Invoke Invoke-ImmichApiSearchSmart -ModuleName PSImmich -Times 0
                 $result.Count | Should -Be 2
                 $result[0].GetType().Name | Should -Be 'AssetResponseDto'
             }
 
-            It 'Should map OCR search text into the request body' {
-                Search-IMAsset -Query 'running dog' -OCR 'text search'
+            It 'Should send filters as operator objects inside the filter body' {
+                Search-IMAsset -OriginalFileName 'beach.jpg' -Type 'IMAGE' -IsFavorite:$true
+
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.filter.originalFileName.eq -eq 'beach.jpg' -and
+                    $Body.filter.type.eq -eq 'IMAGE' -and
+                    $Body.filter.isFavorite.eq -eq $true
+                }
+            }
+
+            It 'Should send explicit false boolean filters' {
+                Search-IMAsset -IsFavorite:$false -IsOffline:$false
+
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.filter.isFavorite.eq -eq $false -and
+                    $Body.filter.isOffline.eq -eq $false
+                }
+            }
+
+            It 'Should send multi-value ids with the any operator' {
+                $albumId = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
+                $tagId = 'c4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
+                Search-IMAsset -AlbumIds $albumId -TagIds $tagId
+
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.filter.albumIds.any -contains $albumId -and
+                    $Body.filter.tagIds.any -contains $tagId
+                }
+            }
+
+            It 'Should map date parameters to inclusive gte and lte operators' {
+                $after = [datetime]'2024-01-01'
+                $before = [datetime]'2024-02-01'
+                Search-IMAsset -TakenAfter $after -TakenBefore $before
+
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.filter.takenAt.gte -eq $after -and
+                    $Body.filter.takenAt.lte -eq $before
+                }
+            }
+
+            It 'Should invert IsNotInAlbum into hasAlbums' {
+                Search-IMAsset -IsNotInAlbum
+
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.filter.hasAlbums.eq -eq $false
+                }
+            }
+
+            It 'Should map Order to orderBy.direction and WithPeople to the top level' {
+                Search-IMAsset -Order 'asc' -WithPeople:$true -WithStacked:$true
+
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.orderBy.direction -eq 'asc' -and
+                    $Body.withPeople -eq $true -and
+                    $Body.withStacked -eq $true -and
+                    -not $Body.ContainsKey('filter')
+                }
+            }
+
+            It 'Should follow nextCursor when paging' {
+                Mock Invoke-ImmichApiSearchAssets -ModuleName PSImmich {
+                    if ($Body.cursor)
+                    {
+                        return [PSCustomObject]@{ assets = [PSCustomObject]@{ items = @(); nextCursor = $null } }
+                    }
+                    return [PSCustomObject]@{ assets = [PSCustomObject]@{ items = @([PSCustomObject]@{ id = 'a1' }); nextCursor = 'cursor-2' } }
+                }
+
+                $result = Search-IMAsset -Size 1
+
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Exactly -Times 2
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.cursor -eq 'cursor-2' -and $Body.size -eq 1
+                }
+                $result.Count | Should -Be 1
+            }
+
+            It 'Should throw when -Smart is not provided but -Language is' {
+                { Search-IMAsset -Language 'en' } | Should -Throw
+            }
+
+            It 'Should throw when -Query is provided without -Smart' {
+                { Search-IMAsset -Query 'Road' } | Should -Throw
+            }
+
+            It 'Should throw when -WithPeople is combined with -Smart' {
+                { Search-IMAsset -Smart -Query 'Road' -WithPeople:$true } | Should -Throw
+            }
+
+            It 'Should throw when -Order is combined with -Smart' {
+                { Search-IMAsset -Smart -Query 'Road' -Order 'asc' } | Should -Throw
+            }
+        }
+
+        Context 'Smart search (-Smart)' {
+            It 'Should POST to the smart search endpoint with the query and filters' {
+                $result = Search-IMAsset -Smart -Query 'sunset beach' -Country 'Sweden'
 
                 Should -Invoke Invoke-ImmichApiSearchSmart -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Body.ocr -eq 'text search' -and
+                    $Body.query -eq 'sunset beach' -and
+                    $Body.filter.country.eq -eq 'Sweden'
+                }
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 0
+                $result.Count | Should -Be 2
+                $result[0].GetType().Name | Should -Be 'AssetResponseDto'
+            }
+
+            It 'Should send OCR text as an ocr.matches filter' {
+                Search-IMAsset -Smart -Query 'running dog' -OCR 'text search'
+
+                Should -Invoke Invoke-ImmichApiSearchSmart -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.filter.ocr.matches -eq 'text search' -and
                     $Body.query -eq 'running dog'
                 }
+            }
+
+            It 'Should send Language to the top level' {
+                Search-IMAsset -Smart -Query 'dog' -Language 'sv'
+
+                Should -Invoke Invoke-ImmichApiSearchSmart -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.language -eq 'sv'
+                }
+            }
+
+            It 'Should throw when -Smart is provided without -Query' {
+                { Search-IMAsset -Smart } | Should -Throw
+            }
+
+            It 'Should send the next page token as an integer when paging' {
+                Mock Invoke-ImmichApiSearchSmart -ModuleName PSImmich {
+                    if ($Body.page)
+                    {
+                        return [PSCustomObject]@{ assets = [PSCustomObject]@{ items = @(); nextPage = $null } }
+                    }
+                    return [PSCustomObject]@{ assets = [PSCustomObject]@{ items = @([PSCustomObject]@{ id = 'a1' }); nextPage = '2' } }
+                }
+
+                $result = Search-IMAsset -Smart -Query 'unsp' -Size 1
+
+                Should -Invoke Invoke-ImmichApiSearchSmart -ModuleName PSImmich -Exactly -Times 2
+                Should -Invoke Invoke-ImmichApiSearchSmart -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.page -is [int] -and $Body.page -eq 2
+                }
+                $result.Count | Should -Be 1
             }
         }
     }
