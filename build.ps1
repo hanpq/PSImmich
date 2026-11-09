@@ -262,7 +262,23 @@ function Build-ProjectModule
         throw "Could not find release notes for $ModuleName $ModuleVersion in CHANGELOG.md."
     }
 
-    Update-Metadata -Path $modulePath -PropertyName PrivateData.PSData.ReleaseNotes -Value $releaseNotesMatch.Groups['notes'].Value.Trim() -ErrorAction Stop
+    $releaseNotes = $releaseNotesMatch.Groups['notes'].Value.Trim()
+    # PSGallery rejects ReleaseNotes above 10600 characters, so keep whole lines and link to the full changelog.
+    $maxReleaseNotesLength = 10000
+    if ($releaseNotes.Length -gt $maxReleaseNotesLength)
+    {
+        $changelogUrl = 'https://github.com/hanpq/PSImmich/blob/main/CHANGELOG.md'
+        $truncationNotice = "`n`nRelease notes are truncated. See the full changelog: $changelogUrl"
+        $cut = $releaseNotes.LastIndexOf("`n", $maxReleaseNotesLength - $truncationNotice.Length)
+        if ($cut -le 0)
+        {
+            throw "Release notes for $ModuleName $ModuleVersion cannot be shortened to fit the PSGallery limit."
+        }
+        $releaseNotes = $releaseNotes.Substring(0, $cut).TrimEnd() + $truncationNotice
+        Write-Host "Release notes truncated to $($releaseNotes.Length) characters for PSGallery." -ForegroundColor Yellow
+    }
+
+    Update-Metadata -Path $modulePath -PropertyName PrivateData.PSData.ReleaseNotes -Value $releaseNotes -ErrorAction Stop
 
     $builtManifest = Import-PowerShellDataFile -LiteralPath $modulePath
     $expectedPrerelease = ($ModuleVersion -split '-', 2 | Select-Object -Skip 1) -join ''
