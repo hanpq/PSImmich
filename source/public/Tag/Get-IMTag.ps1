@@ -37,7 +37,7 @@
         {
             $id | ForEach-Object {
                 $CurrentID = $PSItem
-                InvokeImmichRestMethod -Method Get -RelativePath "/tags/$CurrentID" -ImmichSession:$Session
+                Invoke-ImmichApiGetTagById -Id $CurrentID -ImmichSession $Session
             }
         }
     }
@@ -46,7 +46,7 @@
     {
         if ($PSCmdlet.ParameterSetName -eq 'list')
         {
-            InvokeImmichRestMethod -Method Get -RelativePath '/tags' -ImmichSession:$Session
+            Invoke-ImmichApiGetAllTags -ImmichSession $Session
         }
     }
 }
