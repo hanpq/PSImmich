@@ -340,6 +340,16 @@ function Invoke-ModuleTests
             -BuiltModulePath $builtModulePath `
             -SourceDirectory (Join-Path $PSScriptRoot 'source')
 
+        [xml]$CoverageReport = Get-Content -LiteralPath $configuration.CodeCoverage.OutputPath.Value -Raw
+        $InstructionCounter = $CoverageReport.SelectSingleNode('/report/counter[@type="INSTRUCTION"]')
+        $CoveredInstructions = [long]$InstructionCounter.covered
+        $TotalInstructions = $CoveredInstructions + [long]$InstructionCounter.missed
+        if ($TotalInstructions -gt 0)
+        {
+            $SourcePercent = [math]::Round(100 * $CoveredInstructions / $TotalInstructions, 2)
+            Write-Host "Source coverage from JaCoCo (public/private only): $SourcePercent% ($CoveredInstructions of $TotalInstructions instructions)" -ForegroundColor Cyan
+        }
+
         if ($result.CodeCoverage.CommandsAnalyzedCount -eq 0 -or
             $result.CodeCoverage.CoveragePercent -lt $configuration.CodeCoverage.CoveragePercentTarget.Value)
         {
