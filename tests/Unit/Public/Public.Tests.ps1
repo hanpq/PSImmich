@@ -7151,7 +7151,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMPerson' -Tag 'Unit', 'Remove-IMPerson' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiDeletePeople -ModuleName PSImmich {}
         }
 
         Context 'Parameter Validation' {
@@ -7188,11 +7188,11 @@ InModuleScope $ProjectName {
         }
 
         Context 'API Calls' {
-            It 'Should call correct endpoint for bulk delete' {
+            It 'Should call the bulk delete wrapper' {
                 Remove-IMPerson -Ids '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/people'
+                Should -Invoke Invoke-ImmichApiDeletePeople -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
@@ -7200,7 +7200,7 @@ InModuleScope $ProjectName {
                 $personIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc', 'abcdef01-2345-6789-abcd-ef0123456789')
                 Remove-IMPerson -Ids $personIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeletePeople -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.ids.Count -eq 3 -and
                     ($personIds | ForEach-Object { $Body.ids -contains $_ }) -notcontains $false
                 }
@@ -7210,7 +7210,7 @@ InModuleScope $ProjectName {
                 $personIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
                 $personIds | Remove-IMPerson -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeletePeople -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.ids.Count -eq 2 -and
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000' -and
                     $Body.ids -contains '987fcdeb-51a2-43d5-b789-123456789abc'
@@ -7224,7 +7224,7 @@ InModuleScope $ProjectName {
                 )
                 $personObjects | Remove-IMPerson -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeletePeople -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.ids.Count -eq 2 -and
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000' -and
                     $Body.ids -contains '987fcdeb-51a2-43d5-b789-123456789abc'
@@ -7237,8 +7237,8 @@ InModuleScope $ProjectName {
                 $personIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc', 'abcdef01-2345-6789-abcd-ef0123456789')
                 Remove-IMPerson -Ids $personIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/people'
+                Should -Invoke Invoke-ImmichApiDeletePeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.ids.Count -eq 3
                 }
             }
 
@@ -7246,7 +7246,7 @@ InModuleScope $ProjectName {
                 $pipelineIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
                 $pipelineIds | Remove-IMPerson -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeletePeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $Body.ids.Count -eq 2
                 }
             }
@@ -7292,9 +7292,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Export-IMPersonThumbnail' -Tag 'Unit', 'Export-IMPersonThumbnail' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @(1, 2, 3, 4, 5)  # Mock byte array
-            }
+            Mock Invoke-ImmichApiGetPersonThumbnail -ModuleName PSImmich {}
         }
 
         Context 'Parameter Validation' {
@@ -7316,9 +7314,9 @@ InModuleScope $ProjectName {
             It 'Should export thumbnail with correct API call' {
                 Export-IMPersonThumbnail -id 'a1b2c3d4-e5f6-4789-a012-123456789abc' -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/people/a1b2c3d4-e5f6-4789-a012-123456789abc/thumbnail'
+                Should -Invoke Invoke-ImmichApiGetPersonThumbnail -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc' -and
+                    $OutFilePath -like '*a1b2c3d4-e5f6-4789-a012-123456789abc.jpeg'
                 }
             }
         }
@@ -7501,51 +7499,35 @@ InModuleScope $ProjectName {
 
     Describe 'Get-IMPerson' -Tag 'Unit', 'Get-IMPerson' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                param($Method, $RelativePath, $ImmichSession)
-
-                switch -Regex ($RelativePath)
-                {
-                    '^/people$'
-                    {
-                        return @(
-                            [PSCustomObject]@{
-                                id            = 'person1-guid-here-1234567890abcdef'
-                                name          = 'John Doe'
-                                birthDate     = '1990-01-01'
-                                thumbnailPath = '/thumbs/person1.jpg'
-                                isHidden      = $false
-                            },
-                            [PSCustomObject]@{
-                                id            = 'person2-guid-here-2345678901bcdefg'
-                                name          = 'Jane Smith'
-                                birthDate     = '1985-05-15'
-                                thumbnailPath = '/thumbs/person2.jpg'
-                                isHidden      = $false
-                            }
-                        )
+            Mock Invoke-ImmichApiGetAllPeople -ModuleName PSImmich {
+                return @(
+                    [PSCustomObject]@{
+                        id            = 'person1-guid-here-1234567890abcdef'
+                        name          = 'John Doe'
+                        birthDate     = '1990-01-01'
+                        thumbnailPath = '/thumbs/person1.jpg'
+                        isHidden      = $false
+                    },
+                    [PSCustomObject]@{
+                        id            = 'person2-guid-here-2345678901bcdefg'
+                        name          = 'Jane Smith'
+                        birthDate     = '1985-05-15'
+                        thumbnailPath = '/thumbs/person2.jpg'
+                        isHidden      = $false
                     }
-                    '^/people/[a-fA-F0-9-]+$'
-                    {
-                        return [PSCustomObject]@{
-                            id            = 'person1-guid-here-1234567890abcdef'
-                            name          = 'John Doe'
-                            birthDate     = '1990-01-01'
-                            thumbnailPath = '/thumbs/person1.jpg'
-                            isHidden      = $false
-                        }
-                    }
-                    '^/people/[a-fA-F0-9-]+/statistics$'
-                    {
-                        return [PSCustomObject]@{
-                            assets = 42
-                        }
-                    }
-                    default
-                    {
-                        throw "Unexpected RelativePath: $RelativePath"
-                    }
+                )
+            }
+            Mock Invoke-ImmichApiGetPerson -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    id            = 'person1-guid-here-1234567890abcdef'
+                    name          = 'John Doe'
+                    birthDate     = '1990-01-01'
+                    thumbnailPath = '/thumbs/person1.jpg'
+                    isHidden      = $false
                 }
+            }
+            Mock Invoke-ImmichApiGetPersonStatistics -ModuleName PSImmich {
+                return [PSCustomObject]@{ assets = 42 }
             }
         }
 
@@ -7582,29 +7564,24 @@ InModuleScope $ProjectName {
             It 'Should get all people when no parameters provided' {
                 $result = Get-IMPerson
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/people'
-                }
+                Should -Invoke Invoke-ImmichApiGetAllPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It
                 $result | Should -HaveCount 2
                 $result[0].name | Should -Be 'John Doe'
             }
 
-            It 'Should send withHidden when WithHidden is specified' {
+            It 'Should send WithHidden when WithHidden is specified' {
                 Get-IMPerson -WithHidden | Out-Null
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/people' -and
-                    $QueryParameters.withHidden -eq $true
+                Should -Invoke Invoke-ImmichApiGetAllPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $WithHidden -eq $true
                 }
             }
 
-            It 'Should not send withHidden when WithHidden is omitted' {
+            It 'Should not send WithHidden when WithHidden is omitted' {
                 Get-IMPerson | Out-Null
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/people' -and
-                    $null -eq $QueryParameters
+                Should -Invoke Invoke-ImmichApiGetAllPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $null -eq $WithHidden
                 }
             }
         }
@@ -7613,9 +7590,8 @@ InModuleScope $ProjectName {
             It 'Should get specific person by id' {
                 $result = Get-IMPerson -id '12345678-1234-5678-9012-123456789abc'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/people/12345678-1234-5678-9012-123456789abc'
+                Should -Invoke Invoke-ImmichApiGetPerson -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
                 }
                 $result.name | Should -Be 'John Doe'
             }
@@ -7623,14 +7599,17 @@ InModuleScope $ProjectName {
             It 'Should include statistics when IncludeStatistics is specified' {
                 $result = Get-IMPerson -id '12345678-1234-5678-9012-123456789abc' -IncludeStatistics
 
-                Should -Invoke InvokeImmichRestMethod -Times 2  # One for person, one for statistics
+                Should -Invoke Invoke-ImmichApiGetPerson -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetPersonStatistics -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
+                }
                 $result.AssetCount | Should -Be 42
             }
         }
     }
     Describe 'Merge-IMPerson' -Tag 'Unit', 'Merge-IMPerson' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiMergePeople -ModuleName PSImmich {
                 return @(
                     [PSCustomObject]@{
                         id            = 'merged-person-guid-1234567890abcdef'
@@ -7673,9 +7652,7 @@ InModuleScope $ProjectName {
                 $mergeIds = @('23456789-2345-6789-0123-23456789abcd', '34567890-3456-7890-1234-3456789abcde')
                 Merge-IMPerson -ToPersonID '12345678-1234-5678-9012-123456789abc' -FromPersonID $mergeIds
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/people/merge' -and
+                Should -Invoke Invoke-ImmichApiMergePeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $Body.ids.Count -eq 3 -and
                     $Body.ids[0] -eq '12345678-1234-5678-9012-123456789abc' -and
                     $Body.ids[1] -eq '23456789-2345-6789-0123-23456789abcd' -and
@@ -7686,7 +7663,7 @@ InModuleScope $ProjectName {
     }
     Describe 'New-IMPerson' -Tag 'Unit', 'New-IMPerson' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiCreatePerson -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     id            = 'new-person-guid-1234567890abcdef'
                     name          = 'New Person'
@@ -7711,12 +7688,11 @@ InModuleScope $ProjectName {
         }
 
         Context 'Person Creation' {
-            It 'Should create person with correct API call' {
+            It 'Should create person through the generated wrapper' {
                 New-IMPerson -Name 'Test Person'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and
-                    $RelativePath -eq '/people'
+                Should -Invoke Invoke-ImmichApiCreatePerson -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'Test Person'
                 }
             }
 
@@ -7724,15 +7700,15 @@ InModuleScope $ProjectName {
                 $birthDate = Get-Date '1995-03-15'
                 New-IMPerson -Name 'Test Person' -BirthDate $birthDate
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Body.birthDate -ne $null
+                Should -Invoke Invoke-ImmichApiCreatePerson -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $null -ne $Body.birthDate
                 }
             }
         }
     }
     Describe 'Set-IMPerson' -Tag 'Unit', 'Set-IMPerson' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiUpdatePeople -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     id        = 'updated-person-guid-1234567890abcdef'
                     name      = 'Updated Person Name'
@@ -7758,21 +7734,20 @@ InModuleScope $ProjectName {
         }
 
         Context 'Person Updates' {
-            It 'Should update person with correct API call' {
-                Set-IMPerson -Id '12345678-1234-1234-1234-123456789abc' -Name 'New Name'
+            It 'Should update person through the generated wrapper' {
+                Set-IMPerson -Id '12345678-1234-1234-1234-123456789abc' -Name 'New Name' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and
-                    $RelativePath -eq '/people'
+                Should -Invoke Invoke-ImmichApiUpdatePeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.people[0].id -eq '12345678-1234-1234-1234-123456789abc' -and
+                    $Body.people[0].name -eq 'New Name'
                 }
             }
 
             It 'Should handle IsHidden parameter' {
-                Set-IMPerson -Id '12345678-1234-5678-9012-123456789abc' -IsHidden:$true
+                Set-IMPerson -Id '12345678-1234-5678-9012-123456789abc' -IsHidden:$true -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and
-                    $RelativePath -eq '/people' -and
+                Should -Invoke Invoke-ImmichApiUpdatePeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.people[0].id -eq '12345678-1234-5678-9012-123456789abc' -and
                     $Body.people[0].isHidden -eq $true
                 }
             }
