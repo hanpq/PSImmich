@@ -1683,8 +1683,7 @@ Describe 'Memory' -Tag 'Integration' {
     }
 }
 
-# Workflow tests excluded for now. Workflows API is still under development. Some request parameters have undefined types.
-Describe 'Workflow' -Tag 'Integration' -Skip:$true {
+Describe 'Workflow' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
         if ($env:CI)
@@ -1703,7 +1702,7 @@ Describe 'Workflow' -Tag 'Integration' -Skip:$true {
         }
         It -Name 'Should return array when workflows exist' {
             # Create a test workflow first to ensure we have at least one
-            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Integration test workflow'
+            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Trigger 'AssetCreate' -Description 'Integration test workflow'
             try
             {
                 $Result = Get-IMWorkflow
@@ -1715,7 +1714,7 @@ Describe 'Workflow' -Tag 'Integration' -Skip:$true {
             }
         }
         It -Name 'Should get specific workflow by ID' {
-            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Integration test workflow'
+            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Trigger 'AssetCreate' -Description 'Integration test workflow'
             try
             {
                 $Result = Get-IMWorkflow -Id $TestWorkflow.id
@@ -1729,7 +1728,7 @@ Describe 'Workflow' -Tag 'Integration' -Skip:$true {
             }
         }
         It -Name 'Should support pipeline input with workflow ID' {
-            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Integration test workflow'
+            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Trigger 'AssetCreate' -Description 'Integration test workflow'
             try
             {
                 $Result = $TestWorkflow.id | Get-IMWorkflow
@@ -1749,7 +1748,7 @@ Describe 'Workflow' -Tag 'Integration' -Skip:$true {
 
     Context 'New-IMWorkflow' -Tag 'New-IMWorkflow' {
         It -Name 'Should create workflow with basic parameters' {
-            $NewWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Integration test workflow'
+            $NewWorkflow = New-IMWorkflow -Name $TestWorkflowName -Trigger 'AssetCreate' -Description 'Integration test workflow'
             try
             {
                 $NewWorkflow | Should -Not -BeNullOrEmpty
@@ -1767,7 +1766,7 @@ Describe 'Workflow' -Tag 'Integration' -Skip:$true {
             }
         }
         It -Name 'Should create workflow with disabled state' {
-            $NewWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Disabled test workflow' -Enabled:$false
+            $NewWorkflow = New-IMWorkflow -Name $TestWorkflowName -Trigger 'AssetCreate' -Description 'Disabled test workflow' -Enabled:$false
             try
             {
                 $NewWorkflow | Should -Not -BeNullOrEmpty
@@ -1778,8 +1777,8 @@ Describe 'Workflow' -Tag 'Integration' -Skip:$true {
                 Remove-IMWorkflow -Id $NewWorkflow.id -Confirm:$false
             }
         }
-        It -Name 'Should create workflow with empty actions and filters' {
-            $NewWorkflow = New-IMWorkflow -Name $TestWorkflowName -Actions @() -Filters @()
+        It -Name 'Should create workflow with empty steps' {
+            $NewWorkflow = New-IMWorkflow -Name $TestWorkflowName -Trigger 'AssetCreate' -Steps @()
             try
             {
                 $NewWorkflow | Should -Not -BeNullOrEmpty
@@ -1796,7 +1795,7 @@ Describe 'Workflow' -Tag 'Integration' -Skip:$true {
 
     Context 'Set-IMWorkflow' -Tag 'Set-IMWorkflow' {
         BeforeAll {
-            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Original description'
+            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Trigger 'AssetCreate' -Description 'Original description'
         }
         AfterAll {
             try
@@ -1840,7 +1839,7 @@ Describe 'Workflow' -Tag 'Integration' -Skip:$true {
 
     Context 'Remove-IMWorkflow' -Tag 'Remove-IMWorkflow' {
         It -Name 'Should remove workflow by ID' {
-            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Workflow to be removed'
+            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Trigger 'AssetCreate' -Description 'Workflow to be removed'
             $WorkflowId = $TestWorkflow.id
 
             # Remove the workflow
@@ -1850,7 +1849,7 @@ Describe 'Workflow' -Tag 'Integration' -Skip:$true {
             { Get-IMWorkflow -Id $WorkflowId } | Should -Throw
         }
         It -Name 'Should support pipeline input for removal' {
-            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Description 'Workflow to be removed via pipeline'
+            $TestWorkflow = New-IMWorkflow -Name $TestWorkflowName -Trigger 'AssetCreate' -Description 'Workflow to be removed via pipeline'
             $WorkflowId = $TestWorkflow.id
 
             # Remove via pipeline
@@ -1860,8 +1859,8 @@ Describe 'Workflow' -Tag 'Integration' -Skip:$true {
             { Get-IMWorkflow -Id $WorkflowId } | Should -Throw
         }
         It -Name 'Should remove multiple workflows' {
-            $Workflow1 = New-IMWorkflow -Name "$TestWorkflowName-1" -Description 'First workflow to remove'
-            $Workflow2 = New-IMWorkflow -Name "$TestWorkflowName-2" -Description 'Second workflow to remove'
+            $Workflow1 = New-IMWorkflow -Name "$TestWorkflowName-1" -Trigger 'AssetCreate' -Description 'First workflow to remove'
+            $Workflow2 = New-IMWorkflow -Name "$TestWorkflowName-2" -Trigger 'AssetCreate' -Description 'Second workflow to remove'
 
             # Remove both workflows
             Remove-IMWorkflow -Id $Workflow1.id, $Workflow2.id -Confirm:$false
