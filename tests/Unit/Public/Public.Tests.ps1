@@ -7169,6 +7169,182 @@ InModuleScope $ProjectName {
             }
         }
     }
+    Describe 'Get-IMPersonAccess' -Tag 'Unit', 'Get-IMPersonAccess' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetUsersForPeople -ModuleName PSImmich {
+                @(
+                    [PSCustomObject]@{ personId = 'bf973405-3f2a-48d2-a687-2ed4167164be'; sharedById = '1a2b3c4d-0000-4000-8000-000000000001'; sharedWithId = '9c4e0006-3a2b-4967-94b6-7e8bb8490a12'; role = 'read' }
+                )
+            }
+        }
+
+        Context 'When listing without filters' {
+            It 'Should call the endpoint without query parameters' {
+                $Result = Get-IMPersonAccess
+
+                Should -Invoke Invoke-ImmichApiGetUsersForPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Direction -eq $null -and $PersonId -eq $null -and $Role -eq $null -and $SharedById -eq $null -and $SharedWithId -eq $null
+                }
+                $Result.role | Should -Be 'read'
+            }
+        }
+
+        Context 'When filtering' {
+            It 'Should forward only the supplied filters' {
+                Get-IMPersonAccess -Direction shared-by -Role admin
+
+                Should -Invoke Invoke-ImmichApiGetUsersForPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Direction -eq 'shared-by' -and $Role -eq 'admin' -and $PersonId -eq $null -and $SharedWithId -eq $null
+                }
+            }
+
+            It 'Should forward person and user identifiers' {
+                Get-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedById '1a2b3c4d-0000-4000-8000-000000000001' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12'
+
+                Should -Invoke Invoke-ImmichApiGetUsersForPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $PersonId -eq 'bf973405-3f2a-48d2-a687-2ed4167164be' -and
+                    $SharedById -eq '1a2b3c4d-0000-4000-8000-000000000001' -and
+                    $SharedWithId -eq '9c4e0006-3a2b-4967-94b6-7e8bb8490a12'
+                }
+            }
+        }
+
+        Context 'When an explicit session is provided' {
+            It 'Should forward the session to the REST call' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+                Get-IMPersonAccess -Session $Session
+
+                Should -Invoke Invoke-ImmichApiGetUsersForPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+        }
+
+        Context 'When parameters are invalid' {
+            It 'Should throw for an unknown direction' {
+                { Get-IMPersonAccess -Direction sideways } | Should -Throw
+            }
+
+            It 'Should throw for an unknown role' {
+                { Get-IMPersonAccess -Role owner } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Add-IMPersonAccess' -Tag 'Unit', 'Add-IMPersonAccess' {
+        BeforeAll {
+            Mock Invoke-ImmichApiUpsertPeopleUsers -ModuleName PSImmich {}
+        }
+
+        Context 'When sharing specific people' {
+            It 'Should send the person ids, users and role' {
+                Add-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -Role read -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpsertPeopleUsers -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.personIds -contains 'bf973405-3f2a-48d2-a687-2ed4167164be' -and
+                    $Body.sharedWithIds -contains '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -and
+                    $Body.role -eq 'read' -and
+                    -not $Body.ContainsKey('type')
+                }
+            }
+
+            It 'Should send multiple people and users in one request' {
+                Add-IMPersonAccess -PersonId @('bf973405-3f2a-48d2-a687-2ed4167164be', '6c1c0c9e-4b4f-4b57-b2bc-1f8b3e5a0d22') -SharedWithId @('9c4e0006-3a2b-4967-94b6-7e8bb8490a12', 'c3a2e8b4-3f65-4e3d-9f9f-4d2c8e5a0f32') -Role admin -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpsertPeopleUsers -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.personIds.Count -eq 2 -and $Body.sharedWithIds.Count -eq 2 -and $Body.role -eq 'admin'
+                }
+            }
+        }
+
+        Context 'When sharing everyone' {
+            It 'Should send the everyone type instead of person ids' {
+                Add-IMPersonAccess -Everyone -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -Role write -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpsertPeopleUsers -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.type -eq 'everyone' -and $Body.role -eq 'write' -and -not $Body.ContainsKey('personIds')
+                }
+            }
+        }
+
+        Context 'When WhatIf is specified' {
+            It 'Should not call the endpoint' {
+                Add-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -Role read -WhatIf
+
+                Should -Invoke Invoke-ImmichApiUpsertPeopleUsers -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+        }
+
+        Context 'When parameters are invalid' {
+            It 'Should throw when Everyone and PersonId are combined' {
+                { Add-IMPersonAccess -Everyone -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -Role read -Confirm:$false } | Should -Throw
+            }
+
+            It 'Should throw for an unknown role' {
+                { Add-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -Role owner -Confirm:$false } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Remove-IMPersonAccess' -Tag 'Unit', 'Remove-IMPersonAccess' {
+        BeforeAll {
+            Mock Invoke-ImmichApiRemoveUsersFromPeople -ModuleName PSImmich {}
+        }
+
+        Context 'When removing a single grant' {
+            It 'Should send a JSON array containing the grant' {
+                Remove-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiRemoveUsersFromPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RawBody.TrimStart().StartsWith('[') -and
+                    (ConvertFrom-Json -InputObject $RawBody).personId -eq 'bf973405-3f2a-48d2-a687-2ed4167164be' -and
+                    (ConvertFrom-Json -InputObject $RawBody).sharedWithId -eq '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -and
+                    $null -eq (ConvertFrom-Json -InputObject $RawBody).sharedById
+                }
+            }
+
+            It 'Should include the sharedById when supplied' {
+                Remove-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -SharedById '1a2b3c4d-0000-4000-8000-000000000001' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiRemoveUsersFromPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    (ConvertFrom-Json -InputObject $RawBody)[0].sharedById -eq '1a2b3c4d-0000-4000-8000-000000000001'
+                }
+            }
+        }
+
+        Context 'When removing grants from the pipeline' {
+            It 'Should send one request per grant bound by property name' {
+                $Grants = @(
+                    [PSCustomObject]@{ personId = 'bf973405-3f2a-48d2-a687-2ed4167164be'; sharedById = '1a2b3c4d-0000-4000-8000-000000000001'; sharedWithId = '9c4e0006-3a2b-4967-94b6-7e8bb8490a12'; role = 'read' }
+                    [PSCustomObject]@{ personId = '6c1c0c9e-4b4f-4b57-b2bc-1f8b3e5a0d22'; sharedById = '1a2b3c4d-0000-4000-8000-000000000001'; sharedWithId = 'c3a2e8b4-3f65-4e3d-9f9f-4d2c8e5a0f32'; role = 'write' }
+                )
+
+                $Grants | Remove-IMPersonAccess -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiRemoveUsersFromPeople -ModuleName PSImmich -Times 2 -Exactly -Scope It
+            }
+        }
+
+        Context 'When WhatIf is specified' {
+            It 'Should not call the endpoint' {
+                Remove-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiRemoveUsersFromPeople -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+        }
+
+        Context 'When parameters are invalid' {
+            It 'Should throw for a malformed person id' {
+                { Remove-IMPersonAccess -PersonId 'not-a-guid' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -Confirm:$false } | Should -Throw
+            }
+
+            It 'Should throw when SharedWithId is omitted' {
+                { Remove-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -Confirm:$false } | Should -Throw
+            }
+        }
+    }
+
     Describe 'Get-IMPerson' -Tag 'Unit', 'Get-IMPerson' {
         BeforeAll {
             Mock InvokeImmichRestMethod {
