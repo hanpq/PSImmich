@@ -405,6 +405,29 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'ConvertTo-MultipartFieldValue' -Tag 'Unit', 'ConvertTo-MultipartFieldValue' {
+        It 'Should write a true boolean as lowercase true' {
+            ConvertTo-MultipartFieldValue -Value $true | Should -BeExactly 'true'
+        }
+
+        It 'Should write a false boolean as lowercase false' {
+            ConvertTo-MultipartFieldValue -Value $false | Should -BeExactly 'false'
+        }
+
+        It 'Should write a switch that is present as lowercase true' {
+            ConvertTo-MultipartFieldValue -Value ([System.Management.Automation.SwitchParameter]$true) | Should -BeExactly 'true'
+        }
+
+        It 'Should write a switch that is absent as lowercase false' {
+            ConvertTo-MultipartFieldValue -Value ([System.Management.Automation.SwitchParameter]$false) | Should -BeExactly 'false'
+        }
+
+        It 'Should write strings and numbers with ToString' {
+            ConvertTo-MultipartFieldValue -Value 'PSImmich' | Should -BeExactly 'PSImmich'
+            ConvertTo-MultipartFieldValue -Value 42 | Should -BeExactly '42'
+        }
+    }
+
     Describe 'ConvertTo-ApiParameters' -Tag 'Unit', 'ConvertTo-ApiParameters' {
         BeforeAll {
             # Mock Get-Command to simulate cmdlet parameter information

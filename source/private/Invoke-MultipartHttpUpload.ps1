@@ -95,7 +95,7 @@
         # Add form fields
         foreach ($field in $FormData.GetEnumerator())
         {
-            $StringContent = New-Object System.Net.Http.StringContent($field.Value.ToString())
+            $StringContent = New-Object System.Net.Http.StringContent((ConvertTo-MultipartFieldValue -Value $field.Value))
             $MultipartContent.Add($StringContent, $field.Key)
         }
 
