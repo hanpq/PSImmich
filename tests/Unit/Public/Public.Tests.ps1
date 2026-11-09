@@ -1799,26 +1799,66 @@ InModuleScope $ProjectName {
         }
 
         Context 'Parameter Set: random' {
+            BeforeAll {
+                Mock Invoke-ImmichApiSearchRandom -ModuleName PSImmich {
+                    return @(
+                        @{ id = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'; originalFileName = 'a.jpg'; type = 'IMAGE'; checksum = 'abc1'; owner = @{ name = 'TestUser' } }
+                        @{ id = 'c5a6be0d-4d4a-4c9a-8f4a-4d4a5c9a8f4a'; originalFileName = 'b.jpg'; type = 'IMAGE'; checksum = 'abc2'; owner = @{ name = 'TestUser' } }
+                    )
+                }
+            }
+
             It 'Should return random assets with default count' {
                 $result = Get-IMAsset -Random
 
                 $result | Should -HaveCount 2
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/search/random' -and $Body.size -eq 1
+                Should -Invoke Invoke-ImmichApiSearchRandom -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Body.size -eq 1
                 }
             }
 
             It 'Should return specified count of random assets' {
                 $result = Get-IMAsset -Random -Count 5
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/search/random' -and $Body.size -eq 5
+                Should -Invoke Invoke-ImmichApiSearchRandom -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Body.size -eq 5
                 }
             }
 
             It 'Should throw when count is out of valid range' {
                 { Get-IMAsset -Random -Count 0 } | Should -Throw
                 { Get-IMAsset -Random -Count 1001 } | Should -Throw
+            }
+        }
+
+        Context 'Parameter Set: id with OCR' {
+            BeforeAll {
+                Mock Invoke-ImmichApiGetAssetInfo -ModuleName PSImmich {
+                    return @{
+                        id               = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
+                        originalFileName = 'test.jpg'
+                        type             = 'IMAGE'
+                        checksum         = 'abc123'
+                        owner            = @{ name = 'TestUser' }
+                    }
+                }
+                Mock Invoke-ImmichApiGetAssetOcr -ModuleName PSImmich { return @() }
+            }
+
+            It 'Should request OCR data for the asset when IncludeOCR is specified' {
+                $testId = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
+                Get-IMAsset -Id $testId -IncludeOCR | Out-Null
+
+                Should -Invoke Invoke-ImmichApiGetAssetOcr -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq $testId
+                }
+            }
+
+            It 'Should not request OCR data when IncludeOCR is not specified' {
+                $testId = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
+                Get-IMAsset -Id $testId | Out-Null
+
+                Should -Invoke Invoke-ImmichApiGetAssetOcr -Exactly 0 -Scope It -ModuleName PSImmich
             }
         }
 
@@ -10326,24 +10366,13 @@ InModuleScope $ProjectName {
 
     Describe 'Copy-IMAssetInfo' -Tag 'Unit', 'Copy-IMAssetInfo' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiCopyAsset -ModuleName PSImmich {
                 return $null
-            }
-            Mock ConvertTo-ApiParameters {
-                return @{
-                    sourceId    = $BoundParameters.SourceId
-                    targetId    = $BoundParameters.TargetId
-                    albums      = $BoundParameters.Albums
-                    metadata    = $BoundParameters.Metadata
-                    sharedLinks = $BoundParameters.SharedLinks
-                    sidecar     = $BoundParameters.Sidecar
-                    stack       = $BoundParameters.Stack
-                }
             }
         }
 
         Context 'When copying all asset information' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiCopyAsset with correct parameters' {
                 $params = @{
                     SourceId = '123e4567-e89b-12d3-a456-426614174000'
                     TargetId = '987fcdeb-51a2-43d5-b789-123456789abc'
@@ -10351,9 +10380,7 @@ InModuleScope $ProjectName {
 
                 Copy-IMAssetInfo @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq '/assets/copy' -and
+                Should -Invoke Invoke-ImmichApiCopyAsset -Times 1 -Exactly -ModuleName PSImmich -ParameterFilter {
                     $Body.sourceId -eq $params.SourceId -and
                     $Body.targetId -eq $params.TargetId
                 }
@@ -10374,9 +10401,7 @@ InModuleScope $ProjectName {
 
                 Copy-IMAssetInfo @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq '/assets/copy' -and
+                Should -Invoke Invoke-ImmichApiCopyAsset -Times 1 -Exactly -ModuleName PSImmich -ParameterFilter {
                     $Body.sourceId -eq $params.SourceId -and
                     $Body.targetId -eq $params.TargetId -and
                     $Body.albums -eq $params.Albums -and
@@ -10395,7 +10420,7 @@ InModuleScope $ProjectName {
 
                 Copy-IMAssetInfo @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 0 -Exactly
+                Should -Invoke Invoke-ImmichApiCopyAsset -Times 0 -Exactly -ModuleName PSImmich
             }
         }
 
@@ -10408,12 +10433,12 @@ InModuleScope $ProjectName {
 
                 Copy-IMAssetInfo @params
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -ParameterFilter {
-                    $BoundParameters.Albums -eq $true -and
-                    $BoundParameters.Metadata -eq $true -and
-                    $BoundParameters.SharedLinks -eq $true -and
-                    $BoundParameters.Sidecar -eq $true -and
-                    $BoundParameters.Stack -eq $true
+                Should -Invoke Invoke-ImmichApiCopyAsset -Times 1 -Exactly -ModuleName PSImmich -ParameterFilter {
+                    $Body.albums -eq $true -and
+                    $Body.metadata -eq $true -and
+                    $Body.sharedLinks -eq $true -and
+                    $Body.sidecar -eq $true -and
+                    $Body.stack -eq $true
                 }
             }
         }
@@ -10439,12 +10464,12 @@ InModuleScope $ProjectName {
 
                 Copy-IMAssetInfo @params
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -ParameterFilter {
-                    $BoundParameters.Albums -eq $true -and
-                    $BoundParameters.Metadata -eq $true -and
-                    -not $BoundParameters.ContainsKey('SharedLinks') -and
-                    -not $BoundParameters.ContainsKey('Sidecar') -and
-                    -not $BoundParameters.ContainsKey('Stack')
+                Should -Invoke Invoke-ImmichApiCopyAsset -Times 1 -Exactly -ModuleName PSImmich -ParameterFilter {
+                    $Body.albums -eq $true -and
+                    $Body.metadata -eq $true -and
+                    -not $Body.ContainsKey('sharedLinks') -and
+                    -not $Body.ContainsKey('sidecar') -and
+                    -not $Body.ContainsKey('stack')
                 }
             }
 
@@ -10457,12 +10482,12 @@ InModuleScope $ProjectName {
 
                 Copy-IMAssetInfo @params
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -ParameterFilter {
-                    $BoundParameters.Albums -eq $false -and
-                    -not $BoundParameters.ContainsKey('Metadata') -and
-                    -not $BoundParameters.ContainsKey('SharedLinks') -and
-                    -not $BoundParameters.ContainsKey('Sidecar') -and
-                    -not $BoundParameters.ContainsKey('Stack')
+                Should -Invoke Invoke-ImmichApiCopyAsset -Times 1 -Exactly -ModuleName PSImmich -ParameterFilter {
+                    $Body.albums -eq $false -and
+                    -not $Body.ContainsKey('metadata') -and
+                    -not $Body.ContainsKey('sharedLinks') -and
+                    -not $Body.ContainsKey('sidecar') -and
+                    -not $Body.ContainsKey('stack')
                 }
             }
         }
