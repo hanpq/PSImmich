@@ -23,22 +23,32 @@ BeforeDiscovery {
 
 Describe 'Stack' -Tag 'Integration' {
     # Intentionally excluded cmdlets: none.
-    # Only assets that are not already in a stack are picked. Pre-existing stacks are never modified or removed.
-    # Tests that cannot find enough unstacked assets are skipped rather than touching existing stacks.
+    # Every stack is built from freshly imported test assets, so pre-existing assets and stacks are never touched.
+    # Each test removes its stacks, then the imported assets are permanently deleted in AfterAll.
 
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
-        $script:Candidates = @(
-            'd54f1eb3-076f-4c5b-a9e6-61c694559e3c'
-            'a4908e1f-697f-4d7b-9330-93b5eabe3baf'
-            'bdc6d2c8-6168-4a88-a51f-6da11bf8f506'
-            '025665c6-d874-46a2-bbc6-37250ddcb2eb'
-            '0d34e23c-8a4e-40a2-9c70-644eea8a9037'
-        )
         $script:CreatedStackIds = [System.Collections.Generic.List[string]]::new()
+        $script:ImportedAssetIds = [System.Collections.Generic.List[string]]::new()
+        $script:TempImportFiles = [System.Collections.Generic.List[string]]::new()
+
+        # Each import uses a uniquely marked copy of the test image so the server never deduplicates it.
+        $script:NewTestImportFile = {
+            $Path = Join-Path ([System.IO.Path]::GetTempPath()) "psimtest-$([guid]::NewGuid().ToString('N')).png"
+            $Image = [System.IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'Immich.png'))
+            $Marker = [System.Text.Encoding]::ASCII.GetBytes("psimtest:$([guid]::NewGuid().ToString('N'))")
+            [System.IO.File]::WriteAllBytes($Path, [byte[]]($Image + $Marker))
+            $script:TempImportFiles.Add($Path)
+            Get-Item -LiteralPath $Path
+        }
         $script:GetFreeAssets = {
-            $Stacked = @((Get-IMStack).assets.id)
-            @($script:Candidates | Where-Object { $_ -notin $Stacked })
+            param([int]$Count = 4)
+            1..$Count | ForEach-Object {
+                $File = & $script:NewTestImportFile
+                $Asset = Import-IMAsset -FilePath $File.FullName
+                $script:ImportedAssetIds.Add($Asset.id)
+                $Asset.id
+            }
         }
         $script:NewTestStack = {
             param([string[]]$AssetIds)
@@ -59,6 +69,14 @@ Describe 'Stack' -Tag 'Integration' {
             {
                 $null = $_
             }
+        }
+        foreach ($Id in $script:ImportedAssetIds)
+        {
+            try { Remove-IMAsset -Ids $Id -Force -Confirm:$false } catch { $null = $_ }
+        }
+        foreach ($Path in $script:TempImportFiles)
+        {
+            Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
         }
     }
 
