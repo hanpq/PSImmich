@@ -19,12 +19,10 @@ function Get-IMPluginMethod
         Filter the method list by the name of the plugin that provides the method.
     .PARAMETER PluginVersion
         Filter the method list by the version of the plugin that provides the method.
-    .PARAMETER Enabled
-        Filter the method list by whether the plugin method is enabled.
     .PARAMETER Trigger
         Filter the method list by workflow trigger.
     .PARAMETER Type
-        Filter the method list by workflow type.
+        Filter the method list by workflow type. Applied after the list is retrieved, against each method's types.
     .EXAMPLE
         Get-IMPluginMethod
 
@@ -34,9 +32,9 @@ function Get-IMPluginMethod
 
         Retrieves the plugin methods that can be used in workflows triggered by asset creation.
     .EXAMPLE
-        Get-IMPluginMethod -PluginName 'my-plugin' -Enabled $true
+        Get-IMPluginMethod -PluginName 'my-plugin' -Type 'AssetV1'
 
-        Retrieves the enabled methods provided by the plugin named 'my-plugin'.
+        Retrieves the AssetV1 methods provided by the plugin named 'my-plugin'.
     #>
 
     [CmdletBinding()]
@@ -71,10 +69,6 @@ function Get-IMPluginMethod
         $PluginVersion,
 
         [Parameter()]
-        [bool]
-        $Enabled,
-
-        [Parameter()]
         [ValidateSet('AssetCreate', 'AssetMetadataExtraction', 'AssetTagged')]
         [string]
         $Trigger,
@@ -88,10 +82,13 @@ function Get-IMPluginMethod
     process
     {
         $ApiParams = @{ ImmichSession = $Session }
-        foreach ($Filter in 'Id', 'Name', 'Title', 'Description', 'PluginName', 'PluginVersion', 'Enabled', 'Trigger', 'Type')
+        foreach ($Filter in 'Id', 'Name', 'Title', 'Description', 'PluginName', 'PluginVersion', 'Trigger')
         {
             if ($PSBoundParameters.ContainsKey($Filter)) { $ApiParams[$Filter] = $PSBoundParameters[$Filter] }
         }
-        Invoke-ImmichApiSearchPluginMethods @ApiParams | ForEach-Object { [PluginMethodResponseDto]::new($PSItem) }
+        # The server returns HTTP 500 for the type query, so the type filter is applied to the returned methods.
+        Invoke-ImmichApiSearchPluginMethods @ApiParams |
+            ForEach-Object { [PluginMethodResponseDto]::new($PSItem) } |
+            Where-Object { -not $PSBoundParameters.ContainsKey('Type') -or $PSItem.types -contains $Type }
     }
 }

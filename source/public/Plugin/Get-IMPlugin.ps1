@@ -17,8 +17,6 @@
         Filter the plugin list by plugin version.
     .PARAMETER Description
         Filter the plugin list by plugin description.
-    .PARAMETER Enabled
-        Filter the plugin list by whether the plugin is enabled.
     .EXAMPLE
         Get-IMPlugin
 
@@ -58,11 +56,7 @@
 
         [Parameter(ParameterSetName = 'list')]
         [string]
-        $Description,
-
-        [Parameter(ParameterSetName = 'list')]
-        [bool]
-        $Enabled
+        $Description
     )
 
     process
@@ -72,7 +66,7 @@
             'list'
             {
                 $ApiParams = @{ ImmichSession = $Session }
-                foreach ($Filter in 'Name', 'Title', 'Version', 'Description', 'Enabled')
+                foreach ($Filter in 'Name', 'Title', 'Version', 'Description')
                 {
                     if ($PSBoundParameters.ContainsKey($Filter)) { $ApiParams[$Filter] = $PSBoundParameters[$Filter] }
                 }

@@ -9489,11 +9489,11 @@ InModuleScope $ProjectName {
             }
 
             It 'Should forward filter parameters to Invoke-ImmichApiSearchPlugins' {
-                Get-IMPlugin -Name 'Test Plugin 1' -Title 'Plugin One' -Version '1.0.0' -Description 'desc' -Enabled $true
+                Get-IMPlugin -Name 'Test Plugin 1' -Title 'Plugin One' -Version '1.0.0' -Description 'desc'
 
                 Should -Invoke Invoke-ImmichApiSearchPlugins -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
                     $Name -eq 'Test Plugin 1' -and $Title -eq 'Plugin One' -and $Version -eq '1.0.0' -and
-                    $Description -eq 'desc' -and $Enabled -eq $true
+                    $Description -eq 'desc'
                 }
             }
 
@@ -9563,7 +9563,7 @@ InModuleScope $ProjectName {
             Mock Invoke-ImmichApiSearchPluginMethods -ModuleName PSImmich {
                 return @(
                     [pscustomobject]@{ key = 'my-plugin#send'; name = 'send'; title = 'Send'; description = 'Sends'; hostFunctions = $false; types = @('AssetV1'); uiHints = @(); schema = @{} },
-                    [pscustomobject]@{ key = 'other#tag'; name = 'tag'; title = 'Tag'; description = 'Tags'; hostFunctions = $true; types = @('AssetV1'); uiHints = @(); schema = @{} }
+                    [pscustomobject]@{ key = 'other#tag'; name = 'tag'; title = 'Tag'; description = 'Tags'; hostFunctions = $true; types = @(); uiHints = @(); schema = @{} }
                 )
             }
         }
@@ -9573,7 +9573,7 @@ InModuleScope $ProjectName {
                 Get-IMPluginMethod
 
                 Should -Invoke Invoke-ImmichApiSearchPluginMethods -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
-                    $null -eq $Name -and $null -eq $Trigger -and $null -eq $Enabled
+                    $null -eq $Name -and $null -eq $Trigger
                 }
             }
 
@@ -9586,12 +9586,22 @@ InModuleScope $ProjectName {
             }
 
             It 'Should forward filter parameters to Invoke-ImmichApiSearchPluginMethods' {
-                Get-IMPluginMethod -Name 'send' -Title 'Send' -Description 'Sends' -PluginName 'my-plugin' -PluginVersion '1.0.0' -Enabled $false -Trigger 'AssetCreate' -Type 'AssetV1'
+                Get-IMPluginMethod -Name 'send' -Title 'Send' -Description 'Sends' -PluginName 'my-plugin' -PluginVersion '1.0.0' -Trigger 'AssetCreate'
 
                 Should -Invoke Invoke-ImmichApiSearchPluginMethods -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
                     $Name -eq 'send' -and $Title -eq 'Send' -and $Description -eq 'Sends' -and
-                    $PluginName -eq 'my-plugin' -and $PluginVersion -eq '1.0.0' -and $Enabled -eq $false -and
-                    $Trigger -eq 'AssetCreate' -and $Type -eq 'AssetV1'
+                    $PluginName -eq 'my-plugin' -and $PluginVersion -eq '1.0.0' -and $Trigger -eq 'AssetCreate' -and
+                    $null -eq $Type
+                }
+            }
+
+            It 'Should filter the returned methods by type without sending the type to the API' {
+                $Result = @(Get-IMPluginMethod -Type 'AssetV1')
+
+                $Result | Should -HaveCount 1
+                $Result[0].key | Should -Be 'my-plugin#send'
+                Should -Invoke Invoke-ImmichApiSearchPluginMethods -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $null -eq $Type
                 }
             }
 
@@ -9693,11 +9703,25 @@ InModuleScope $ProjectName {
             }
 
             It 'Should pass filter parameters through to the API' {
-                Get-IMWorkflow -Name 'Test' -Description 'Desc' -Trigger 'AssetCreate' -Enabled:$false -Logging:$true
+                Get-IMWorkflow -Name 'Test' -Description 'Desc' -Trigger 'AssetCreate'
 
                 Should -Invoke Invoke-ImmichApiSearchWorkflows -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Name -eq 'Test' -and $Description -eq 'Desc' -and $Trigger -eq 'AssetCreate' -and $Enabled -eq $false -and $Logging -eq $true
+                    $Name -eq 'Test' -and $Description -eq 'Desc' -and $Trigger -eq 'AssetCreate' -and $null -eq $Enabled -and $null -eq $Logging
                 }
+            }
+
+            It 'Should filter the returned workflows by enabled state' {
+                $result = @(Get-IMWorkflow -Enabled:$false)
+
+                $result | Should -HaveCount 1
+                $result[0].name | Should -Be 'Test Workflow 2'
+            }
+
+            It 'Should filter the returned workflows by logging state' {
+                $result = @(Get-IMWorkflow -Logging:$true)
+
+                $result | Should -HaveCount 1
+                $result[0].name | Should -Be 'Test Workflow 2'
             }
 
             It 'Should return WorkflowResponseDto objects' {

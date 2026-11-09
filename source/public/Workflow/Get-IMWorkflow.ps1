@@ -92,10 +92,14 @@
                 $ApiParams = @{ ImmichSession = $Session }
                 if ($PSBoundParameters.ContainsKey('Name')) { $ApiParams.Name = $Name }
                 if ($PSBoundParameters.ContainsKey('Description')) { $ApiParams.Description = $Description }
-                if ($PSBoundParameters.ContainsKey('Enabled')) { $ApiParams.Enabled = $Enabled }
-                if ($PSBoundParameters.ContainsKey('Logging')) { $ApiParams.Logging = $Logging }
                 if ($PSBoundParameters.ContainsKey('Trigger')) { $ApiParams.Trigger = $Trigger }
-                Invoke-ImmichApiSearchWorkflows @ApiParams | ForEach-Object { [WorkflowResponseDto]::new($PSItem) }
+                # The server rejects boolean query values for enabled and logging, so those filters are applied to the returned workflows.
+                Invoke-ImmichApiSearchWorkflows @ApiParams |
+                    ForEach-Object { [WorkflowResponseDto]::new($PSItem) } |
+                    Where-Object {
+                        (-not $PSBoundParameters.ContainsKey('Enabled') -or $PSItem.enabled -eq $Enabled) -and
+                        (-not $PSBoundParameters.ContainsKey('Logging') -or $PSItem.logging -eq $Logging)
+                    }
             }
             'id'
             {

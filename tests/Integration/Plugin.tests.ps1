@@ -119,9 +119,7 @@ Describe 'Plugin' -Tag 'Integration' {
             $Result.id | Should -Contain $FirstPlugin.id
         }
 
-        It -Name 'Should accept the Enabled and Description filters without error' {
-            { Get-IMPlugin -Enabled $true } | Should -Not -Throw
-            { Get-IMPlugin -Enabled $false } | Should -Not -Throw
+        It -Name 'Should accept the Description filter without error' {
             { Get-IMPlugin -Description 'integration' } | Should -Not -Throw
         }
 
@@ -175,12 +173,10 @@ Describe 'Plugin' -Tag 'Integration' {
         }
 
         It -Name 'Should filter the methods by workflow type' {
-            { Get-IMPluginMethod -Type 'AssetV1' } | Should -Not -Throw
-        }
-
-        It -Name 'Should filter the methods by enabled state' {
-            { Get-IMPluginMethod -Enabled $true } | Should -Not -Throw
-            { Get-IMPluginMethod -Enabled $false } | Should -Not -Throw
+            $Result = @(Get-IMPluginMethod -Type 'AssetV1')
+            foreach ($Method in $Result) {
+                $Method.types | Should -Contain 'AssetV1'
+            }
         }
 
         It -Name 'Should filter the methods by plugin name' {
