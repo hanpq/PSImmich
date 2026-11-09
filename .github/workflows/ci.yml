@@ -42,17 +42,25 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Build and test (PowerShell 7)
-        if: matrix.coverage_flag != 'windows-desktop'
+      # QA rules are platform-independent, so they run once on Linux with coverage.
+      # Other platforms run only the unit tests (tag Unit) to verify cross-platform behavior.
+      - name: Build and test with QA and coverage (Linux)
+        if: matrix.coverage_flag == 'linux'
         shell: pwsh
         run: ./build.ps1 -Task Test -TestSuite Module
 
-      - name: Build and test (Windows PowerShell 5.1)
+      - name: Build and test unit tests (PowerShell 7)
+        if: matrix.coverage_flag != 'linux' && matrix.coverage_flag != 'windows-desktop'
+        shell: pwsh
+        run: ./build.ps1 -Task Test -TestSuite Module -Tag Unit
+
+      - name: Build and test unit tests (Windows PowerShell 5.1)
         if: matrix.coverage_flag == 'windows-desktop'
         shell: powershell
-        run: ./build.ps1 -Task Test -TestSuite Module
+        run: ./build.ps1 -Task Test -TestSuite Module -Tag Unit
 
       - name: Upload coverage
+        if: matrix.coverage_flag == 'linux'
         uses: codecov/codecov-action@v5
         with:
           files: output/testResults/JaCoCo_coverage.xml
