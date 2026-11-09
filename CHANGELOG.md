@@ -100,19 +100,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * **map:** use generated map API and return DTOs ([af716f6](https://github.com/hanpq/PSImmich/commit/af716f6e66f23eea787a5fe42e5283b715dd83bb))
 * **queue:** route queue cmdlets through the internal API layer ([6a16b30](https://github.com/hanpq/PSImmich/commit/6a16b30e420f0f333baf3c112db21b11cfee49a6))
 
-## [3.3.7](https://github.com/hanpq/PSImmich/compare/v3.3.6-beta001...v3.3.7) (2026-11-09)
-
-
-### Features
-
-* add code coverage reporting to Invoke-ModuleTests function ([4591927](https://github.com/hanpq/PSImmich/commit/4591927f26d427e3be6880fb207e8b0d090928c6))
-* **format:** add default table views for response DTOs ([83f29a9](https://github.com/hanpq/PSImmich/commit/83f29a95088a7262e6a4e9b6fd6c50d840bb74f5))
-
-
-### Miscellaneous Chores
-
-* request release 3.3.7 ([0d6a525](https://github.com/hanpq/PSImmich/commit/0d6a5254bfd12c09afcc4aab4897f2093f8ed57a))
-
 ## [3.3.6-beta001](https://github.com/hanpq/PSImmich/compare/v2.3.1...v3.3.6-beta001) (2026-11-09)
 
 
