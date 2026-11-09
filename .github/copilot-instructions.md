@@ -101,8 +101,8 @@ function Get-IMAsset {
 .\build.ps1 -Task Test -TestSuite Infrastructure   # Build/release tests
 .\build.ps1 -Task Test -TestSuite Integration      # Authorized live server only
 
-# For individual files/functions, build first and configure pinned Pester directly.
-# The build entry point does not support -PesterTag or -PesterPath.
+# Targeted tests by cmdlet tag (tag-filtered runs skip coverage)
+.\build.ps1 -Task Test -TestSuite Module -Tag 'Get-IMAsset'
 ```
 
 #### Test Execution Workflow

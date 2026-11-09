@@ -19,6 +19,11 @@ param
     [string]
     $TestSuite = 'All',
 
+    # Optional Pester tags to run a subset of tests (for example 'Get-IMAsset'). Coverage is skipped when set.
+    [Parameter()]
+    [string[]]
+    $Tag,
+
     [Parameter(DontShow)]
     [switch]
     $InBuildProcess
@@ -36,6 +41,12 @@ if (-not $InBuildProcess)
     $executable = Join-Path $PSHOME $executableName
     $arguments = @('-NoProfile', '-NonInteractive', '-File', $PSCommandPath, '-InBuildProcess', '-Task', $Task)
     $arguments += @('-TestSuite', $TestSuite)
+
+    if ($PSBoundParameters.ContainsKey('Tag'))
+    {
+        # Joined into one argument because -File does not preserve array arguments.
+        $arguments += @('-Tag', ($Tag -join ','))
+    }
 
     if ($PSBoundParameters.ContainsKey('Version'))
     {
@@ -275,7 +286,10 @@ function Invoke-ModuleTests
 
         [ValidateSet('All', 'Module', 'Infrastructure', 'Integration')]
         [string]
-        $TestSuite = 'All'
+        $TestSuite = 'All',
+
+        [string[]]
+        $Tag
     )
 
     Write-Host 'Preparing Pester and PSScriptAnalyzer' -ForegroundColor Cyan
@@ -300,13 +314,18 @@ function Invoke-ModuleTests
     $configuration.TestResult.OutputFormat = 'NUnitXml'
     $configuration.TestResult.OutputPath = Join-Path $TestResultsDirectory "$ModuleName.Tests.xml"
     $builtModulePath = Join-Path (Join-Path (Join-Path $OutputDirectory $ModuleName) $ModuleVersion.Split('-')[0]) "$ModuleName.psm1"
-    $configuration.CodeCoverage.Enabled = $TestSuite -in @('All', 'Module')
+    if ($Tag)
+    {
+        $configuration.Filter.Tag = $Tag
+    }
+    $configuration.CodeCoverage.Enabled = ($TestSuite -in @('All', 'Module')) -and -not $Tag
     $configuration.CodeCoverage.Path = @($builtModulePath)
     $configuration.CodeCoverage.OutputFormat = 'JaCoCo'
     $configuration.CodeCoverage.OutputPath = Join-Path $TestResultsDirectory 'JaCoCo_coverage.xml'
     $configuration.CodeCoverage.CoveragePercentTarget = 1
 
-    Write-Host "Running Pester tests for $ModuleName $ModuleVersion (suite: $TestSuite; coverage: $($configuration.CodeCoverage.Enabled.Value))" -ForegroundColor Cyan
+    $tagDescription = if ($Tag) { "; tags: $($Tag -join ', ')" } else { '' }
+    Write-Host "Running Pester tests for $ModuleName $ModuleVersion (suite: $TestSuite; coverage: $($configuration.CodeCoverage.Enabled.Value)$tagDescription)" -ForegroundColor Cyan
     $result = Invoke-Pester -Configuration $configuration
 
     if ($result.Result -ne 'Passed')
@@ -403,7 +422,8 @@ switch ($Task)
 
         if ($Task -in @('Test', 'Verify'))
         {
-            Invoke-ModuleTests -ModuleVersion $resolvedVersion -TestSuite $TestSuite
+            $testTags = @($Tag | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+            Invoke-ModuleTests -ModuleVersion $resolvedVersion -TestSuite $TestSuite -Tag $testTags
         }
 
         if ($Task -eq 'Package')

@@ -319,10 +319,10 @@ Follow [BUILDING.md](../../../BUILDING.md), not obsolete Sampler commands:
 ```
 
 `Verify` (the default) builds and runs unit, QA and infrastructure tests.
-`-Tasks`, `-PesterTag`, `-PesterPath`, and task `pack` are not supported.
-For individual tests, first build; use the pinned Pester from
-`output\RequiredModules`, expose `output` on `PSModulePath`, and configure
-Pester's `Run.Path` and `Filter.FullName` or `Filter.Tag` directly. Check that
+`-Tasks`, `-PesterPath`, and task `pack` are not supported.
+For targeted unit tests, use `.\build.ps1 -Task Test -TestSuite Module -Tag '<cmdlet>'`
+(multiple tags: `-Tag 'A','B'`). Each Describe is tagged `Unit` and its cmdlet name.
+Tag-filtered runs skip coverage. Check that
 tests were actually selected and executed. This does not replace the final
 full verification or its coverage conversion.
 
