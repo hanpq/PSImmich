@@ -24,7 +24,7 @@
 
     if ($PSCmdlet.ShouldProcess('Service license', 'remove'))
     {
-        InvokeImmichRestMethod -Method Delete -RelativePath '/server/license' -ImmichSession:$Session
+        Invoke-ImmichApiDeleteServerLicense -ImmichSession:$Session
     }
 
 }

@@ -139,34 +139,34 @@
     {
         'about'
         {
-            InvokeImmichRestMethod -Method Get -RelativePath '/server/about' -ImmichSession:$Session
+            Invoke-ImmichApiGetAboutInfo -ImmichSession:$Session
         }
         'version'
         {
-            $Result = InvokeImmichRestMethod -noauth -Method Get -RelativePath '/server/version' -ImmichSession:$Session
+            $Result = Invoke-ImmichApiGetServerVersion -ImmichSession:$Session
             return [pscustomobject]@{
                 version = "$($Result.Major).$($Result.Minor).$($Result.Patch)"
             }
         }
         'version-history'
         {
-            InvokeImmichRestMethod -Method Get -RelativePath '/server/version-history' -ImmichSession:$Session
+            Invoke-ImmichApiGetVersionHistory -ImmichSession:$Session
         }
         'features'
         {
-            InvokeImmichRestMethod -Method Get -RelativePath '/server/features' -ImmichSession:$Session
+            Invoke-ImmichApiGetServerFeatures -ImmichSession:$Session
         }
         'statistics'
         {
-            InvokeImmichRestMethod -Method Get -RelativePath '/server/statistics' -ImmichSession:$Session
+            Invoke-ImmichApiGetServerStatistics -ImmichSession:$Session
         }
         'configuration'
         {
-            InvokeImmichRestMethod -Method Get -RelativePath '/server/config' -ImmichSession:$Session
+            Invoke-ImmichApiGetServerConfig -ImmichSession:$Session
         }
         'appliedsystemconfiguration'
         {
-            $Result = InvokeImmichRestMethod -Method Get -RelativePath '/admin/config' -ImmichSession:$Session
+            $Result = Invoke-ImmichApiGetAdminConfig -ImmichSession:$Session
             if ($ReturnRawJSON)
             {
                 $Result | ConvertTo-Json -Depth 10
@@ -178,7 +178,7 @@
         }
         'defaultsystemconfiguration'
         {
-            $Result = InvokeImmichRestMethod -Method Get -RelativePath '/admin/config/defaults' -ImmichSession:$Session
+            $Result = Invoke-ImmichApiGetAdminConfigDefaults -ImmichSession:$Session
             if ($ReturnRawJSON)
             {
                 $Result | ConvertTo-Json -Depth 10
@@ -190,24 +190,24 @@
         }
         'storagetemplateoptions'
         {
-            InvokeImmichRestMethod -Method Get -RelativePath '/system-config/storage-template-options' -ImmichSession:$Session
+            Invoke-ImmichApiGetStorageTemplateOptions -ImmichSession:$Session
         }
         'storage'
         {
-            InvokeImmichRestMethod -Method Get -RelativePath '/server/storage' -ImmichSession:$Session
+            Invoke-ImmichApiGetStorage -ImmichSession:$Session
         }
         'mediatypes'
         {
-            InvokeImmichRestMethod -Method Get -RelativePath '/server/media-types' -ImmichSession:$Session
+            Invoke-ImmichApiGetSupportedMediaTypes -ImmichSession:$Session
         }
         'theme'
         {
-            $Result = InvokeImmichRestMethod -noauth -Method Get -RelativePath '/public/config' -ImmichSession:$Session
+            $Result = Invoke-ImmichApiGetPublicConfig -ImmichSession:$Session
             $Result.theme
         }
         'ping'
         {
-            $Result = InvokeImmichRestMethod -noauth -Method Get -RelativePath '/server/ping' -ImmichSession:$Session
+            $Result = Invoke-ImmichApiPingServer -ImmichSession:$Session
             if ($Result.res -eq 'pong')
             {
                 return [pscustomobject]@{responds = $true }
@@ -219,15 +219,11 @@
         }
         'apklinks'
         {
-            InvokeImmichRestMethod -Method Get -RelativePath '/server/apk-links' -ImmichSession:$Session
+            Invoke-ImmichApiGetApkLinks -ImmichSession:$Session
         }
         'versioncheck'
         {
-            InvokeImmichRestMethod -Method Get -RelativePath '/server/version-check' -ImmichSession:$Session
-        }
-        'versioncheckstate'
-        {
-            InvokeImmichRestMethod -Method Get -RelativePath '/system-metadata/version-check-state' -ImmichSession:$Session
+            Invoke-ImmichApiGetVersionCheck -ImmichSession:$Session
         }
     }
 }
