@@ -38,7 +38,7 @@
     {
         if ($PSCmdlet.ShouldProcess($Id, 'DELETE'))
         {
-            InvokeImmichRestMethod -Method DELETE -RelativePath "/activities/$Id" -ImmichSession:$Session
+            Invoke-ImmichApiDeleteActivity -Id $Id -ImmichSession $Session
         }
     }
 

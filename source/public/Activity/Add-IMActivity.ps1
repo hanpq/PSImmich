@@ -64,7 +64,7 @@
 
     process
     {
-        InvokeImmichRestMethod -Method Post -RelativePath '/activities' -ImmichSession:$Session -Body $BodyParameters
+        Invoke-ImmichApiCreateActivity -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [ActivityResponseDto]::new($PSItem) }
     }
 
 }

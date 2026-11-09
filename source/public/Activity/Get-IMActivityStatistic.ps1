@@ -41,15 +41,14 @@
         $AssetId
     )
 
-    begin
-    {
-        $QueryParameters = @{}
-        $QueryParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-    }
-
     process
     {
-        InvokeImmichRestMethod -Method Get -RelativePath '/activities/statistics' -ImmichSession:$Session -QueryParameters $QueryParameters
+        $ApiArguments = @{ ImmichSession = $Session }
+        foreach ($Name in $PSBoundParameters.Keys)
+        {
+            if ($Name -ne 'Session') { $ApiArguments[$Name] = $PSBoundParameters[$Name] }
+        }
+        Invoke-ImmichApiGetActivityStatistics @ApiArguments | ForEach-Object { [ActivityStatisticsResponseDto]::new($PSItem) }
     }
 
 }

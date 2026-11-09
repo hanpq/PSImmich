@@ -251,13 +251,12 @@ InModuleScope $ProjectName {
             }
         }
 
-        Context 'Custom type assignment' {
-            It 'Should add IMActivity custom type to results' {
-                $albumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+        Context 'Returned object types' {
+            It 'Should return ActivityResponseDto objects' {
+                $result = Get-IMActivity -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
 
-                Get-IMActivity -AlbumId $albumId
-
-                Should -Invoke AddCustomType -Times 2 -Exactly -Scope It
+                $result[0].GetType().Name | Should -Be 'ActivityResponseDto'
+                $result[0].user.GetType().Name | Should -Be 'UserResponseDto'
             }
         }
 

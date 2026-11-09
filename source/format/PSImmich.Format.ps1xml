@@ -104,9 +104,9 @@
             </TableControl>
         </View>
         <View>
-            <Name>PSImmich.ObjectType.IMActivity</Name>
+            <Name>ActivityResponseDto</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMActivity</TypeName>
+                <TypeName>ActivityResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
