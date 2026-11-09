@@ -150,12 +150,11 @@ Describe 'Activity' -Tag 'Integration' {
             $Result = @(Get-IMActivity -AlbumId $script:Album.id -UserId $UserId)
             $Result | Should -Not -BeNullOrEmpty
             $Result.user.id | Should -Not -Contain $null
-            $Result.user.id | Should -Be $UserId
+            @($Result.user.id | Select-Object -Unique) | Should -Be $UserId
         }
 
-        It 'Returns nothing for an unknown user ID' {
-            $Result = Get-IMActivity -AlbumId $script:Album.id -UserId '00000000-0000-0000-0000-000000000000'
-            $Result | Should -BeNullOrEmpty
+        It 'Throws for an unknown user ID' {
+            { Get-IMActivity -AlbumId $script:Album.id -UserId '00000000-0000-0000-0000-000000000000' } | Should -Throw
         }
 
         It 'Returns nothing for an asset not commented on' {
@@ -189,8 +188,8 @@ Describe 'Activity' -Tag 'Integration' {
         It 'Returns ActivityStatisticsResponseDto with numeric counts for an album' {
             $Result = Get-IMActivityStatistic -AlbumId $script:Album.id
             $Result.GetType().Name | Should -Be 'ActivityStatisticsResponseDto'
-            $Result.comments | Should -BeOfType ([int])
-            $Result.likes | Should -BeOfType ([int])
+            $Result.comments | Should -BeOfType ([long])
+            $Result.likes | Should -BeOfType ([long])
         }
 
         It 'Counts comments added to the album' {

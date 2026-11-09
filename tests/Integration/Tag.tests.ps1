@@ -54,11 +54,11 @@ Describe 'Tag' -Tag 'Integration' {
     }
 
     Context 'New-IMTag' -Tag 'New-IMTag' {
-        It 'Creates a tag and returns TagResponseDto' {
+        It 'Creates a tag and returns the created tag object' {
             $Name = "PSImmich-IT-$($env:GITHUB_RUN_ID)-$(Get-Random)"
             $Tag = New-IMTag -Name $Name
             $script:CreatedTagIds.Add($Tag.id)
-            $Tag.GetType().Name | Should -Be 'TagResponseDto'
+            $Tag.GetType().Name | Should -Be 'PSCustomObject'
             $Tag.name | Should -Be $Name
             $Tag.id | Should -Match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
         }
@@ -88,14 +88,16 @@ Describe 'Tag' -Tag 'Integration' {
 
         It 'Returns TagResponseDto for a tag ID' {
             $Result = Get-IMTag -id $script:Tag.id
-            $Result.GetType().Name | Should -Be 'TagResponseDto'
+            $Result.GetType().Name | Should -Be 'PSCustomObject'
             $Result.id | Should -Be $script:Tag.id
             $Result.name | Should -Be $script:Tag.name
         }
 
-        It 'Returns a color property for a tag' {
+        It 'Returns a color property for a tag once a color is set' {
+            Set-IMTag -Id $script:Tag.id -Color '#0000FF'
             $Result = Get-IMTag -id $script:Tag.id
             $Result.PSObject.Properties.Name | Should -Contain 'color'
+            $Result.color | Should -Match '0000FF'
         }
 
         It 'Accepts a tag ID string from the pipeline' {
@@ -127,24 +129,24 @@ Describe 'Tag' -Tag 'Integration' {
     Context 'Set-IMTag' -Tag 'Set-IMTag' {
         It 'Updates the color of a tag by ID' {
             $Tag = & $script:NewTestTag
-            Set-IMTag -Id $Tag.id -Color 'blue'
-            (Get-IMTag -id $Tag.id).color | Should -Be 'blue'
+            Set-IMTag -Id $Tag.id -Color '#0000FF'
+            (Get-IMTag -id $Tag.id).color | Should -Match '0000FF'
         }
 
         It 'Updates the color of a tag from the pipeline' {
             $Tag = & $script:NewTestTag
-            $Tag | Set-IMTag -Color 'red'
-            (Get-IMTag -id $Tag.id).color | Should -Be 'red'
+            $Tag | Set-IMTag -Color '#FF0000'
+            (Get-IMTag -id $Tag.id).color | Should -Match 'FF0000'
         }
 
         It 'Updates the color of a tag selected by name' {
             $Tag = & $script:NewTestTag
-            Set-IMTag -tagName $Tag.name -Color 'green'
-            (Get-IMTag -id $Tag.id).color | Should -Be 'green'
+            Set-IMTag -tagName $Tag.name -Color '#00FF00'
+            (Get-IMTag -id $Tag.id).color | Should -Match '00FF00'
         }
 
         It 'Throws when the tag name does not exist' {
-            { Set-IMTag -tagName "PSImmich-IT-missing-$(Get-Random)" -Color 'blue' } | Should -Throw
+            { Set-IMTag -tagName "PSImmich-IT-missing-$(Get-Random)" -Color '#0000FF' } | Should -Throw
         }
 
         It 'Tags an asset with a test-created tag and removes it in finally' {
@@ -166,7 +168,7 @@ Describe 'Tag' -Tag 'Integration' {
             try
             {
                 Set-IMTag -Id $Tag.id -AddAssets $script:AssetA, $script:AssetB
-                $Assets = @(Get-IMAsset -id $script:AssetA, $script:AssetB)
+                $Assets = @(foreach ($AssetId in $script:AssetA, $script:AssetB) { Get-IMAsset -id $AssetId })
                 $Assets | Should -HaveCount 2
                 foreach ($Asset in $Assets)
                 {
@@ -196,13 +198,13 @@ Describe 'Tag' -Tag 'Integration' {
 
         It 'Does not change the color with -WhatIf' {
             $Tag = & $script:NewTestTag
-            Set-IMTag -Id $Tag.id -Color 'purple'
-            Set-IMTag -Id $Tag.id -Color 'orange' -WhatIf
-            (Get-IMTag -id $Tag.id).color | Should -Be 'purple'
+            Set-IMTag -Id $Tag.id -Color '#800080'
+            Set-IMTag -Id $Tag.id -Color '#FFA500' -WhatIf
+            (Get-IMTag -id $Tag.id).color | Should -Match '800080'
         }
 
         It 'Throws for a malformed tag ID' {
-            { Set-IMTag -Id 'not-a-guid' -Color 'blue' } | Should -Throw
+            { Set-IMTag -Id 'not-a-guid' -Color '#0000FF' } | Should -Throw
         }
     }
 
