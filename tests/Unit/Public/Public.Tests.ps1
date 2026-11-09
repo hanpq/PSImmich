@@ -85,14 +85,28 @@ InModuleScope $ProjectName {
         }
 
         Context 'Pipeline support' {
-            It 'Should accept AlbumId from pipeline by property name' {
-                # Create objects with AlbumId property for pipeline test
+            It 'Should accept AlbumId from a piped string' {
+                'bde7ceba-f301-4e9e-87a2-163937a2a3db' | Add-IMActivity -Comment 'piped'
+
+                Should -Invoke Invoke-ImmichApiCreateActivity -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.albumId -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+                }
+            }
+
+            It 'Should accept AlbumId from a piped object by property name' {
                 $pipelineObject = [PSCustomObject]@{ AlbumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
 
-                # Test that function works when called with parameter from object property
-                Add-IMActivity -AlbumId $pipelineObject.AlbumId -Type 'like'
+                $pipelineObject | Add-IMActivity -Type 'like'
 
-                Should -Invoke Invoke-ImmichApiCreateActivity -ModuleName PSImmich -Times 1 -Exactly
+                Should -Invoke Invoke-ImmichApiCreateActivity -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.albumId -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and $Body.type -eq 'like'
+                }
+            }
+
+            It 'Should send one request per piped album id' {
+                @('bde7ceba-f301-4e9e-87a2-163937a2a3db', '12345678-1234-1234-1234-123456789abc') | Add-IMActivity -Comment 'batch'
+
+                Should -Invoke Invoke-ImmichApiCreateActivity -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
