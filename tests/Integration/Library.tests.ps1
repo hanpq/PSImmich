@@ -21,8 +21,6 @@ BeforeDiscovery {
     Import-Module $ProjectName -Force
 }
 
-# Intentionally excluded:
-# - Sync-IMLibrary: scans the server filesystem and starts server-side jobs, which affects the shared server.
 Describe 'Library' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
@@ -167,6 +165,27 @@ Describe 'Library' -Tag 'Integration' {
         It 'Should accept library IDs from the pipeline' {
             $Result = $script:Library.id | Test-IMLibrary
             $Result | Should -Not -BeNullOrEmpty
+        }
+    }
+
+    # Sync-IMLibrary is only run against libraries that exclude every file, so the scan cannot import or remove assets.
+    Context 'Sync-IMLibrary' -Tag 'Sync-IMLibrary' {
+        BeforeAll {
+            $script:SyncLibrary = & $script:NewTestLibrary -Name 'PSImmich-Test-Sync'
+        }
+        It 'Should start a scan job for a library ID without error' {
+            { Sync-IMLibrary -Id $script:SyncLibrary.id } | Should -Not -Throw
+        }
+        It 'Should accept library IDs from the pipeline' {
+            { $script:SyncLibrary | Sync-IMLibrary } | Should -Not -Throw
+        }
+        It 'Should leave the excluded library with no assets' {
+            Start-Sleep -Seconds 2
+            $Library = Get-IMLibrary -Id $script:SyncLibrary.id
+            $Library.assetCount | Should -Be 0
+        }
+        It 'Should throw for a malformed library ID' {
+            { Sync-IMLibrary -Id 'not-a-guid' } | Should -Throw
         }
     }
 }
