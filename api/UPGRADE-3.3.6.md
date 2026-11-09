@@ -233,12 +233,13 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | --- | ---: |
 | Excluded (`exclusions.json`, method and path) | 59 |
 | Tested (generated function named under `tests/Unit`) | 18 |
-| Reachable (generated function used by module source) | 64 |
-| Unreachable | 138 |
+| Reachable (generated function used by module source) | 65 |
+| Unreachable | 137 |
 | Total | 279 |
 
-Wired for 82 of 220 non-excluded operations (37.3%) after the User batch
-(was 68, 30.9%, after the raw-JSON admin config change;
+Wired for 83 of 220 non-excluded operations (37.7%) after the User batch and the profile-image export
+(was 82, 37.3%, after the User batch;
+was 68, 30.9%, after the raw-JSON admin config change;
 was 67, 30.5%, after the Server batch;
 49, 22.3%, after the Person batch; 41, 18.6%, after the Set-IMAsset batch; 37, 16.8%, after the restore batch; 35, 15.9%, after the asset batch; 25, 11.4%, before it). This is a route
 metric, not parameter or contract parity. The 152 unreachable operations are the backlog.

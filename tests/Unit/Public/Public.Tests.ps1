@@ -8139,15 +8139,16 @@ InModuleScope $ProjectName {
     }
     Describe 'Export-IMProfilePicture' -Tag 'Unit', 'Export-IMProfilePicture' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @(1, 2, 3, 4, 5)  # Mock byte array
+            Mock Invoke-ImmichApiGetProfileImage {
+                return $null
             }
         }
         Context 'Profile Picture Export' {
-            It 'Should export profile picture with correct API call' {
+            It 'Should export profile picture through the internal API function' {
                 Export-IMProfilePicture -id '12345678-1234-5678-9012-123456789abc' -Path $TestDrive
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/users/12345678-1234-5678-9012-123456789abc/profile-image'
+                Should -Invoke Invoke-ImmichApiGetProfileImage -Times 1 -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc' -and
+                    "$OutFilePath" -like (Join-Path $TestDrive '12345678-1234-5678-9012-123456789abc.jpeg')
                 }
             }
         }

@@ -43,7 +43,12 @@
                 $SavedProgressPreference = $global:ProgressPreference
                 $global:ProgressPreference = 'SilentlyContinue'
             }
-            InvokeImmichRestMethod -Method Get -RelativePath "/users/$CurrentID/profile-image" -ImmichSession:$Session -ContentType 'application/octet-stream' -OutFilePath $OutputPath
+            $ApiArguments = @{
+                Id            = $CurrentID
+                OutFilePath   = $OutputPath
+                ImmichSession = $Session
+            }
+            Invoke-ImmichApiGetProfileImage @ApiArguments
             if ($PSVersionTable.PSEdition -eq 'Desktop')
             {
                 $global:ProgressPreference = $SavedProgressPreference
