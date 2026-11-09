@@ -237,8 +237,9 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Unreachable | 110 |
 | Total | 279 |
 
-Wired for 149 of 219 non-excluded operations (68.0%) after the Plugin batch
-(was 147, 67.1%, after the Duplicates batch;
+Wired for 150 of 219 non-excluded operations (68.5%) after the Auth batch
+(was 149, 68.0%, after the Plugin batch;
+was 147, 67.1%, after the Duplicates batch;
 was 145, 66.2%, after the AuthSession batch;
 was 142, 64.8%, after the Face batch;
 was 138, 63.0%, after the Workflow batch;
@@ -272,6 +273,10 @@ Plugin batch: `Get-IMPlugin` list uses `searchPlugins` (`GET /plugins`) and now 
 `-Name`, `-Title`, `-Version`, `-Description`, and `-Enabled`. The id set uses `getPlugin`. Output is
 `PluginResponseDto`, and `AddCustomType IMPlugin` is removed. The stale Alpha note is removed because the 3.3.6
 plugin operations carry no `x-immich-state`. Targeted tests: 17 passed, 0 failed.
+
+Auth batch: `Test-IMAccessToken` calls `validateAccessToken` (`POST /auth/validateToken`) and casts the result to
+`ValidateAccessTokenResponseDto`, returning its `authStatus`. Output and behavior are unchanged. Targeted tests:
+12 passed, 0 failed.
 
 AuthSession batch: `Get-IMAuthSession` (`getSessions`) returns `SessionResponseDto`; `Remove-IMAuthSession` calls
 `deleteAllSessions` (no `-Id`) or `deleteSession` (per `-Id`). Breaking: the 3.3.6 `SessionResponseDto` has no
