@@ -10035,6 +10035,69 @@ InModuleScope $ProjectName {
             }
         }
     }
+    Describe 'Resolve-IMDuplicate' -Tag 'Unit', 'Resolve-IMDuplicate' {
+        BeforeAll {
+            Mock Invoke-ImmichApiResolveDuplicates -ModuleName PSImmich {}
+        }
+
+        Context 'When resolving a single duplicate group' {
+            It 'Should send the group with keep and trash asset ids' {
+                Resolve-IMDuplicate -DuplicateId '5b0bbb8d-3a3e-4f46-a1ab-0e7a2a7f3c11' -KeepAssetId 'a1f0c6f2-1d43-4c1b-9d7e-2b0a6c3f8e10' -TrashAssetId 'b2e1d7a3-2e54-4d2c-8e8f-3c1b7d4f9f21' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiResolveDuplicates -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.groups.Count -eq 1 -and
+                    $Body.groups[0].duplicateId -eq '5b0bbb8d-3a3e-4f46-a1ab-0e7a2a7f3c11' -and
+                    $Body.groups[0].keepAssetIds -contains 'a1f0c6f2-1d43-4c1b-9d7e-2b0a6c3f8e10' -and
+                    $Body.groups[0].trashAssetIds -contains 'b2e1d7a3-2e54-4d2c-8e8f-3c1b7d4f9f21'
+                }
+            }
+
+            It 'Should not call the endpoint when WhatIf is specified' {
+                Resolve-IMDuplicate -DuplicateId '5b0bbb8d-3a3e-4f46-a1ab-0e7a2a7f3c11' -KeepAssetId 'a1f0c6f2-1d43-4c1b-9d7e-2b0a6c3f8e10' -TrashAssetId 'b2e1d7a3-2e54-4d2c-8e8f-3c1b7d4f9f21' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiResolveDuplicates -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+        }
+
+        Context 'When resolving groups from the pipeline' {
+            It 'Should send multiple groups in a single body when piped by property name' {
+                $Groups = @(
+                    [PSCustomObject]@{ DuplicateId = '5b0bbb8d-3a3e-4f46-a1ab-0e7a2a7f3c11'; KeepAssetId = 'a1f0c6f2-1d43-4c1b-9d7e-2b0a6c3f8e10'; TrashAssetId = 'd4b3f9c5-4a76-4f4e-8a0a-5e3d9f6b1a43' }
+                    [PSCustomObject]@{ DuplicateId = '6c1c0c9e-4b4f-4b57-b2bc-1f8b3e5a0d22'; KeepAssetId = 'c3a2e8b4-3f65-4e3d-9f9f-4d2c8e5a0f32'; TrashAssetId = 'e5c4a0d6-5b87-4a5f-9b1b-6f4e0a7c2b54' }
+                )
+
+                $Groups | Resolve-IMDuplicate -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiResolveDuplicates -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.groups.Count -eq 2 -and
+                    $Body.groups[1].duplicateId -eq '6c1c0c9e-4b4f-4b57-b2bc-1f8b3e5a0d22'
+                }
+            }
+        }
+
+        Context 'When an explicit session is provided' {
+            It 'Should forward the session to the REST call' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+                Resolve-IMDuplicate -Session $Session -DuplicateId '5b0bbb8d-3a3e-4f46-a1ab-0e7a2a7f3c11' -KeepAssetId 'a1f0c6f2-1d43-4c1b-9d7e-2b0a6c3f8e10' -TrashAssetId 'b2e1d7a3-2e54-4d2c-8e8f-3c1b7d4f9f21' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiResolveDuplicates -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+        }
+
+        Context 'When parameters are invalid' {
+            It 'Should throw for a malformed duplicate id' {
+                { Resolve-IMDuplicate -DuplicateId 'not-a-guid' -KeepAssetId 'a1f0c6f2-1d43-4c1b-9d7e-2b0a6c3f8e10' -TrashAssetId 'b2e1d7a3-2e54-4d2c-8e8f-3c1b7d4f9f21' -Confirm:$false } | Should -Throw
+            }
+
+            It 'Should throw when KeepAssetId is omitted' {
+                { Resolve-IMDuplicate -DuplicateId '5b0bbb8d-3a3e-4f46-a1ab-0e7a2a7f3c11' -TrashAssetId 'b2e1d7a3-2e54-4d2c-8e8f-3c1b7d4f9f21' -Confirm:$false } | Should -Throw
+            }
+        }
+    }
+
     Describe 'Remove-IMDuplicate' -Tag 'Remove-IMDuplicate' {
         BeforeAll {
             Mock InvokeImmichRestMethod {}
