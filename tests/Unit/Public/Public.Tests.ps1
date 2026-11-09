@@ -5916,49 +5916,42 @@ InModuleScope $ProjectName {
 
     Describe 'Get-IMMemory' -Tag 'Unit', 'Get-IMMemory' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                param($Method, $RelativePath, $ImmichSession)
-
-                switch -Regex ($RelativePath)
-                {
-                    '^/memories/statistics$'
-                    {
-                        # Mock response for memory statistics
-                        return [PSCustomObject]@{
-                            totalMemories     = 42
-                            savedMemories     = 15
-                            featuredMemories  = 8
-                            onThisDayMemories = 12
-                        }
-                    }
-                    '^/memories$'
-                    {
-                        # List all memories
-                        return @(
-                            [PSCustomObject]@{
-                                id        = 'a1b2c3d4-e5f6-4789-a012-123456789abc'
-                                title     = 'Summer Vacation 2024'
-                                type      = 'onThisDay'
-                                createdAt = '2024-01-15T10:00:00Z'
-                                assets    = @(
-                                    [PSCustomObject]@{ id = 'asset1'; type = 'IMAGE' },
-                                    [PSCustomObject]@{ id = 'asset2'; type = 'VIDEO' }
-                                )
-                            },
-                            [PSCustomObject]@{
-                                id        = 'b2c3d4e5-f6a7-4890-b123-234567890bcd'
-                                title     = 'Holiday Memories'
-                                type      = 'featured'
-                                createdAt = '2024-02-20T15:30:00Z'
-                                assets    = @(
-                                    [PSCustomObject]@{ id = 'asset3'; type = 'IMAGE' }
-                                )
-                            }
+            Mock Invoke-ImmichApiSearchMemories -ModuleName PSImmich {
+                return @(
+                    [PSCustomObject]@{
+                        id        = 'a1b2c3d4-e5f6-4789-a012-123456789abc'
+                        title     = 'Summer Vacation 2024'
+                        type      = 'onThisDay'
+                        createdAt = '2024-01-15T10:00:00Z'
+                        assets    = @(
+                            [PSCustomObject]@{ id = 'asset1'; type = 'IMAGE' },
+                            [PSCustomObject]@{ id = 'asset2'; type = 'VIDEO' }
+                        )
+                    },
+                    [PSCustomObject]@{
+                        id        = 'b2c3d4e5-f6a7-4890-b123-234567890bcd'
+                        title     = 'Holiday Memories'
+                        type      = 'featured'
+                        createdAt = '2024-02-20T15:30:00Z'
+                        assets    = @(
+                            [PSCustomObject]@{ id = 'asset3'; type = 'IMAGE' }
                         )
                     }
-                    '^/memories/a1b2c3d4-e5f6-4789-a012-123456789abc$'
+                )
+            }
+
+            Mock Invoke-ImmichApiMemoriesStatistics -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    total = 42
+                }
+            }
+
+            Mock Invoke-ImmichApiGetMemory -ModuleName PSImmich {
+                param($Id)
+                switch ($Id)
+                {
+                    'a1b2c3d4-e5f6-4789-a012-123456789abc'
                     {
-                        # Specific memory
                         return [PSCustomObject]@{
                             id        = 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                             title     = 'Summer Vacation 2024'
@@ -5968,29 +5961,22 @@ InModuleScope $ProjectName {
                                 [PSCustomObject]@{ id = 'asset1'; type = 'IMAGE' },
                                 [PSCustomObject]@{ id = 'asset2'; type = 'VIDEO' }
                             )
-                            data      = @{
-                                year  = 2024
-                                day   = 15
-                                month = 1
-                            }
+                            data      = @{ year = 2024; day = 15; month = 1 }
                         }
                     }
-                    '^/memories/b2c3d4e5-f6a7-4890-b123-234567890bcd$'
+                    'b2c3d4e5-f6a7-4890-b123-234567890bcd'
                     {
-                        # Another specific memory
                         return [PSCustomObject]@{
                             id        = 'b2c3d4e5-f6a7-4890-b123-234567890bcd'
                             title     = 'Holiday Memories'
                             type      = 'featured'
                             createdAt = '2024-02-20T15:30:00Z'
-                            assets    = @(
-                                [PSCustomObject]@{ id = 'asset3'; type = 'IMAGE' }
-                            )
+                            assets    = @([PSCustomObject]@{ id = 'asset3'; type = 'IMAGE' })
                         }
                     }
                     default
                     {
-                        throw "Unexpected path: $RelativePath"
+                        throw "Unexpected memory id: $Id"
                     }
                 }
             }
@@ -6041,10 +6027,7 @@ InModuleScope $ProjectName {
             It 'Should get all memories when no parameters provided' {
                 $result = Get-IMMemory
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/memories'
-                }
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1
                 $result | Should -HaveCount 2
                 $result[0].id | Should -Be 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 $result[1].id | Should -Be 'b2c3d4e5-f6a7-4890-b123-234567890bcd'
@@ -6053,10 +6036,10 @@ InModuleScope $ProjectName {
             It 'Should return memories with assets' {
                 $result = Get-IMMemory
 
-                $result[0].title | Should -Be 'Summer Vacation 2024'
+                $result[0].id | Should -Be 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 $result[0].type | Should -Be 'onThisDay'
                 $result[0].assets | Should -HaveCount 2
-                $result[1].title | Should -Be 'Holiday Memories'
+                $result[1].type | Should -Be 'featured'
                 $result[1].assets | Should -HaveCount 1
             }
         }
@@ -6070,20 +6053,18 @@ InModuleScope $ProjectName {
             It 'Should get specific memory by id' {
                 $result = Get-IMMemory -id $TestMemoryId
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq "/memories/$TestMemoryId"
+                Should -Invoke Invoke-ImmichApiGetMemory -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq $TestMemoryId
                 }
                 $result.id | Should -Be $TestMemoryId
-                $result.title | Should -Be 'Summer Vacation 2024'
+                $result.type | Should -Be 'onThisDay'
             }
 
             It 'Should handle multiple memory IDs' {
                 $result = Get-IMMemory -id @($TestMemoryId, $TestMemoryId2)
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    ($RelativePath -eq "/memories/$TestMemoryId" -or $RelativePath -eq "/memories/$TestMemoryId2")
+                Should -Invoke Invoke-ImmichApiGetMemory -ModuleName PSImmich -Times 2 -ParameterFilter {
+                    $Id -eq $TestMemoryId -or $Id -eq $TestMemoryId2
                 }
                 $result | Should -HaveCount 2
             }
@@ -6092,7 +6073,6 @@ InModuleScope $ProjectName {
                 $result = Get-IMMemory -id $TestMemoryId
 
                 $result.id | Should -Be $TestMemoryId
-                $result.title | Should -Be 'Summer Vacation 2024'
                 $result.type | Should -Be 'onThisDay'
                 $result.assets | Should -HaveCount 2
                 $result.data.year | Should -Be 2024
@@ -6108,9 +6088,8 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 $TestMemoryId | Get-IMMemory
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq "/memories/$TestMemoryId"
+                Should -Invoke Invoke-ImmichApiGetMemory -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq $TestMemoryId
                 }
             }
 
@@ -6118,18 +6097,16 @@ InModuleScope $ProjectName {
                 $memoryObject = [PSCustomObject]@{ id = $TestMemoryId }
                 $memoryObject | Get-IMMemory
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq "/memories/$TestMemoryId"
+                Should -Invoke Invoke-ImmichApiGetMemory -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq $TestMemoryId
                 }
             }
 
             It 'Should handle multiple memories from pipeline' {
                 @($TestMemoryId, $TestMemoryId2) | Get-IMMemory
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    ($RelativePath -eq "/memories/$TestMemoryId" -or $RelativePath -eq "/memories/$TestMemoryId2")
+                Should -Invoke Invoke-ImmichApiGetMemory -ModuleName PSImmich -Times 2 -ParameterFilter {
+                    $Id -eq $TestMemoryId -or $Id -eq $TestMemoryId2
                 }
             }
 
@@ -6140,9 +6117,7 @@ InModuleScope $ProjectName {
                 )
                 $memoryObjects | Get-IMMemory
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'Get'
-                }
+                Should -Invoke Invoke-ImmichApiGetMemory -ModuleName PSImmich -Times 2
             }
         }
 
@@ -6150,19 +6125,15 @@ InModuleScope $ProjectName {
             It 'Should get memory statistics when Statistics switch is used' {
                 $result = Get-IMMemory -Statistics
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/memories/statistics'
-                }
-                $result.totalMemories | Should -Be 42
-                $result.savedMemories | Should -Be 15
+                Should -Invoke Invoke-ImmichApiMemoriesStatistics -ModuleName PSImmich -Times 1
+                $result.total | Should -Be 42
             }
 
             It 'Should support Statistics with other parameters' {
                 Get-IMMemory -Statistics -Order 'desc'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/memories/statistics'
+                Should -Invoke Invoke-ImmichApiMemoriesStatistics -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Order -eq 'desc'
                 }
             }
         }
@@ -6171,45 +6142,40 @@ InModuleScope $ProjectName {
             It 'Should support Order parameter' {
                 Get-IMMemory -Order 'desc'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/memories' -and
-                    $QueryParameters.order -eq 'desc'
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Order -eq 'desc'
                 }
             }
 
             It 'Should support NumberOfMemories parameter' {
                 Get-IMMemory -NumberOfMemories 5
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/memories' -and
-                    $QueryParameters.size -eq 5
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Size -eq 5
                 }
             }
 
             It 'Should support IsSaved parameter' {
                 Get-IMMemory -IsSaved:$true
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/memories' -and
-                    $QueryParameters.isSaved -eq $true
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $IsSaved -eq $true
                 }
             }
 
             It 'Should support IsTrashed parameter' {
                 Get-IMMemory -IsTrashed:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/memories' -and
-                    $QueryParameters.isTrashed -eq $false
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $IsTrashed -eq $false
                 }
             }
 
             It 'Should support Type parameter' {
                 Get-IMMemory -Type 'on_this_day'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/memories' -and
-                    $QueryParameters.type -eq 'on_this_day'
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Type -eq 'on_this_day'
                 }
             }
 
@@ -6217,18 +6183,16 @@ InModuleScope $ProjectName {
                 $TestDate = '2024-01-15'
                 Get-IMMemory -For $TestDate
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/memories' -and
-                    $QueryParameters.for -eq $TestDate
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $For -eq $TestDate
                 }
             }
 
             It 'Should send For as a date-only value when given a datetime' {
                 Get-IMMemory -For ([datetime]'2024-01-15T13:45:00')
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/memories' -and
-                    $QueryParameters.for -eq '2024-01-15'
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $For -eq '2024-01-15'
                 }
             }
         }
@@ -6244,7 +6208,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Get-IMMemory
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -6252,7 +6216,7 @@ InModuleScope $ProjectName {
     }
     Describe 'New-IMMemory' -Tag 'Unit', 'New-IMMemory' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiCreateMemory -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     id       = 'new-memory-guid-1234567890abcdef'
                     memoryAt = '2024-01-01T10:00:00Z'
@@ -6323,10 +6287,7 @@ InModuleScope $ProjectName {
             It 'Should create memory with minimal parameters' {
                 $result = New-IMMemory -MemoryAt '2024-01-01T10:00:00Z'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and
-                    $RelativePath -eq '/memories'
-                }
+                Should -Invoke Invoke-ImmichApiCreateMemory -ModuleName PSImmich -Times 1
                 $result.id | Should -Be 'new-memory-guid-1234567890abcdef'
             }
 
@@ -6334,7 +6295,7 @@ InModuleScope $ProjectName {
                 $assetIds = @('a1b2c3d4-e5f6-4789-a012-123456789abc', 'b2c3d4e5-f6a7-4890-b123-234567890bcd')
                 New-IMMemory -MemoryAt '2024-01-01T10:00:00Z' -AssetIds $assetIds
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiCreateMemory -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.assetIds.Count -eq 2 -and
                     $Body.assetIds -contains 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 }
@@ -6343,7 +6304,7 @@ InModuleScope $ProjectName {
             It 'Should include year in data object' {
                 New-IMMemory -MemoryAt '2024-01-01T10:00:00Z' -Year 2024
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiCreateMemory -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.data.year -eq 2024
                 }
             }
@@ -6359,7 +6320,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMMemory' -Tag 'Unit', 'Remove-IMMemory' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiDeleteMemory -ModuleName PSImmich {
                 return $null
             }
         }
@@ -6390,9 +6351,8 @@ InModuleScope $ProjectName {
             It 'Should remove memory with correct API call' {
                 Remove-IMMemory -id 'a1b2c3d4-e5f6-4789-a012-123456789abc'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/memories/a1b2c3d4-e5f6-4789-a012-123456789abc'
+                Should -Invoke Invoke-ImmichApiDeleteMemory -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 }
             }
 
@@ -6400,15 +6360,13 @@ InModuleScope $ProjectName {
                 $memoryIds = @('a1b2c3d4-e5f6-4789-a012-123456789abc', 'b2c3d4e5-f6a7-4890-b123-234567890bcd')
                 Remove-IMMemory -id $memoryIds
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -ParameterFilter {
-                    $Method -eq 'Delete'
-                }
+                Should -Invoke Invoke-ImmichApiDeleteMemory -ModuleName PSImmich -Times 2
             }
         }
     }
     Describe 'Set-IMMemory' -Tag 'Unit', 'Set-IMMemory' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiUpdateMemory -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     id       = 'updated-memory-guid-1234567890abcdef'
                     memoryAt = '2024-01-01T10:00:00Z'
@@ -6437,9 +6395,8 @@ InModuleScope $ProjectName {
             It 'Should update memory with correct API call' {
                 Set-IMMemory -Id 'a1b2c3d4-e5f6-4789-a012-123456789abc' -IsSaved:$true
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and
-                    $RelativePath -eq '/memories/a1b2c3d4-e5f6-4789-a012-123456789abc'
+                Should -Invoke Invoke-ImmichApiUpdateMemory -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 }
             }
         }

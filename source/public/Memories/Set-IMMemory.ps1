@@ -89,7 +89,7 @@
         $Id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Update'))
             {
-                InvokeImmichRestMethod -Method PUT -RelativePath "/memories/$PSItem" -ImmichSession:$Session -Body:$BodyParameters
+                Invoke-ImmichApiUpdateMemory -Id $PSItem -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [MemoryResponseDto]::new($PSItem) }
             }
         }
     }

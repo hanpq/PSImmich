@@ -105,7 +105,7 @@
 
     end
     {
-        InvokeImmichRestMethod -Method Post -RelativePath '/memories' -ImmichSession:$Session -Body $BodyParameters
+        Invoke-ImmichApiCreateMemory -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [MemoryResponseDto]::new($PSItem) }
     }
 
 }

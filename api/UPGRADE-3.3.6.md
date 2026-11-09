@@ -237,8 +237,9 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Unreachable | 110 |
 | Total | 279 |
 
-Wired for 124 of 219 non-excluded operations (56.6%) after the Partner batch
-(was 120, 54.8%, after the APIKey batch;
+Wired for 130 of 219 non-excluded operations (59.4%) after the Memories batch
+(was 124, 56.6%, after the Partner batch;
+was 120, 54.8%, after the APIKey batch;
 was 115, 52.5%, after the Stack batch;
 was 109, 49.8%, after the Search batch;
 was 105, 47.7%, after the SharedLink batch;
@@ -257,6 +258,10 @@ Partner batch: `Get-IMPartner` (`getPartners`, `-Direction`), `Add-IMPartner` (`
 (`updatePartner`, `-EnableTimeline` as `inTimeline`), and `Remove-IMPartner` (`removePartner`) call the generated
 functions and return `PartnerResponseDto`. The deprecated `createPartnerDeprecated` (`POST /partners/{id}`) is not used.
 Targeted tests: 42 passed, 0 failed.
+
+Memories batch: `Get-IMMemory` (`getMemory`, `searchMemories`, `getMemoriesStatistics`), `New-IMMemory`
+(`createMemory`), `Set-IMMemory` (`updateMemory`), and `Remove-IMMemory` (`deleteMemory`) call the generated
+functions and return `MemoryResponseDto` or `MemoryStatisticsResponseDto`. Targeted tests: 70 passed, 0 failed.
 
 APIKey batch: `Get-IMAPIKey` (`getMyApiKey` is not used; list: `getApiKeys`, id: `getApiKey`),
 `New-IMAPIKey` (`createApiKey`, returns `ApiKeyCreateResponseDto` including the one-time secret),
