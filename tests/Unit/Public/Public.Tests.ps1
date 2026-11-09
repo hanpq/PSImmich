@@ -4833,6 +4833,112 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'Get-IMDatabaseBackup' -Tag 'Unit', 'Get-IMDatabaseBackup' {
+        BeforeAll {
+            Mock Invoke-ImmichApiListDatabaseBackups -ModuleName PSImmich {
+                [PSCustomObject]@{
+                    backups = @(
+                        [PSCustomObject]@{ filename = 'immich-db-backup-1.sql.gz'; filesize = 1024; timezone = 'UTC' }
+                        [PSCustomObject]@{ filename = 'immich-db-backup-2.sql.gz'; filesize = 2048; timezone = 'UTC' }
+                    )
+                }
+            }
+        }
+
+        It 'Should return one DatabaseBackupDto per backup' {
+            $Result = Get-IMDatabaseBackup
+
+            Should -Invoke Invoke-ImmichApiListDatabaseBackups -ModuleName PSImmich -Times 1 -Exactly -Scope It
+            $Result.Count | Should -Be 2
+            $Result[0].GetType().Name | Should -Be 'DatabaseBackupDto'
+            $Result[1].filename | Should -Be 'immich-db-backup-2.sql.gz'
+        }
+
+        It 'Should forward the session' {
+            $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+            $null = Get-IMDatabaseBackup -Session $Session
+
+            Should -Invoke Invoke-ImmichApiListDatabaseBackups -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $null -ne $ImmichSession
+            }
+        }
+    }
+
+    Describe 'Remove-IMDatabaseBackup' -Tag 'Unit', 'Remove-IMDatabaseBackup' {
+        BeforeAll {
+            Mock Invoke-ImmichApiDeleteDatabaseBackup -ModuleName PSImmich {}
+        }
+
+        Context 'When removing a backup' {
+            It 'Should send the file name in the backups array' {
+                Remove-IMDatabaseBackup -Filename 'immich-db-backup-1.sql.gz' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteDatabaseBackup -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.backups.Count -eq 1 -and $Body.backups[0] -eq 'immich-db-backup-1.sql.gz'
+                }
+            }
+
+            It 'Should send several file names in one request' {
+                Remove-IMDatabaseBackup -Filename 'immich-db-backup-1.sql.gz', 'immich-db-backup-2.sql.gz' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteDatabaseBackup -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.backups.Count -eq 2
+                }
+            }
+        }
+
+        Context 'When removing backups from the pipeline' {
+            It 'Should send one request per backup bound by property name' {
+                $Backups = @(
+                    [PSCustomObject]@{ filename = 'immich-db-backup-1.sql.gz' }
+                    [PSCustomObject]@{ filename = 'immich-db-backup-2.sql.gz' }
+                )
+
+                $Backups | Remove-IMDatabaseBackup -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteDatabaseBackup -ModuleName PSImmich -Times 2 -Exactly -Scope It
+            }
+        }
+
+        Context 'When WhatIf is specified' {
+            It 'Should not call the endpoint' {
+                Remove-IMDatabaseBackup -Filename 'immich-db-backup-1.sql.gz' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiDeleteDatabaseBackup -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+        }
+    }
+
+    Describe 'Save-IMDatabaseBackup' -Tag 'Unit', 'Save-IMDatabaseBackup' {
+        BeforeAll {
+            Mock Invoke-ImmichApiDownloadDatabaseBackup -ModuleName PSImmich {}
+        }
+
+        It 'Should download the backup into the directory keeping its file name' {
+            $Directory = Get-Item -Path $TestDrive
+
+            Save-IMDatabaseBackup -Filename 'immich-db-backup-1.sql.gz' -Path $Directory
+
+            Should -Invoke Invoke-ImmichApiDownloadDatabaseBackup -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Filename -eq 'immich-db-backup-1.sql.gz' -and
+                $OutFilePath.FullName -eq (Join-Path $TestDrive 'immich-db-backup-1.sql.gz')
+            }
+        }
+
+        It 'Should accept file names from the pipeline' {
+            $Backups = @([PSCustomObject]@{ filename = 'immich-db-backup-1.sql.gz' })
+
+            $Backups | Save-IMDatabaseBackup -Path (Get-Item -Path $TestDrive)
+
+            Should -Invoke Invoke-ImmichApiDownloadDatabaseBackup -ModuleName PSImmich -Times 1 -Exactly -Scope It
+        }
+
+        It 'Should require a directory path' {
+            { Save-IMDatabaseBackup -Filename 'immich-db-backup-1.sql.gz' } | Should -Throw
+        }
+    }
+
     Describe 'Start-IMMaintenanceMode' -Tag 'Unit', 'Start-IMMaintenanceMode' -Skip:$true {
         BeforeAll {
             Mock Invoke-ImmichApiSetMaintenanceMode {} -ModuleName PSImmich
