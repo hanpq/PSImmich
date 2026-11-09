@@ -10467,9 +10467,9 @@ InModuleScope $ProjectName {
                 Should -Invoke Invoke-ImmichApiCopyAsset -Times 1 -Exactly -ModuleName PSImmich -ParameterFilter {
                     $Body.albums -eq $true -and
                     $Body.metadata -eq $true -and
-                    -not $Body.ContainsKey('sharedLinks') -and
-                    -not $Body.ContainsKey('sidecar') -and
-                    -not $Body.ContainsKey('stack')
+                    $Body.sharedLinks -eq $false -and
+                    $Body.sidecar -eq $false -and
+                    $Body.stack -eq $false
                 }
             }
 
@@ -10484,10 +10484,10 @@ InModuleScope $ProjectName {
 
                 Should -Invoke Invoke-ImmichApiCopyAsset -Times 1 -Exactly -ModuleName PSImmich -ParameterFilter {
                     $Body.albums -eq $false -and
-                    -not $Body.ContainsKey('metadata') -and
-                    -not $Body.ContainsKey('sharedLinks') -and
-                    -not $Body.ContainsKey('sidecar') -and
-                    -not $Body.ContainsKey('stack')
+                    $Body.metadata -eq $false -and
+                    $Body.sharedLinks -eq $false -and
+                    $Body.sidecar -eq $false -and
+                    $Body.stack -eq $false
                 }
             }
         }
