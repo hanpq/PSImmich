@@ -79,14 +79,14 @@
                     $BodyParameters = @{
                         ids = ($AssetIDs -as [string[]])
                     }
-                    InvokeImmichRestMethod -Method POST -RelativePath '/trash/restore/assets' -ImmichSession:$Session -Body:$BodyParameters
+                    Invoke-ImmichApiRestoreAssets -Body $BodyParameters -ImmichSession $Session
                 }
             }
             'all'
             {
                 if ($PSCmdlet.ShouldProcess('All trashed assets', 'Restore'))
                 {
-                    InvokeImmichRestMethod -Method POST -RelativePath '/trash/restore' -ImmichSession:$Session
+                    Invoke-ImmichApiRestoreTrash -ImmichSession $Session
                 }
             }
         }

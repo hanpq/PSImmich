@@ -2490,7 +2490,8 @@ InModuleScope $ProjectName {
     }
     Describe 'Restore-IMAsset' -Tag 'Unit', 'Restore-IMAsset' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRestoreAssets { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRestoreTrash { return @{ Status = 'Success' } } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -2538,25 +2539,17 @@ InModuleScope $ProjectName {
                 $Command.ScriptBlock.Attributes | Where-Object { $_.GetType().Name -eq 'CmdletBindingAttribute' } | ForEach-Object { $_.SupportsShouldProcess } | Should -Be $true
             }
 
-            It 'Should call ShouldProcess for id parameter set' {
-                Mock InvokeImmichRestMethod { return @{ Status = 'Success' } } -ModuleName PSImmich -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/trash/restore/assets'
-                }
-
+            It 'Should call Invoke-ImmichApiRestoreAssets for id parameter set' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Restore-IMAsset -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiRestoreAssets -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
-            It 'Should call ShouldProcess for all parameter set' {
-                Mock InvokeImmichRestMethod { return @{ Status = 'Success' } } -ModuleName PSImmich -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/trash/restore'
-                }
-
+            It 'Should call Invoke-ImmichApiRestoreTrash for all parameter set' {
                 Restore-IMAsset -All -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiRestoreTrash -ModuleName PSImmich -Exactly 1 -Scope It
             }
         }
 
@@ -2565,24 +2558,20 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Restore-IMAsset -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/trash/restore/assets'
-                }
+                Should -Invoke Invoke-ImmichApiRestoreAssets -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
             It 'Should call correct endpoint for all parameter set' {
                 Restore-IMAsset -All -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/trash/restore'
-                }
+                Should -Invoke Invoke-ImmichApiRestoreTrash -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
             It 'Should send correct body parameters for id parameter set' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Restore-IMAsset -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRestoreAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.ids -contains $TestId
                 }
             }
@@ -2590,20 +2579,16 @@ InModuleScope $ProjectName {
 
         Context 'Session Parameter' {
             It 'Should use provided session when specified' {
-                # Test parameter definition and type - avoid runtime type conversion issues
                 $Command = Get-Command Restore-IMAsset -Module PSImmich
                 $Command.Parameters.ContainsKey('Session') | Should -Be $true
                 $Command.Parameters['Session'].ParameterType.Name | Should -Be 'ImmichSession'
-
-                # Verify that InvokeImmichRestMethod is called when session handling occurs
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 0 -Scope It
             }
 
             It 'Should use default session when no session parameter provided' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Restore-IMAsset -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRestoreAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
