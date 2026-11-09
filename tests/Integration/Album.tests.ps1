@@ -122,9 +122,20 @@ Describe 'Album' -Tag 'Integration' {
             $Result | Should -BeNullOrEmpty
         }
 
-        It 'Excludes an unshared album when Shared is false' {
-            $Result = Get-IMAlbum -Shared:$false | Where-Object { $_.id -eq $script:Album.id }
-            $Result | Should -BeNullOrEmpty
+        It 'Includes an unshared album and excludes a shared album when Shared is false' {
+            $Album = & $script:NewTestAlbum
+            try
+            {
+                Add-IMAlbumUser -AlbumId $Album.id -UserId $script:SharedUserId
+                $Unshared = Get-IMAlbum -Shared:$false | Where-Object { $_.id -eq $script:Album.id }
+                $Unshared | Should -HaveCount 1
+                $Shared = Get-IMAlbum -Shared:$false | Where-Object { $_.id -eq $Album.id }
+                $Shared | Should -BeNullOrEmpty
+            }
+            finally
+            {
+                Remove-IMAlbumUser -AlbumId $Album.id -UserId $script:SharedUserId -Confirm:$false
+            }
         }
 
         It 'Includes a shared album when Shared is true' {
@@ -472,7 +483,10 @@ Describe 'Album' -Tag 'Integration' {
             }
             finally
             {
-                Remove-IMAlbumUser -AlbumId $Album.id -UserId $script:SharedUserId -Confirm:$false
+                if ((Get-IMAlbum -AlbumId $Album.id).albumUsers.user.id -contains $script:SharedUserId)
+                {
+                    Remove-IMAlbumUser -AlbumId $Album.id -UserId $script:SharedUserId -Confirm:$false
+                }
             }
         }
 
@@ -486,7 +500,10 @@ Describe 'Album' -Tag 'Integration' {
             }
             finally
             {
-                Remove-IMAlbumUser -AlbumId $Album.id -UserId $script:SharedUserId -Confirm:$false
+                if ((Get-IMAlbum -AlbumId $Album.id).albumUsers.user.id -contains $script:SharedUserId)
+                {
+                    Remove-IMAlbumUser -AlbumId $Album.id -UserId $script:SharedUserId -Confirm:$false
+                }
             }
         }
 
