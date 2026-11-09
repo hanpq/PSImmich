@@ -237,8 +237,9 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Unreachable | 123 |
 | Total | 279 |
 
-Wired for 97 of 220 non-excluded operations (44.1%) after the Job batch
-(was 91, 41.4%, after the Library batch;
+Wired for 105 of 220 non-excluded operations (47.7%) after the SharedLink batch
+(was 97, 44.1%, after the Job batch;
+was 91, 41.4%, after the Library batch;
 was 83, 37.7%, after the User batch and the profile-image export;
 was 82, 37.3%, after the User batch;
 was 68, 30.9%, after the raw-JSON admin config change;
@@ -281,6 +282,14 @@ DTO class names, so the public type name changes. `Get-IMQueueJob -Status` is a 
 again; previously it was sent in the GET body. The generator now maps DTO integer properties
 whose spec bounds exceed Int32 to `[long]`. This widened 148 DTO properties, including
 `QueueJobResponseDto.timestamp` (epoch milliseconds). Route query parameters stay `[int]`.
+
+SharedLink batch: the six shared-link cmdlets call the generated functions. `Get-IMSharedLink`
+(list and `-Id`), `New-IMSharedLink`, and `Set-IMSharedLink` return `SharedLinkResponseDto`.
+`Add-IMSharedLinkAsset` and `Remove-IMSharedLinkAsset` return `AssetIdsResponseDto` per asset.
+`Remove-IMSharedLink` has no output. `Get-IMSharedLink -AlbumId` is sent only when bound, so
+the list query no longer sends an empty `albumId`. The asset cmdlets declared `SupportsShouldProcess`
+but never checked it; they now honor `-WhatIf` and `-Confirm`. No shared-link route is deprecated
+in 3.3.6, so no legacy paths remain. No format view existed for shared links, so no type name changed.
 
 ## Next handoff
 

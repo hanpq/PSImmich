@@ -50,10 +50,13 @@
 
     end
     {
-        $Body = @{
-            assetIds = $AssetIDs
+        if ($PSCmdlet.ShouldProcess($SharedLinkId, 'Add assets'))
+        {
+            $Body = @{
+                assetIds = $AssetIDs
+            }
+            Invoke-ImmichApiAddSharedLinkAssets -Id $SharedLinkId -Body $Body -ImmichSession $Session | ForEach-Object { [AssetIdsResponseDto]::new($PSItem) }
         }
-        InvokeImmichRestMethod -Method PUT -RelativePath "/shared-links/$SharedLinkId/assets" -ImmichSession:$Session -Body $Body
     }
 }
 #endregion

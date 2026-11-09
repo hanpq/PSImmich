@@ -80,7 +80,7 @@
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Update'))
             {
-                InvokeImmichRestMethod -Method PATCH -RelativePath "/shared-links/$PSItem" -ImmichSession:$Session -Body $BodyParameters
+                Invoke-ImmichApiUpdateSharedLink -Id $PSItem -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [SharedLinkResponseDto]::new($PSItem) }
             }
         }
     }

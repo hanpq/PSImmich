@@ -7887,89 +7887,251 @@ InModuleScope $ProjectName {
     }
     Describe 'Add-IMSharedLinkAsset' -Tag 'Unit', 'Add-IMSharedLinkAsset' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @([PSCustomObject]@{ id = 'asset1-guid'; type = 'IMAGE' })
+            Mock Invoke-ImmichApiAddSharedLinkAssets -ModuleName PSImmich {
+                [pscustomobject]@{ assetId = $Body.assetIds[0]; success = $true; error = $null }
             }
         }
-        Context 'Shared Link Asset Addition' {
-            It 'Should add assets to shared link with correct API call' {
-                Add-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id @('12345678-1234-1234-1234-123456789def')
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/shared-links/12345678-1234-1234-1234-123456789abc/assets'
+
+        Context 'Request mapping' {
+            It 'Should add the asset to the shared link' {
+                Add-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id '12345678-1234-1234-1234-123456789def' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiAddSharedLinkAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc' -and
+                    $Body.assetIds -contains '12345678-1234-1234-1234-123456789def'
                 }
+            }
+
+            It 'Should send all assets received from the pipeline in one request' {
+                @('12345678-1234-1234-1234-123456789d01', '12345678-1234-1234-1234-123456789d02') |
+                    ForEach-Object { [pscustomobject]@{ Id = $PSItem; SharedLinkId = '12345678-1234-1234-1234-123456789abc' } } |
+                    Add-IMSharedLinkAsset -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiAddSharedLinkAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.assetIds.Count -eq 2
+                }
+            }
+
+            It 'Should not call the API when WhatIf is specified' {
+                Add-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id '12345678-1234-1234-1234-123456789def' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiAddSharedLinkAssets -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return an AssetIdsResponseDto' {
+                $Result = Add-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id '12345678-1234-1234-1234-123456789def' -Confirm:$false
+
+                $Result.GetType().Name | Should -Be 'AssetIdsResponseDto'
+                $Result.success | Should -BeTrue
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid shared link id' {
+                { Add-IMSharedLinkAsset -SharedLinkId 'not-a-guid' -Id '12345678-1234-1234-1234-123456789def' -Confirm:$false } | Should -Throw
             }
         }
     }
     Describe 'Get-IMSharedLink' -Tag 'Unit', 'Get-IMSharedLink' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @([PSCustomObject]@{ id = 'link1'; key = 'share-key-123'; type = 'ALBUM' })
+            Mock Invoke-ImmichApiGetAllSharedLinks -ModuleName PSImmich {
+                [pscustomobject]@{ id = 'link1'; key = 'share-key-123'; type = 'ALBUM' }
+            }
+            Mock Invoke-ImmichApiGetSharedLinkById -ModuleName PSImmich {
+                [pscustomobject]@{ id = $Id; key = 'share-key-123'; type = 'INDIVIDUAL' }
             }
         }
-        Context 'Shared Link Retrieval' {
-            It 'Should get shared links with correct API call' {
+
+        Context 'Request mapping' {
+            It 'Should list shared links without an album filter when AlbumId is not bound' {
                 Get-IMSharedLink
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/shared-links'
+
+                Should -Invoke Invoke-ImmichApiGetAllSharedLinks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    -not $AlbumId
                 }
+            }
+
+            It 'Should filter shared links by album' {
+                Get-IMSharedLink -AlbumId '12345678-1234-1234-1234-123456789abc'
+
+                Should -Invoke Invoke-ImmichApiGetAllSharedLinks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $AlbumId -eq '12345678-1234-1234-1234-123456789abc'
+                }
+            }
+
+            It 'Should get a single shared link by id' {
+                Get-IMSharedLink -Id '12345678-1234-1234-1234-123456789abc'
+
+                Should -Invoke Invoke-ImmichApiGetSharedLinkById -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
+                }
+            }
+
+            It 'Should forward an explicit session' {
+                $TestSession = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMSharedLink -Session $TestSession
+
+                Should -Invoke Invoke-ImmichApiGetAllSharedLinks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $TestSession
+                }
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return SharedLinkResponseDto objects' {
+                $Result = Get-IMSharedLink
+
+                $Result.GetType().Name | Should -Be 'SharedLinkResponseDto'
+                $Result.key | Should -Be 'share-key-123'
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid id' {
+                { Get-IMSharedLink -Id 'not-a-guid' } | Should -Throw
             }
         }
     }
     Describe 'New-IMSharedLink' -Tag 'Unit', 'New-IMSharedLink' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ id = 'new-link'; key = 'new-share-key'; url = 'https://immich.example.com/share/new-share-key' }
+            Mock Invoke-ImmichApiCreateSharedLink -ModuleName PSImmich {
+                [pscustomobject]@{ id = 'new-link'; key = 'new-share-key'; type = $Body.type; description = $Body.description }
             }
         }
-        Context 'Shared Link Creation' {
-            It 'Should create shared link with correct API call' {
-                New-IMSharedLink -AssetId @('12345678-1234-1234-1234-123456789abc')
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and $RelativePath -eq '/shared-links'
+
+        Context 'Request mapping' {
+            It 'Should create an individual asset link with the asset ids' {
+                New-IMSharedLink -AssetId @('12345678-1234-1234-1234-123456789abc', '12345678-1234-1234-1234-123456789def')
+
+                Should -Invoke Invoke-ImmichApiCreateSharedLink -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.type -eq 'INDIVIDUAL' -and
+                    $Body.assetIds.Count -eq 2 -and
+                    $Body.assetIds -contains '12345678-1234-1234-1234-123456789def'
                 }
+            }
+
+            It 'Should create an album link with the album id' {
+                New-IMSharedLink -AlbumId '12345678-1234-1234-1234-123456789abc'
+
+                Should -Invoke Invoke-ImmichApiCreateSharedLink -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.type -eq 'ALBUM' -and $Body.albumId -eq '12345678-1234-1234-1234-123456789abc'
+                }
+            }
+
+            It 'Should send the description' {
+                New-IMSharedLink -AssetId '12345678-1234-1234-1234-123456789abc' -Description 'Holiday photos'
+
+                Should -Invoke Invoke-ImmichApiCreateSharedLink -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.description -eq 'Holiday photos'
+                }
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return a SharedLinkResponseDto' {
+                $Result = New-IMSharedLink -AssetId '12345678-1234-1234-1234-123456789abc'
+
+                $Result.GetType().Name | Should -Be 'SharedLinkResponseDto'
+                $Result.key | Should -Be 'new-share-key'
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid asset id' {
+                { New-IMSharedLink -AssetId 'not-a-guid' } | Should -Throw
             }
         }
     }
     Describe 'Remove-IMSharedLink' -Tag 'Unit', 'Remove-IMSharedLink' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiRemoveSharedLink -ModuleName PSImmich { }
         }
-        Context 'Shared Link Removal' {
-            It 'Should remove shared link with correct API call' {
-                Remove-IMSharedLink -id '12345678-1234-5678-9012-123456789abc'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/shared-links/12345678-1234-5678-9012-123456789abc'
+
+        Context 'Request mapping' {
+            It 'Should remove the shared link by id' {
+                Remove-IMSharedLink -Id '12345678-1234-5678-9012-123456789abc' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiRemoveSharedLink -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
                 }
+            }
+
+            It 'Should not call the API when WhatIf is specified' {
+                Remove-IMSharedLink -Id '12345678-1234-5678-9012-123456789abc' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiRemoveSharedLink -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid id' {
+                { Remove-IMSharedLink -Id 'not-a-guid' -Confirm:$false } | Should -Throw
             }
         }
     }
     Describe 'Remove-IMSharedLinkAsset' -Tag 'Unit', 'Remove-IMSharedLinkAsset' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @([PSCustomObject]@{ id = 'remaining-asset'; type = 'IMAGE' })
+            Mock Invoke-ImmichApiRemoveSharedLinkAssets -ModuleName PSImmich {
+                [pscustomobject]@{ assetId = $Body.assetIds[0]; success = $true; error = $null }
             }
         }
-        Context 'Shared Link Asset Removal' {
-            It 'Should remove assets from shared link with correct API call' {
-                Remove-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id @('12345678-1234-1234-1234-123456789def')
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/shared-links/12345678-1234-1234-1234-123456789abc/assets'
+
+        Context 'Request mapping' {
+            It 'Should remove the asset from the shared link' {
+                Remove-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id '12345678-1234-1234-1234-123456789def' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiRemoveSharedLinkAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc' -and
+                    $Body.assetIds -contains '12345678-1234-1234-1234-123456789def'
                 }
+            }
+
+            It 'Should not call the API when WhatIf is specified' {
+                Remove-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id '12345678-1234-1234-1234-123456789def' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiRemoveSharedLinkAssets -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return an AssetIdsResponseDto' {
+                $Result = Remove-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id '12345678-1234-1234-1234-123456789def' -Confirm:$false
+
+                $Result.GetType().Name | Should -Be 'AssetIdsResponseDto'
             }
         }
     }
     Describe 'Set-IMSharedLink' -Tag 'Unit', 'Set-IMSharedLink' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ id = 'updated-link'; description = 'Updated description' }
+            Mock Invoke-ImmichApiUpdateSharedLink -ModuleName PSImmich {
+                [pscustomobject]@{ id = $Id; key = 'share-key-123'; description = $Body.description }
             }
         }
-        Context 'Shared Link Updates' {
-            It 'Should update shared link with correct API call' {
-                Set-IMSharedLink -Id '12345678-1234-5678-9012-123456789abc' -Description 'New description'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Patch' -and $RelativePath -eq '/shared-links/12345678-1234-5678-9012-123456789abc'
+
+        Context 'Request mapping' {
+            It 'Should update the shared link with the new description' {
+                Set-IMSharedLink -Id '12345678-1234-5678-9012-123456789abc' -Description 'New description' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpdateSharedLink -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc' -and $Body.description -eq 'New description'
                 }
+            }
+
+            It 'Should not call the API when WhatIf is specified' {
+                Set-IMSharedLink -Id '12345678-1234-5678-9012-123456789abc' -Description 'New description' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiUpdateSharedLink -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return a SharedLinkResponseDto' {
+                $Result = Set-IMSharedLink -Id '12345678-1234-5678-9012-123456789abc' -Description 'New description' -Confirm:$false
+
+                $Result.GetType().Name | Should -Be 'SharedLinkResponseDto'
+                $Result.description | Should -Be 'New description'
             }
         }
     }
