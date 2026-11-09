@@ -350,6 +350,13 @@ Live integration rules (mandatory when a live instance is used):
 - Do not send credentials or demo-instance details to third-party services or
   commit them to the repository.
 
+Live integration rules:
+
+- Ask the maintainer for approval before every live run. Do not assume an earlier approval still applies.
+- Never run more than one live integration test at a time. Live state is shared, not mocked.
+- Tests must restore the server state they found before they finish, including on failure.
+- Check that `PSIMMICHURI`, `PSIMMICHAPIKEY`, `PSIMMICHUSER` and `PSIMMICHPASSWORD` are set, by name only. If one is missing, pause and ask the maintainer to add it.
+
 Only with an authorized disposable target-version server, set `PSIMMICHURI`,
 `PSIMMICHAPIKEY`, `PSIMMICHUSER`, and `PSIMMICHPASSWORD` securely and run:
 
