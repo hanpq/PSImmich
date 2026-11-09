@@ -22,8 +22,7 @@ BeforeDiscovery {
 }
 
 Describe 'User' -Tag 'Integration' {
-    # Intentionally excluded: New-IMUser, Remove-IMUser, Restore-IMUser and Set-IMUser (create, delete or change real accounts),
-    # Add-IMMyProfilePicture and Remove-IMMyProfilePicture (change the profile picture of the live account).
+    # Intentionally excluded: New-IMUser, Remove-IMUser, Restore-IMUser and Set-IMUser (create, delete or change real accounts).
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
         $Me = Get-IMUser -Me
@@ -152,6 +151,65 @@ Describe 'User' -Tag 'Integration' {
         }
         It 'Should throw for a malformed id' {
             { Export-IMProfilePicture -Id 'not-a-guid' -Path $ExportPath } | Should -Throw
+        }
+    }
+
+    # Restores the account's original picture, or removes the test picture when the account had none.
+    Context 'Add-IMMyProfilePicture and Remove-IMMyProfilePicture' -Tag 'Add-IMMyProfilePicture' {
+        BeforeAll {
+            $script:HadPicture = [bool]$Me.profileImagePath
+            $script:BackupFolder = Join-Path ([System.IO.Path]::GetTempPath()) "psimtest-profile-$([guid]::NewGuid().ToString('N'))"
+            New-Item -Path $script:BackupFolder -ItemType Directory -Force | Out-Null
+            $script:BackupFile = $null
+            if ($script:HadPicture)
+            {
+                Export-IMProfilePicture -Id $MyId -Path $script:BackupFolder
+                $script:BackupFile = Join-Path $script:BackupFolder "$MyId.jpeg"
+            }
+            $script:Fixture = Join-Path $PSScriptRoot 'Immich.png'
+            $script:VerifyFolder = Join-Path $script:BackupFolder 'verify'
+            New-Item -Path $script:VerifyFolder -ItemType Directory -Force | Out-Null
+        }
+
+        AfterAll {
+            try
+            {
+                $Current = (Get-IMUser -Me).profileImagePath
+                if ($script:HadPicture)
+                {
+                    Add-IMMyProfilePicture -FilePath $script:BackupFile
+                }
+                elseif ($Current)
+                {
+                    Remove-IMMyProfilePicture -Confirm:$false
+                }
+            }
+            finally
+            {
+                Remove-Item -Path $script:BackupFolder -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+        It 'Should set the profile picture of the current user' {
+            Add-IMMyProfilePicture -FilePath $script:Fixture
+            (Get-IMUser -Me).profileImagePath | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Should export the uploaded profile picture' {
+            Export-IMProfilePicture -Id $MyId -Path $script:VerifyFolder
+            $File = Join-Path $script:VerifyFolder "$MyId.jpeg"
+            $File | Should -Exist
+            (Get-Item -LiteralPath $File).Length | Should -BeGreaterThan 0
+        }
+
+        It 'Should not remove the profile picture with -WhatIf' {
+            Remove-IMMyProfilePicture -WhatIf
+            (Get-IMUser -Me).profileImagePath | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Should remove the profile picture of the current user' {
+            Remove-IMMyProfilePicture -Confirm:$false
+            (Get-IMUser -Me).profileImagePath | Should -BeNullOrEmpty
         }
     }
 
