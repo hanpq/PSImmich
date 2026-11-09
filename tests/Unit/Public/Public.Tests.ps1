@@ -4685,6 +4685,154 @@ InModuleScope $ProjectName {
         }
     }
     # Skipped until we can exit maintenance mode via API
+    Describe 'Get-IMIntegrityReport' -Tag 'Unit', 'Get-IMIntegrityReport' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetIntegrityReport -ModuleName PSImmich {
+                [PSCustomObject]@{
+                    items      = @(
+                        [PSCustomObject]@{ id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'; type = 'untracked_file'; path = '/data/a.jpg'; createdAt = '2026-01-01T00:00:00Z'; assetId = $null; fileAssetId = $null }
+                    )
+                    nextCursor = 'next-page'
+                }
+            }
+            Mock Invoke-ImmichApiGetIntegrityReportSummary -ModuleName PSImmich {
+                [PSCustomObject]@{ untrackedFile = 3; missingFile = 1; checksumMismatch = 0 }
+            }
+        }
+
+        Context 'When listing a report type' {
+            It 'Should call the report endpoint with the type' {
+                $null = Get-IMIntegrityReport -Type 'untracked_file'
+
+                Should -Invoke Invoke-ImmichApiGetIntegrityReport -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Type -eq 'untracked_file' -and $null -eq $Cursor -and $null -eq $Limit
+                }
+            }
+
+            It 'Should forward cursor and limit when supplied' {
+                $null = Get-IMIntegrityReport -Type 'missing_file' -Cursor 'page-2' -Limit 25
+
+                Should -Invoke Invoke-ImmichApiGetIntegrityReport -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Type -eq 'missing_file' -and $Cursor -eq 'page-2' -and $Limit -eq 25
+                }
+            }
+
+            It 'Should return the report response with the next cursor' {
+                $Result = Get-IMIntegrityReport -Type 'untracked_file'
+
+                $Result.GetType().Name | Should -Be 'IntegrityReportResponseDto'
+                $Result.NextCursor | Should -Be 'next-page'
+                $Result.Items.Count | Should -Be 1
+            }
+
+            It 'Should reject an unknown report type' {
+                { Get-IMIntegrityReport -Type 'unknown' } | Should -Throw
+            }
+        }
+
+        Context 'When requesting the summary' {
+            It 'Should call the summary endpoint' {
+                $Result = Get-IMIntegrityReport -Summary
+
+                Should -Invoke Invoke-ImmichApiGetIntegrityReportSummary -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetIntegrityReport -ModuleName PSImmich -Times 0 -Exactly -Scope It
+                $Result.GetType().Name | Should -Be 'IntegrityReportSummaryResponseDto'
+            }
+        }
+
+        Context 'When parameters conflict' {
+            It 'Should reject Summary combined with Type' {
+                { Get-IMIntegrityReport -Summary -Type 'untracked_file' } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Remove-IMIntegrityReport' -Tag 'Unit', 'Remove-IMIntegrityReport' {
+        BeforeAll {
+            Mock Invoke-ImmichApiDeleteIntegrityReport -ModuleName PSImmich {}
+        }
+
+        Context 'When removing an item' {
+            It 'Should call the delete endpoint with the id' {
+                Remove-IMIntegrityReport -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteIntegrityReport -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+                }
+            }
+        }
+
+        Context 'When removing items from the pipeline' {
+            It 'Should send one request per item bound by property name' {
+                $Items = @(
+                    [PSCustomObject]@{ id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
+                    [PSCustomObject]@{ id = '6c1c0c9e-4b4f-4b57-b2bc-1f8b3e5a0d22' }
+                )
+
+                $Items | Remove-IMIntegrityReport -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteIntegrityReport -ModuleName PSImmich -Times 2 -Exactly -Scope It
+            }
+        }
+
+        Context 'When WhatIf is specified' {
+            It 'Should not call the endpoint' {
+                Remove-IMIntegrityReport -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiDeleteIntegrityReport -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+        }
+
+        Context 'When the id is invalid' {
+            It 'Should throw for a malformed id' {
+                { Remove-IMIntegrityReport -Id 'not-a-guid' -Confirm:$false } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Save-IMIntegrityReport' -Tag 'Unit', 'Save-IMIntegrityReport' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetIntegrityReportFile -ModuleName PSImmich {}
+            Mock Invoke-ImmichApiGetIntegrityReportCsv -ModuleName PSImmich {}
+        }
+
+        Context 'When saving an item file' {
+            It 'Should download the file for the id to the path' {
+                $Path = Join-Path $TestDrive 'item.bin'
+
+                Save-IMIntegrityReport -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Path $Path
+
+                Should -Invoke Invoke-ImmichApiGetIntegrityReportFile -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and $OutFilePath.FullName -eq $Path
+                }
+                Should -Invoke Invoke-ImmichApiGetIntegrityReportCsv -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+        }
+
+        Context 'When saving a CSV export' {
+            It 'Should download the CSV for the type to the path' {
+                $Path = Join-Path $TestDrive 'checksum.csv'
+
+                Save-IMIntegrityReport -Type 'checksum_mismatch' -Path $Path
+
+                Should -Invoke Invoke-ImmichApiGetIntegrityReportCsv -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Type -eq 'checksum_mismatch' -and $OutFilePath.FullName -eq $Path
+                }
+                Should -Invoke Invoke-ImmichApiGetIntegrityReportFile -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+        }
+
+        Context 'When parameters are invalid' {
+            It 'Should reject an unknown CSV report type' {
+                { Save-IMIntegrityReport -Type 'bogus' -Path (Join-Path $TestDrive 'x.csv') } | Should -Throw
+            }
+
+            It 'Should require a path' {
+                { Save-IMIntegrityReport -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' } | Should -Throw
+            }
+        }
+    }
+
     Describe 'Start-IMMaintenanceMode' -Tag 'Unit', 'Start-IMMaintenanceMode' -Skip:$true {
         BeforeAll {
             Mock Invoke-ImmichApiSetMaintenanceMode {} -ModuleName PSImmich
