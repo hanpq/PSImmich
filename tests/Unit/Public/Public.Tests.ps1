@@ -3585,14 +3585,10 @@ InModuleScope $ProjectName {
                     }
                 }
             }
-
-            Mock AddCustomType -ModuleName PSImmich {
-                param($InputObject, $Type)
-                return $InputObject
-            }
         }
 
         Context 'Duplicate Retrieval' {
+
             It 'Should retrieve duplicates using GET method' {
                 Get-IMDuplicate
 
@@ -3620,12 +3616,11 @@ InModuleScope $ProjectName {
                 $result[1].assets[0].type | Should -Be 'VIDEO'
             }
 
-            It 'Should call AddCustomType with IMAssetDuplicate type' {
-                Get-IMDuplicate
+            It 'Should return DuplicateResponseDto objects' {
+                $result = Get-IMDuplicate
 
-                Should -Invoke AddCustomType -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Type -eq 'IMAssetDuplicate'
-                }
+                $result[0].GetType().Name | Should -Be 'DuplicateResponseDto'
+                $result[0].assets[0].GetType().Name | Should -Be 'AssetResponseDto'
             }
 
             It 'Should handle empty duplicate results' {

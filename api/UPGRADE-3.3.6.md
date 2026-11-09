@@ -237,8 +237,9 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Unreachable | 110 |
 | Total | 279 |
 
-Wired for 145 of 219 non-excluded operations (66.2%) after the AuthSession batch
-(was 142, 64.8%, after the Face batch;
+Wired for 147 of 219 non-excluded operations (67.1%) after the Duplicates batch
+(was 145, 66.2%, after the AuthSession batch;
+was 142, 64.8%, after the Face batch;
 was 138, 63.0%, after the Workflow batch;
 was 130, 59.4%, after the Memories batch;
 was 124, 56.6%, after the Partner batch;
@@ -256,6 +257,15 @@ was 67, 30.5%, after the Server batch;
 metric, not parameter or contract parity. The 129 unreachable operations are the backlog.
 20 unreachable operations are deprecated; each needs the
 replacement-or-retain decision under the maintainer policy before implementation.
+
+Duplicates batch: `Get-IMDuplicate` (`getAssetDuplicates`) returns `DuplicateResponseDto` (the custom
+`IMAssetDuplicate` type name is dropped). `Remove-IMDuplicate` calls `deleteDuplicates` with the same body
+as before (`ids` = duplicate group IDs), so wire behavior is unchanged. Open question: the 3.3.6 spec describes
+`deleteDuplicates` as "Delete multiple duplicate assets specified by their IDs" and the `BulkIdsDto` `ids`
+as asset IDs, which conflicts with the group-ID contract documented in the cmdlet. Not changed pending
+maintainer decision and live verification. Still unimplemented: `deleteDuplicate` (`DELETE /duplicates/{id}`,
+dismiss a group; currently excluded as "Batch-version of this api is implemented as Remove-IMDuplicate") and
+`resolveDuplicates` (`POST /duplicates/resolve`, Alpha in 3.3.6). Targeted tests: 35 passed, 0 failed.
 
 AuthSession batch: `Get-IMAuthSession` (`getSessions`) returns `SessionResponseDto`; `Remove-IMAuthSession` calls
 `deleteAllSessions` (no `-Id`) or `deleteSession` (per `-Id`). Breaking: the 3.3.6 `SessionResponseDto` has no
