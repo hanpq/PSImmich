@@ -2747,6 +2747,47 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'Get-IMAssetFolder' -Tag 'Unit', 'Get-IMAssetFolder' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetAssetsByOriginalPath -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'; type = 'IMAGE'; originalPath = '/usr/src/app/upload/library/2024/a.jpg'; originalFileName = 'a.jpg'; isFavorite = $false; isArchived = $false; isTrashed = $false; visibility = 'timeline'; checksum = 'abc'; deviceAssetId = 'd1'; deviceId = 'dev'; fileCreatedAt = '2024-01-01T00:00:00Z'; fileModifiedAt = '2024-01-01T00:00:00Z'; localDateTime = '2024-01-01T00:00:00Z'; updatedAt = '2024-01-01T00:00:00Z'; createdAt = '2024-01-01T00:00:00Z'; ownerId = 'owner'; hasMetadata = $true; duplicateId = $null; isEdited = $false; isOffline = $false; thumbhash = $null }
+                )
+            }
+            Mock Invoke-ImmichApiGetUniqueOriginalPaths -ModuleName PSImmich {
+                return @('/usr/src/app/upload/library/2024', '/usr/src/app/upload/library/2025')
+            }
+        }
+
+        It 'Should call Invoke-ImmichApiGetAssetsByOriginalPath with the folder path' {
+            Get-IMAssetFolder -Path '/usr/src/app/upload/library/2024'
+
+            Should -Invoke Invoke-ImmichApiGetAssetsByOriginalPath -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Path -eq '/usr/src/app/upload/library/2024'
+            }
+            Should -Invoke Invoke-ImmichApiGetUniqueOriginalPaths -ModuleName PSImmich -Times 0 -Exactly -Scope It
+        }
+
+        It 'Should return AssetResponseDto objects for a folder' {
+            $result = Get-IMAssetFolder -Path '/usr/src/app/upload/library/2024'
+
+            $result.GetType().Name | Should -Be 'AssetResponseDto'
+            $result.originalFileName | Should -Be 'a.jpg'
+        }
+
+        It 'Should call Invoke-ImmichApiGetUniqueOriginalPaths when no path is given' {
+            $result = Get-IMAssetFolder
+
+            Should -Invoke Invoke-ImmichApiGetUniqueOriginalPaths -ModuleName PSImmich -Times 1 -Exactly -Scope It
+            Should -Invoke Invoke-ImmichApiGetAssetsByOriginalPath -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            $result | Should -Contain '/usr/src/app/upload/library/2025'
+        }
+
+        It 'Should reject an empty path' {
+            { Get-IMAssetFolder -Path '' } | Should -Throw
+        }
+    }
+
     Describe 'Save-IMAssetFile' -Tag 'Unit', 'Save-IMAssetFile' {
         BeforeAll {
             Mock Invoke-ImmichApiGetAssetFile -ModuleName PSImmich {
