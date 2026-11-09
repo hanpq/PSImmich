@@ -627,6 +627,7 @@ function New-ClassText([string]$Name, $Schema, [hashtable]$Done)
     $Text = New-Object System.Collections.Generic.List[string]
     $Constructor = New-Object System.Collections.Generic.List[string]
     $Seen = @{}
+    $HasStringId = $false
     $Text.Add("class $Name")
     $Text.Add('{')
     foreach ($Property in $Schema.properties.PSObject.Properties)
@@ -647,6 +648,10 @@ function New-ClassText([string]$Name, $Schema, [hashtable]$Done)
         if ($Type.Array)
         {
             $TypeName += '[]'
+        }
+        if ($PropertyName -ceq 'id' -and $Type.Kind -eq 'scalar' -and $Type.Type -eq 'string' -and -not $Type.Array)
+        {
+            $HasStringId = $true
         }
         $Text.Add("    [$TypeName]`$$PropertyName")
 
@@ -670,6 +675,14 @@ function New-ClassText([string]$Name, $Schema, [hashtable]$Done)
         $Text.Add($Line)
     }
     $Text.Add('    }')
+    if ($HasStringId)
+    {
+        $Text.Add('')
+        $Text.Add('    [string] ToString()')
+        $Text.Add('    {')
+        $Text.Add('        return $this.id')
+        $Text.Add('    }')
+    }
     $Text.Add('}')
     return (@($Text) -join "`r`n")
 }

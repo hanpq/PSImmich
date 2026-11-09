@@ -41,6 +41,11 @@ class UserResponseDto
         if ($null -ne $Source.profileChangedAt) { $this.profileChangedAt = $Source.profileChangedAt }
         if ($null -ne $Source.profileImagePath) { $this.profileImagePath = $Source.profileImagePath }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class ActivityResponseDto
@@ -64,6 +69,11 @@ class ActivityResponseDto
         if ($null -ne $Source.id) { $this.id = $Source.id }
         if ($null -ne $Source.type) { $this.type = $Source.type }
         if ($null -ne $Source.user) { $this.user = [UserResponseDto]::new($Source.user) }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -1057,6 +1067,11 @@ class AlbumResponseDto
         if ($null -ne $Source.startDate) { $this.startDate = $Source.startDate }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class AlbumsAddAssetsDto
@@ -1189,6 +1204,11 @@ class ApiKeyResponseDto
         if ($null -ne $Source.permissions) { $this.permissions = $Source.permissions }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class ApiKeyCreateResponseDto
@@ -1214,6 +1234,11 @@ class ApiKeyCreateResponseDto
         if ($null -ne $Source.permissions) { $this.permissions = $Source.permissions }
         if ($null -ne $Source.secret) { $this.secret = $Source.secret }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -1297,6 +1322,11 @@ class AssetBulkUploadCheckItem
         if ($null -ne $Source.checksum) { $this.checksum = $Source.checksum }
         if ($null -ne $Source.id) { $this.id = $Source.id }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class AssetBulkUploadCheckDto
@@ -1332,6 +1362,11 @@ class AssetBulkUploadCheckResult
         if ($null -ne $Source.id) { $this.id = $Source.id }
         if ($null -ne $Source.isTrashed) { $this.isTrashed = $Source.isTrashed }
         if ($null -ne $Source.reason) { $this.reason = $Source.reason }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -1406,6 +1441,11 @@ class AssetEditActionItemResponseDto
         if ($null -ne $Source.action) { $this.action = $Source.action }
         if ($null -ne $Source.id) { $this.id = $Source.id }
         if ($null -ne $Source.parameters) { $this.parameters = $Source.parameters }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -1511,6 +1551,11 @@ class AssetFaceResponseDto
         if ($null -ne $Source.person) { $this.person = $Source.person }
         if ($null -ne $Source.sourceType) { $this.sourceType = $Source.sourceType }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class AssetFaceUpdateItem
@@ -1570,6 +1615,11 @@ class AssetFileResponseDto
         if ($null -ne $Source.path) { $this.path = $Source.path }
         if ($null -ne $Source.type) { $this.type = $Source.type }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -1682,6 +1732,11 @@ class AssetMediaResponseDto
     {
         if ($null -ne $Source.id) { $this.id = $Source.id }
         if ($null -ne $Source.status) { $this.status = $Source.status }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -1835,6 +1890,11 @@ class AssetOcrResponseDto
         if ($null -ne $Source.y3) { $this.y3 = $Source.y3 }
         if ($null -ne $Source.y4) { $this.y4 = $Source.y4 }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class ExifResponseDto
@@ -1937,6 +1997,11 @@ class PeopleUserResponseDto
         if ($null -ne $Source.profileImagePath) { $this.profileImagePath = $Source.profileImagePath }
         if ($null -ne $Source.role) { $this.role = $Source.role }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class PersonResponseDto
@@ -1971,6 +2036,11 @@ class PersonResponseDto
         if ($null -ne $Source.thumbnailPath) { $this.thumbnailPath = $Source.thumbnailPath }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class TagResponseDto
@@ -1996,6 +2066,11 @@ class TagResponseDto
         if ($null -ne $Source.parentId) { $this.parentId = $Source.parentId }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
         if ($null -ne $Source.value) { $this.value = $Source.value }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -2073,6 +2148,11 @@ class AssetResponseDto
         if ($null -ne $Source.visibility) { $this.visibility = $Source.visibility }
         if ($null -ne $Source.width) { $this.width = $Source.width }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class AssetStackResponseDto
@@ -2090,6 +2170,11 @@ class AssetStackResponseDto
         if ($null -ne $Source.assetCount) { $this.assetCount = $Source.assetCount }
         if ($null -ne $Source.id) { $this.id = $Source.id }
         if ($null -ne $Source.primaryAssetId) { $this.primaryAssetId = $Source.primaryAssetId }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -2178,6 +2263,11 @@ class BulkIdResponseDto
         if ($null -ne $Source.errorMessage) { $this.errorMessage = $Source.errorMessage }
         if ($null -ne $Source.id) { $this.id = $Source.id }
         if ($null -ne $Source.success) { $this.success = $Source.success }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -2292,6 +2382,11 @@ class ClusterGroupRequestResponseDto
         if ($null -ne $Source.createdAt) { $this.createdAt = $Source.createdAt }
         if ($null -ne $Source.id) { $this.id = $Source.id }
         if ($null -ne $Source.userId) { $this.userId = $Source.userId }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -2735,6 +2830,11 @@ class FaceDto
     {
         if ($null -ne $Source.id) { $this.id = $Source.id }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class FoldersResponse
@@ -2894,6 +2994,11 @@ class LibraryResponseDto
         if ($null -ne $Source.ownerId) { $this.ownerId = $Source.ownerId }
         if ($null -ne $Source.refreshedAt) { $this.refreshedAt = $Source.refreshedAt }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -3099,6 +3204,11 @@ class MapMarkerResponseDto
         if ($null -ne $Source.lon) { $this.lon = $Source.lon }
         if ($null -ne $Source.state) { $this.state = $Source.state }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class MapReverseGeocodeResponseDto
@@ -3236,6 +3346,11 @@ class MemoryResponseDto
         if ($null -ne $Source.showAt) { $this.showAt = $Source.showAt }
         if ($null -ne $Source.type) { $this.type = $Source.type }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -3693,6 +3808,11 @@ class MetadataSearchDto
         if ($null -ne $Source.withPeople) { $this.withPeople = $Source.withPeople }
         if ($null -ne $Source.withStacked) { $this.withStacked = $Source.withStacked }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class MirrorParameters
@@ -3774,6 +3894,11 @@ class NotificationDto
         if ($null -ne $Source.readAt) { $this.readAt = $Source.readAt }
         if ($null -ne $Source.title) { $this.title = $Source.title }
         if ($null -ne $Source.type) { $this.type = $Source.type }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -3937,6 +4062,11 @@ class PartnerResponseDto
         if ($null -ne $Source.profileChangedAt) { $this.profileChangedAt = $Source.profileChangedAt }
         if ($null -ne $Source.profileImagePath) { $this.profileImagePath = $Source.profileImagePath }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class PartnerUpdateDto
@@ -4054,6 +4184,11 @@ class PeopleUpdateItem
         if ($null -ne $Source.isHidden) { $this.isHidden = $Source.isHidden }
         if ($null -ne $Source.name) { $this.name = $Source.name }
         if ($null -ne $Source.userId) { $this.userId = $Source.userId }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -4293,6 +4428,11 @@ class PluginResponseDto
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
         if ($null -ne $Source.version) { $this.version = $Source.version }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class PluginTemplateStepResponseDto
@@ -4496,6 +4636,11 @@ class QueueJobResponseDto
         if ($null -ne $Source.id) { $this.id = $Source.id }
         if ($null -ne $Source.name) { $this.name = $Source.name }
         if ($null -ne $Source.timestamp) { $this.timestamp = $Source.timestamp }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -5263,6 +5408,11 @@ class ServerVersionHistoryResponseDto
         if ($null -ne $Source.id) { $this.id = $Source.id }
         if ($null -ne $Source.version) { $this.version = $Source.version }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class SessionCreateDto
@@ -5313,6 +5463,11 @@ class SessionCreateResponseDto
         if ($null -ne $Source.token) { $this.token = $Source.token }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class SessionResponseDto
@@ -5342,6 +5497,11 @@ class SessionResponseDto
         if ($null -ne $Source.id) { $this.id = $Source.id }
         if ($null -ne $Source.isPendingSyncReset) { $this.isPendingSyncReset = $Source.isPendingSyncReset }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -5500,6 +5660,11 @@ class SharedLinkResponseDto
         if ($null -ne $Source.slug) { $this.slug = $Source.slug }
         if ($null -ne $Source.type) { $this.type = $Source.type }
         if ($null -ne $Source.userId) { $this.userId = $Source.userId }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -5664,6 +5829,11 @@ class StackResponseDto
         if ($null -ne $Source.assets) { $this.assets = @($Source.assets | ForEach-Object { [AssetResponseDto]::new($_) }) }
         if ($null -ne $Source.id) { $this.id = $Source.id }
         if ($null -ne $Source.primaryAssetId) { $this.primaryAssetId = $Source.primaryAssetId }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -5915,6 +6085,11 @@ class SyncAlbumV1
         if ($null -ne $Source.thumbnailAssetId) { $this.thumbnailAssetId = $Source.thumbnailAssetId }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class SyncAlbumV2
@@ -5942,6 +6117,11 @@ class SyncAlbumV2
         if ($null -ne $Source.order) { $this.order = $Source.order }
         if ($null -ne $Source.thumbnailAssetId) { $this.thumbnailAssetId = $Source.thumbnailAssetId }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -5992,6 +6172,11 @@ class SyncAssetEditV1
         if ($null -ne $Source.id) { $this.id = $Source.id }
         if ($null -ne $Source.parameters) { $this.parameters = $Source.parameters }
         if ($null -ne $Source.sequence) { $this.sequence = $Source.sequence }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -6101,6 +6286,11 @@ class SyncAssetFaceV1
         if ($null -ne $Source.personId) { $this.personId = $Source.personId }
         if ($null -ne $Source.sourceType) { $this.sourceType = $Source.sourceType }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class SyncAssetFaceV3
@@ -6136,6 +6326,11 @@ class SyncAssetFaceV3
         if ($null -ne $Source.isVisible) { $this.isVisible = $Source.isVisible }
         if ($null -ne $Source.personId) { $this.personId = $Source.personId }
         if ($null -ne $Source.sourceType) { $this.sourceType = $Source.sourceType }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -6189,6 +6384,11 @@ class SyncAssetOcrDeleteV1
         if ($null -ne $Source.deletedAt) { $this.deletedAt = $Source.deletedAt }
         if ($null -ne $Source.id) { $this.id = $Source.id }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class SyncAssetOcrV1
@@ -6228,6 +6428,11 @@ class SyncAssetOcrV1
         if ($null -ne $Source.y2) { $this.y2 = $Source.y2 }
         if ($null -ne $Source.y3) { $this.y3 = $Source.y3 }
         if ($null -ne $Source.y4) { $this.y4 = $Source.y4 }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -6281,6 +6486,11 @@ class SyncAssetV1
         if ($null -ne $Source.visibility) { $this.visibility = $Source.visibility }
         if ($null -ne $Source.width) { $this.width = $Source.width }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class SyncAssetV2
@@ -6333,6 +6543,11 @@ class SyncAssetV2
         if ($null -ne $Source.visibility) { $this.visibility = $Source.visibility }
         if ($null -ne $Source.width) { $this.width = $Source.width }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class SyncAuthUserV1
@@ -6371,6 +6586,11 @@ class SyncAuthUserV1
         if ($null -ne $Source.quotaUsageInBytes) { $this.quotaUsageInBytes = $Source.quotaUsageInBytes }
         if ($null -ne $Source.storageLabel) { $this.storageLabel = $Source.storageLabel }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class SyncAuthUserV2
@@ -6408,6 +6628,11 @@ class SyncAuthUserV2
         if ($null -ne $Source.quotaSizeInBytes) { $this.quotaSizeInBytes = $Source.quotaSizeInBytes }
         if ($null -ne $Source.quotaUsageInBytes) { $this.quotaUsageInBytes = $Source.quotaUsageInBytes }
         if ($null -ne $Source.storageLabel) { $this.storageLabel = $Source.storageLabel }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -6503,6 +6728,11 @@ class SyncMemoryV1
         if ($null -ne $Source.type) { $this.type = $Source.type }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class SyncMemoryV2
@@ -6538,6 +6768,11 @@ class SyncMemoryV2
         if ($null -ne $Source.showAt) { $this.showAt = $Source.showAt }
         if ($null -ne $Source.type) { $this.type = $Source.type }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -6619,6 +6854,11 @@ class SyncPersonV1
         if ($null -ne $Source.ownerId) { $this.ownerId = $Source.ownerId }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class SyncResetV1
@@ -6666,6 +6906,11 @@ class SyncStackV1
         if ($null -ne $Source.ownerId) { $this.ownerId = $Source.ownerId }
         if ($null -ne $Source.primaryAssetId) { $this.primaryAssetId = $Source.primaryAssetId }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -6756,6 +7001,11 @@ class SyncUserV1
         if ($null -ne $Source.id) { $this.id = $Source.id }
         if ($null -ne $Source.name) { $this.name = $Source.name }
         if ($null -ne $Source.profileChangedAt) { $this.profileChangedAt = $Source.profileChangedAt }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -7194,6 +7444,11 @@ class UserAdminResponseDto
         if ($null -ne $Source.status) { $this.status = $Source.status }
         if ($null -ne $Source.storageLabel) { $this.storageLabel = $Source.storageLabel }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
@@ -7797,6 +8052,11 @@ class WorkflowLogEntryDto
         if ($null -ne $Source.result) { $this.result = $Source.result }
         if ($null -ne $Source.triggerDataId) { $this.triggerDataId = $Source.triggerDataId }
     }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
 }
 
 class WorkflowResponseDto
@@ -7826,6 +8086,11 @@ class WorkflowResponseDto
         if ($null -ne $Source.steps) { $this.steps = @($Source.steps | ForEach-Object { [WorkflowStepDto]::new($_) }) }
         if ($null -ne $Source.trigger) { $this.trigger = $Source.trigger }
         if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
     }
 }
 
