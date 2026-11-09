@@ -2874,6 +2874,85 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'New-IMNotification' -Tag 'Unit', 'New-IMNotification' {
+        BeforeAll {
+            Mock Invoke-ImmichApiCreateNotification -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    id          = '6f1d2c3b-4a5e-4f60-8b7c-9d0e1f2a3b4c'
+                    title       = $Body.title
+                    description = $Body.description
+                    level       = $Body.level
+                    type        = $Body.type
+                    data        = $Body.data
+                    readAt      = $null
+                    createdAt   = '2024-01-01T12:00:00Z'
+                }
+            }
+        }
+
+        Context 'When sending a notification with required parameters only' {
+            It 'Should send only userId and title in the body' {
+                New-IMNotification -UserId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Title 'Hello'
+
+                Should -Invoke Invoke-ImmichApiCreateNotification -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.userId -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and
+                    $Body.title -eq 'Hello' -and
+                    -not $Body.ContainsKey('level') -and
+                    -not $Body.ContainsKey('type') -and
+                    -not $Body.ContainsKey('description') -and
+                    -not $Body.ContainsKey('data')
+                }
+            }
+
+            It 'Should return a NotificationDto' {
+                $Result = New-IMNotification -UserId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Title 'Hello'
+
+                $Result.GetType().Name | Should -Be 'NotificationDto'
+                $Result.title | Should -Be 'Hello'
+            }
+        }
+
+        Context 'When sending a notification with optional parameters' {
+            It 'Should include level, type, description and data in the body' {
+                New-IMNotification -UserId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Title 'Backup failed' -Description 'See log' -Level error -Type BackupFailed -Data @{ job = 'backup' }
+
+                Should -Invoke Invoke-ImmichApiCreateNotification -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.title -eq 'Backup failed' -and
+                    $Body.description -eq 'See log' -and
+                    $Body.level -eq 'error' -and
+                    $Body.type -eq 'BackupFailed' -and
+                    $Body.data.job -eq 'backup'
+                }
+            }
+        }
+
+        Context 'When an explicit session is provided' {
+            It 'Should forward the session to the REST call' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+                New-IMNotification -Session $Session -UserId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Title 'Hello'
+
+                Should -Invoke Invoke-ImmichApiCreateNotification -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+        }
+
+        Context 'When parameters are invalid' {
+            It 'Should throw for a malformed user id' {
+                { New-IMNotification -UserId 'not-a-guid' -Title 'Hello' } | Should -Throw
+            }
+
+            It 'Should throw for an unsupported level' {
+                { New-IMNotification -UserId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Title 'Hello' -Level critical } | Should -Throw
+            }
+
+            It 'Should throw for an unsupported type' {
+                { New-IMNotification -UserId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Title 'Hello' -Type Unknown } | Should -Throw
+            }
+        }
+    }
+
     Describe 'Save-IMAssetFile' -Tag 'Unit', 'Save-IMAssetFile' {
         BeforeAll {
             Mock Invoke-ImmichApiGetAssetFile -ModuleName PSImmich {
