@@ -5119,61 +5119,51 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMLibrary' -Tag 'Unit', 'Get-IMLibrary' {
         BeforeAll {
-            # Mock the InvokeImmichRestMethod function
-            Mock InvokeImmichRestMethod {
-                param($Method, $RelativePath, $ImmichSession)
+            # Mock the generated API wrappers used by Get-IMLibrary
+            Mock Invoke-ImmichApiGetAllLibraries -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{
+                        id      = '11111111-1111-1111-1111-111111111111'
+                        name    = 'Library 1'
+                        ownerId = '22222222-2222-2222-2222-222222222222'
+                        type    = 'UPLOAD'
+                    },
+                    [pscustomobject]@{
+                        id      = '33333333-3333-3333-3333-333333333333'
+                        name    = 'Library 2'
+                        ownerId = '44444444-4444-4444-4444-444444444444'
+                        type    = 'EXTERNAL'
+                    }
+                )
+            }
 
-                # Mock responses based on RelativePath
-                switch -Regex ($RelativePath)
+            Mock Invoke-ImmichApiGetLibrary -ModuleName PSImmich {
+                if ($Id -eq '11111111-1111-1111-1111-111111111111')
                 {
-                    '^/libraries$'
-                    {
-                        # Mock response for listing all libraries
-                        return @(
-                            @{
-                                id      = '11111111-1111-1111-1111-111111111111'
-                                name    = 'Library 1'
-                                ownerId = '22222222-2222-2222-2222-222222222222'
-                                type    = 'UPLOAD'
-                            },
-                            @{
-                                id      = '33333333-3333-3333-3333-333333333333'
-                                name    = 'Library 2'
-                                ownerId = '44444444-4444-4444-4444-444444444444'
-                                type    = 'EXTERNAL'
-                            }
-                        )
+                    return [pscustomobject]@{
+                        id      = '11111111-1111-1111-1111-111111111111'
+                        name    = 'Library 1'
+                        ownerId = '22222222-2222-2222-2222-222222222222'
+                        type    = 'UPLOAD'
                     }
-                    '^/libraries/11111111-1111-1111-1111-111111111111$'
-                    {
-                        # Mock response for specific library
-                        return @{
-                            id      = '11111111-1111-1111-1111-111111111111'
-                            name    = 'Library 1'
-                            ownerId = '22222222-2222-2222-2222-222222222222'
-                            type    = 'UPLOAD'
-                        }
+                }
+                if ($Id -eq '33333333-3333-3333-3333-333333333333')
+                {
+                    return [pscustomobject]@{
+                        id      = '33333333-3333-3333-3333-333333333333'
+                        name    = 'Library 2'
+                        ownerId = '44444444-4444-4444-4444-444444444444'
+                        type    = 'EXTERNAL'
                     }
-                    '^/libraries/33333333-3333-3333-3333-333333333333$'
-                    {
-                        # Mock response for specific library
-                        return @{
-                            id      = '33333333-3333-3333-3333-333333333333'
-                            name    = 'Library 2'
-                            ownerId = '44444444-4444-4444-4444-444444444444'
-                            type    = 'EXTERNAL'
-                        }
-                    }
-                    '^/libraries/.*/statistics$'
-                    {
-                        # Mock response for library statistics
-                        return @{
-                            total  = 150
-                            videos = 25
-                            photos = 125
-                            usage  = 1073741824
-                        }
-                    }
+                }
+            }
+
+            Mock Invoke-ImmichApiGetLibraryStatistics -ModuleName PSImmich {
+                return [pscustomobject]@{
+                    total  = 150
+                    videos = 25
+                    photos = 125
+                    usage  = 1073741824
                 }
             }
         }
@@ -5187,10 +5177,8 @@ InModuleScope $ProjectName {
                 $result[1].id | Should -Be '33333333-3333-3333-3333-333333333333'
 
                 # Verify the REST method was called correctly
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/libraries' -and
-                    $ImmichSession -eq $null
+                Should -Invoke Invoke-ImmichApiGetAllLibraries -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $null -eq $ImmichSession
                 }
             }
 
@@ -5200,22 +5188,22 @@ InModuleScope $ProjectName {
                 $result | Should -HaveCount 1
                 $result.ownerId | Should -Be '22222222-2222-2222-2222-222222222222'
 
-                # Should still call the main endpoint, filtering happens in PowerShell
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/libraries'
-                }
+                # Filtering happens in PowerShell after the list wrapper returns
+                Should -Invoke Invoke-ImmichApiGetAllLibraries -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
 
-            It 'Should pass session parameter to InvokeImmichRestMethod when provided' {
-                # Test that session parameter is passed through (mock will verify this)
-                # We'll use $null since we're just testing parameter passing
-                $result = Get-IMLibrary -Session $null
+            It 'Should not call the single library or statistics wrappers in list mode' {
+                $null = Get-IMLibrary
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/libraries'
-                    # ImmichSession parameter will be $null in this test
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 0 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetLibraryStatistics -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+
+            It 'Should pass session parameter to the list wrapper when provided' {
+                $null = Get-IMLibrary -Session $null
+
+                Should -Invoke Invoke-ImmichApiGetAllLibraries -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $null -eq $ImmichSession
                 }
             }
         }
@@ -5227,13 +5215,9 @@ InModuleScope $ProjectName {
                 $result.id | Should -Be '11111111-1111-1111-1111-111111111111'
                 $result.name | Should -Be 'Library 1'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/libraries/11111111-1111-1111-1111-111111111111'
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '11111111-1111-1111-1111-111111111111'
                 }
-            }
-
-            It 'Should retrieve multiple libraries when multiple ids are provided' {
                 $ids = @('11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333')
                 $result = Get-IMLibrary -id $ids
 
@@ -5241,10 +5225,10 @@ InModuleScope $ProjectName {
                 $result[0].id | Should -Be '11111111-1111-1111-1111-111111111111'
                 $result[1].id | Should -Be '33333333-3333-3333-3333-333333333333'
 
-                # Should be called once per ID
-                Should -Invoke InvokeImmichRestMethod -Times 2 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -match '^/libraries/(11111111-1111-1111-1111-111111111111|33333333-3333-3333-3333-333333333333)$'
+                # Called once per ID (3 in total: the single-id call above plus two for the array)
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 3 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '33333333-3333-3333-3333-333333333333'
                 }
             }
 
@@ -5256,13 +5240,12 @@ InModuleScope $ProjectName {
                 $result.Statistics.total | Should -Be 150
                 $result.Statistics.usage | Should -Be 1073741824
 
-                # Should call both library and statistics endpoints
-                Should -Invoke InvokeImmichRestMethod -Times 2
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/libraries/11111111-1111-1111-1111-111111111111'
+                # Should call both library and statistics wrappers
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '11111111-1111-1111-1111-111111111111'
                 }
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/libraries/11111111-1111-1111-1111-111111111111/statistics'
+                Should -Invoke Invoke-ImmichApiGetLibraryStatistics -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '11111111-1111-1111-1111-111111111111'
                 }
             }
 
@@ -5272,8 +5255,8 @@ InModuleScope $ProjectName {
 
                 $result.id | Should -Be '11111111-1111-1111-1111-111111111111'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/libraries/11111111-1111-1111-1111-111111111111'
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '11111111-1111-1111-1111-111111111111'
                 }
             }
 
@@ -5282,19 +5265,17 @@ InModuleScope $ProjectName {
 
                 $result.id | Should -Be '11111111-1111-1111-1111-111111111111'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/libraries/11111111-1111-1111-1111-111111111111'
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '11111111-1111-1111-1111-111111111111'
                 }
             }
 
-            It 'Should pass session parameter to InvokeImmichRestMethod when provided with id parameter' {
-                # Test that session parameter is passed through with id parameter
-                $result = Get-IMLibrary -id '11111111-1111-1111-1111-111111111111' -Session $null
+            It 'Should pass session parameter to the id wrapper when provided' {
+                $null = Get-IMLibrary -id '11111111-1111-1111-1111-111111111111' -Session $null
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/libraries/11111111-1111-1111-1111-111111111111'
-                    # ImmichSession parameter will be $null in this test
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '11111111-1111-1111-1111-111111111111' -and
+                    $null -eq $ImmichSession
                 }
             }
         }
@@ -5317,28 +5298,25 @@ InModuleScope $ProjectName {
 
         Context 'Parameter Set Behavior' {
             It 'Should use list parameter set when no id is provided' {
-                $result = Get-IMLibrary
+                $null = Get-IMLibrary
 
-                # Should call the list endpoint
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/libraries'
-                }
+                Should -Invoke Invoke-ImmichApiGetAllLibraries -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
 
             It 'Should use id parameter set when id is provided' {
-                $result = Get-IMLibrary -id '11111111-1111-1111-1111-111111111111'
+                $null = Get-IMLibrary -id '11111111-1111-1111-1111-111111111111'
 
-                # Should call the specific library endpoint
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/libraries/11111111-1111-1111-1111-111111111111'
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '11111111-1111-1111-1111-111111111111'
                 }
+                Should -Invoke Invoke-ImmichApiGetAllLibraries -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
 
-            It 'Should not allow IncludeStatistics with list parameter set' {
-                # This should be invalid because IncludeStatistics is only for id parameter set
-                $result = Get-IMLibrary
-                # The function should work normally for list without trying to include statistics
-                $result | Should -HaveCount 2
+            It 'Should not call the statistics wrapper without IncludeStatistics' {
+                $null = Get-IMLibrary -id '11111111-1111-1111-1111-111111111111'
+
+                Should -Invoke Invoke-ImmichApiGetLibraryStatistics -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
         }
 
@@ -5349,7 +5327,7 @@ InModuleScope $ProjectName {
     }
     Describe 'New-IMLibrary' -Tag 'Unit', 'New-IMLibrary' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
+            Mock Invoke-ImmichApiCreateLibrary -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     id                = 'new-library-guid-1234567890abcdef'
                     name              = 'Test Library'
@@ -5362,28 +5340,6 @@ InModuleScope $ProjectName {
                     refreshedAt       = $null
                     assetCount        = 0
                 }
-            }
-
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Name)
-                {
-                    $result.name = $BoundParameters.Name
-                }
-                if ($BoundParameters.ExclusionPatterns)
-                {
-                    $result.exclusionPatterns = $BoundParameters.ExclusionPatterns
-                }
-                if ($BoundParameters.ImportPaths)
-                {
-                    $result.importPaths = $BoundParameters.ImportPaths
-                }
-                if ($BoundParameters.OwnerId)
-                {
-                    $result.ownerId = $BoundParameters.OwnerId
-                }
-                return $result
             }
         }
 
@@ -5428,11 +5384,12 @@ InModuleScope $ProjectName {
             It 'Should create library with minimal parameters' {
                 $result = New-IMLibrary -Name 'Test Library'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and
-                    $RelativePath -eq '/libraries'
+                Should -Invoke Invoke-ImmichApiCreateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'Test Library' -and
+                    -not $Body.ContainsKey('importPaths') -and
+                    -not $Body.ContainsKey('exclusionPatterns') -and
+                    -not $Body.ContainsKey('ownerId')
                 }
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1
                 $result.name | Should -Be 'Test Library'
             }
 
@@ -5445,11 +5402,11 @@ InModuleScope $ProjectName {
                 }
                 New-IMLibrary @params
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Name -eq 'Full Library' -and
-                    $BoundParameters.ImportPaths.Count -eq 2 -and
-                    $BoundParameters.ExclusionPatterns.Count -eq 2 -and
-                    $BoundParameters.OwnerId -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc'
+                Should -Invoke Invoke-ImmichApiCreateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'Full Library' -and
+                    $Body.importPaths.Count -eq 2 -and
+                    $Body.exclusionPatterns.Count -eq 2 -and
+                    $Body.ownerId -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 }
             }
 
@@ -5457,9 +5414,9 @@ InModuleScope $ProjectName {
                 $importPaths = @('/photos', '/videos', '/documents')
                 New-IMLibrary -Name 'Multi-Path Library' -ImportPaths $importPaths
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ImportPaths.Count -eq 3 -and
-                    $BoundParameters.ImportPaths -contains '/photos'
+                Should -Invoke Invoke-ImmichApiCreateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.importPaths.Count -eq 3 -and
+                    $Body.importPaths -contains '/photos'
                 }
             }
 
@@ -5467,9 +5424,9 @@ InModuleScope $ProjectName {
                 $exclusions = @('*.tmp', '*.log', '.DS_Store', 'Thumbs.db')
                 New-IMLibrary -Name 'Filtered Library' -ExclusionPatterns $exclusions
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ExclusionPatterns.Count -eq 4 -and
-                    $BoundParameters.ExclusionPatterns -contains '*.tmp'
+                Should -Invoke Invoke-ImmichApiCreateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.exclusionPatterns.Count -eq 4 -and
+                    $Body.exclusionPatterns -contains '*.tmp'
                 }
             }
 
@@ -5494,7 +5451,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 New-IMLibrary -Name 'Session Test'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiCreateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -5502,7 +5459,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMLibrary' -Tag 'Unit', 'Remove-IMLibrary' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
+            Mock Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich {
                 # Mock returns nothing for DELETE operations
                 return $null
             }
@@ -5549,26 +5506,27 @@ InModuleScope $ProjectName {
             It 'Should remove single library with correct API call' {
                 Remove-IMLibrary -id $TestLibraryId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId"
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
             It 'Should handle multiple library IDs' {
                 Remove-IMLibrary -id @($TestLibraryId, $TestLibraryId2) -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    ($RelativePath -eq "/libraries/$TestLibraryId" -or $RelativePath -eq "/libraries/$TestLibraryId2")
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
+                }
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId2
                 }
             }
 
-            It 'Should call ShouldProcess for confirmation' {
-                # This test verifies that ShouldProcess is called by checking the method is invoked when confirmed
-                Remove-IMLibrary -id $TestLibraryId -Confirm:$false
+            It 'Should not delete when ShouldProcess declines' {
+                Remove-IMLibrary -id $TestLibraryId -WhatIf
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
         }
 
@@ -5581,9 +5539,8 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 $TestLibraryId | Remove-IMLibrary -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId"
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
@@ -5591,9 +5548,8 @@ InModuleScope $ProjectName {
                 $libraryObject = [PSCustomObject]@{ id = $TestLibraryId }
                 $libraryObject | Remove-IMLibrary -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId"
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
@@ -5601,19 +5557,15 @@ InModuleScope $ProjectName {
                 $libraryObject = [PSCustomObject]@{ libraryId = $TestLibraryId }
                 $libraryObject | Remove-IMLibrary -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId"
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
             It 'Should handle multiple libraries from pipeline' {
                 @($TestLibraryId, $TestLibraryId2) | Remove-IMLibrary -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    ($RelativePath -eq "/libraries/$TestLibraryId" -or $RelativePath -eq "/libraries/$TestLibraryId2")
-                }
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
 
             It 'Should process multiple pipeline objects' {
@@ -5623,9 +5575,7 @@ InModuleScope $ProjectName {
                 )
                 $libraryObjects | Remove-IMLibrary -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'Delete'
-                }
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -5640,7 +5590,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Remove-IMLibrary -id 'a1b2c3d4-e5f6-4789-a012-123456789abc' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -5750,7 +5700,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Set-IMLibrary' -Tag 'Unit', 'Set-IMLibrary' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
+            Mock Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     id                = 'updated-library-guid-1234567890abcdef'
                     name              = 'Updated Library'
@@ -5763,24 +5713,6 @@ InModuleScope $ProjectName {
                     refreshedAt       = $null
                     assetCount        = 100
                 }
-            }
-
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Name)
-                {
-                    $result.name = $BoundParameters.Name
-                }
-                if ($BoundParameters.ExclusionPatterns)
-                {
-                    $result.exclusionPatterns = $BoundParameters.ExclusionPatterns
-                }
-                if ($BoundParameters.ImportPaths)
-                {
-                    $result.importPaths = $BoundParameters.ImportPaths
-                }
-                return $result
             }
         }
 
@@ -5833,12 +5765,9 @@ InModuleScope $ProjectName {
             It 'Should update library name with correct API call' {
                 Set-IMLibrary -Id $TestLibraryId -Name 'New Library Name' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId"
-                }
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Name -eq 'New Library Name'
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId -and
+                    $Body.name -eq 'New Library Name'
                 }
             }
 
@@ -5851,18 +5780,21 @@ InModuleScope $ProjectName {
                 }
                 Set-IMLibrary @params
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ImportPaths.Count -eq 2 -and
-                    $BoundParameters.ExclusionPatterns.Count -eq 2
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.importPaths.Count -eq 2 -and
+                    $Body.exclusionPatterns.Count -eq 2
                 }
             }
 
             It 'Should handle multiple library IDs' {
                 Set-IMLibrary -Id @($TestLibraryId, $TestLibraryId2) -Name 'Batch Update' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    ($RelativePath -eq "/libraries/$TestLibraryId" -or $RelativePath -eq "/libraries/$TestLibraryId2")
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId -and $Body.name -eq 'Batch Update'
+                }
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId2 -and $Body.name -eq 'Batch Update'
                 }
             }
 
@@ -5876,17 +5808,17 @@ InModuleScope $ProjectName {
                 }
                 Set-IMLibrary @params
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Name -eq 'Complete Library' -and
-                    $BoundParameters.ImportPaths.Count -eq 3 -and
-                    $BoundParameters.ExclusionPatterns.Count -eq 3
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'Complete Library' -and
+                    $Body.importPaths.Count -eq 3 -and
+                    $Body.exclusionPatterns.Count -eq 3
                 }
             }
 
-            It 'Should call ShouldProcess for confirmation' {
-                Set-IMLibrary -Id $TestLibraryId -Name 'Confirmed Update' -Confirm:$false
+            It 'Should not update when ShouldProcess declines' {
+                Set-IMLibrary -Id $TestLibraryId -Name 'Declined Update' -WhatIf
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
         }
 
@@ -5899,9 +5831,8 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 $TestLibraryId | Set-IMLibrary -Name 'Pipeline Update' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId"
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
@@ -5909,17 +5840,16 @@ InModuleScope $ProjectName {
                 $libraryObject = [PSCustomObject]@{ Id = $TestLibraryId }
                 $libraryObject | Set-IMLibrary -Name 'Property Update' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId"
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
             It 'Should handle multiple libraries from pipeline' {
                 @($TestLibraryId, $TestLibraryId2) | Set-IMLibrary -Name 'Multi Pipeline' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'PUT'
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'Multi Pipeline'
                 }
             }
         }
@@ -5934,7 +5864,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Set-IMLibrary -Id 'a1b2c3d4-e5f6-4789-a012-123456789abc' -Name 'Session Test' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -5942,8 +5872,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Sync-IMLibrary' -Tag 'Unit', 'Sync-IMLibrary' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                # Mock returns nothing for POST scan operations
+            Mock Invoke-ImmichApiScanLibrary -ModuleName PSImmich {
                 return $null
             }
         }
@@ -5982,27 +5911,20 @@ InModuleScope $ProjectName {
             It 'Should start library scan with correct API call' {
                 Sync-IMLibrary -Id $TestLibraryId
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId/scan"
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
             It 'Should handle multiple library IDs' {
                 Sync-IMLibrary -Id @($TestLibraryId, $TestLibraryId2)
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    ($RelativePath -eq "/libraries/$TestLibraryId/scan" -or $RelativePath -eq "/libraries/$TestLibraryId2/scan")
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
-            }
-
-            It 'Should make API call without body parameters' {
-                Sync-IMLibrary -Id $TestLibraryId
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $null -eq $Body
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId2
                 }
             }
 
@@ -6014,10 +5936,7 @@ InModuleScope $ProjectName {
                 )
                 Sync-IMLibrary -Id $multipleIds
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 3 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -match '/libraries/.+/scan'
-                }
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 3 -Exactly -Scope It
             }
         }
 
@@ -6030,9 +5949,8 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 $TestLibraryId | Sync-IMLibrary
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId/scan"
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
@@ -6040,19 +5958,15 @@ InModuleScope $ProjectName {
                 $libraryObject = [PSCustomObject]@{ Id = $TestLibraryId }
                 $libraryObject | Sync-IMLibrary
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId/scan"
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
             It 'Should handle multiple libraries from pipeline' {
                 @($TestLibraryId, $TestLibraryId2) | Sync-IMLibrary
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -match '/libraries/.+/scan'
-                }
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
 
             It 'Should process multiple pipeline objects' {
@@ -6062,9 +5976,7 @@ InModuleScope $ProjectName {
                 )
                 $libraryObjects | Sync-IMLibrary
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'POST'
-                }
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -6078,7 +5990,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Sync-IMLibrary -Id 'a1b2c3d4-e5f6-4789-a012-123456789abc'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -6086,7 +5998,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Test-IMLibrary' -Tag 'Unit', 'Test-IMLibrary' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
+            Mock Invoke-ImmichApiValidate -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     importPaths       = @(
                         @{
@@ -6110,19 +6022,6 @@ InModuleScope $ProjectName {
                 }
             }
 
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.ExclusionPatterns)
-                {
-                    $result.exclusionPatterns = $BoundParameters.ExclusionPatterns
-                }
-                if ($BoundParameters.ImportPaths)
-                {
-                    $result.importPaths = $BoundParameters.ImportPaths
-                }
-                return $result
-            }
         }
 
         Context 'Parameter Validation' {
@@ -6165,9 +6064,8 @@ InModuleScope $ProjectName {
             It 'Should validate library with minimal parameters' {
                 $result = Test-IMLibrary -Id $TestLibraryId
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId/validate"
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
                 $result | Should -Not -BeNullOrEmpty
             }
@@ -6175,18 +6073,20 @@ InModuleScope $ProjectName {
             It 'Should validate library with import paths' {
                 Test-IMLibrary -Id $TestLibraryId -ImportPaths @('/photos', '/videos')
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ImportPaths.Count -eq 2 -and
-                    $BoundParameters.ImportPaths -contains '/photos'
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId -and
+                    $Body.importPaths.Count -eq 2 -and
+                    $Body.importPaths -contains '/photos'
                 }
             }
 
             It 'Should validate library with exclusion patterns' {
                 Test-IMLibrary -Id $TestLibraryId -ExclusionPatterns @('*.tmp', '*.log')
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ExclusionPatterns.Count -eq 2 -and
-                    $BoundParameters.ExclusionPatterns -contains '*.tmp'
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId -and
+                    $Body.exclusionPatterns.Count -eq 2 -and
+                    $Body.exclusionPatterns -contains '*.tmp'
                 }
             }
 
@@ -6198,18 +6098,21 @@ InModuleScope $ProjectName {
                 }
                 Test-IMLibrary @params
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ImportPaths.Count -eq 3 -and
-                    $BoundParameters.ExclusionPatterns.Count -eq 3
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.importPaths.Count -eq 3 -and
+                    $Body.exclusionPatterns.Count -eq 3
                 }
             }
 
             It 'Should handle multiple library IDs' {
                 Test-IMLibrary -Id @($TestLibraryId, $TestLibraryId2) -ImportPaths @('/shared')
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    ($RelativePath -eq "/libraries/$TestLibraryId/validate" -or $RelativePath -eq "/libraries/$TestLibraryId2/validate")
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId -and $Body.importPaths -contains '/shared'
+                }
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId2 -and $Body.importPaths -contains '/shared'
                 }
             }
 
@@ -6232,9 +6135,8 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 $TestLibraryId | Test-IMLibrary
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId/validate"
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
@@ -6242,18 +6144,16 @@ InModuleScope $ProjectName {
                 $libraryObject = [PSCustomObject]@{ Id = $TestLibraryId }
                 $libraryObject | Test-IMLibrary
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId/validate"
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
             It 'Should handle multiple libraries from pipeline' {
                 @($TestLibraryId, $TestLibraryId2) | Test-IMLibrary -ImportPaths @('/test')
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -match '/libraries/.+/validate'
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 2 -Exactly -Scope It -ParameterFilter {
+                    $Body.importPaths -contains '/test'
                 }
             }
 
@@ -6264,8 +6164,8 @@ InModuleScope $ProjectName {
                 )
                 $libraryObjects | Test-IMLibrary -ExclusionPatterns @('*.test')
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'POST'
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 2 -Exactly -Scope It -ParameterFilter {
+                    $Body.exclusionPatterns -contains '*.test'
                 }
             }
         }
@@ -6280,7 +6180,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Test-IMLibrary -Id 'a1b2c3d4-e5f6-4789-a012-123456789abc'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
