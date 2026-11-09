@@ -2777,6 +2777,88 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'Set-IMAssetMetadata' -Tag 'Unit', 'Set-IMAssetMetadata' {
+        BeforeAll {
+            Mock Invoke-ImmichApiUpdateBulkAssetMetadata -ModuleName PSImmich {}
+        }
+
+        It 'Should send one item per asset in the items array' {
+            Set-IMAssetMetadata -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db', '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -Key 'reviewed' -Value $true -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiUpdateBulkAssetMetadata -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                @($Body.items).Count -eq 2 -and
+                $Body.items[0].assetId -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and
+                $Body.items[0].key -eq 'reviewed' -and
+                $Body.items[0].value -eq $true -and
+                $Body.items[1].assetId -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+            }
+        }
+
+        It 'Should send object values unchanged' {
+            Set-IMAssetMetadata -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Key 'mobile-app' -Value @{ note = 'imported' } -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiUpdateBulkAssetMetadata -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Body.items[0].value.note -eq 'imported'
+            }
+        }
+
+        It 'Should batch pipeline input into a single request' {
+            [pscustomobject]@{ id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }, [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' } |
+                Set-IMAssetMetadata -Key 'reviewed' -Value $true -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiUpdateBulkAssetMetadata -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                @($Body.items).Count -eq 2
+            }
+        }
+
+        It 'Should not call the API with -WhatIf' {
+            Set-IMAssetMetadata -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Key 'reviewed' -Value $true -WhatIf
+
+            Should -Invoke Invoke-ImmichApiUpdateBulkAssetMetadata -ModuleName PSImmich -Times 0 -Exactly -Scope It
+        }
+
+        It 'Should reject an invalid GUID' {
+            { Set-IMAssetMetadata -Id 'not-a-guid' -Key 'reviewed' -Value $true -Confirm:$false } | Should -Throw
+        }
+    }
+
+    Describe 'Remove-IMAssetMetadata' -Tag 'Unit', 'Remove-IMAssetMetadata' {
+        BeforeAll {
+            Mock Invoke-ImmichApiDeleteBulkAssetMetadata -ModuleName PSImmich {}
+        }
+
+        It 'Should send one item per asset and key combination' {
+            Remove-IMAssetMetadata -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db', '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -Key 'reviewed', 'mobile-app' -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiDeleteBulkAssetMetadata -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                @($Body.items).Count -eq 4 -and
+                $Body.items[0].assetId -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and
+                $Body.items[0].key -eq 'reviewed' -and
+                $Body.items[1].key -eq 'mobile-app' -and
+                -not $Body.items[0].ContainsKey('value')
+            }
+        }
+
+        It 'Should batch pipeline input into a single request' {
+            [pscustomobject]@{ id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }, [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' } |
+                Remove-IMAssetMetadata -Key 'reviewed' -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiDeleteBulkAssetMetadata -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                @($Body.items).Count -eq 2
+            }
+        }
+
+        It 'Should not call the API with -WhatIf' {
+            Remove-IMAssetMetadata -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Key 'reviewed' -WhatIf
+
+            Should -Invoke Invoke-ImmichApiDeleteBulkAssetMetadata -ModuleName PSImmich -Times 0 -Exactly -Scope It
+        }
+
+        It 'Should reject an invalid GUID' {
+            { Remove-IMAssetMetadata -Id 'not-a-guid' -Key 'reviewed' -Confirm:$false } | Should -Throw
+        }
+    }
+
     Describe 'Save-IMAsset' -Tag 'Unit', 'Save-IMAsset' {
         BeforeAll {
             Mock Invoke-ImmichApiDownloadAsset { } -ModuleName PSImmich
