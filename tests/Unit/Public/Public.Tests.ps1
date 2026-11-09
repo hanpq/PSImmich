@@ -1605,83 +1605,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Export-IMAssetThumbnail' -Tag 'Unit', 'Export-IMAssetThumbnail' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich { }
-        }
-
-        Context 'Parameter Validation' {
-            It 'Should require Id parameter' {
-                (Get-Command Export-IMAssetThumbnail).Parameters['Id'].Attributes.Mandatory | Should -Be $true
-            }
-
-            It 'Should validate GUID format for Id parameter' {
-                { Export-IMAssetThumbnail -Id 'invalid-guid' -Path $TestDrive } | Should -Throw
-            }
-        }
-
-        Context 'Pipeline Support' {
-            It 'Should accept pipeline input by value' {
-                '12345678-1234-1234-1234-123456789abc' | Export-IMAssetThumbnail -Path $TestDrive
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/assets/12345678-1234-1234-1234-123456789abc/thumbnail' -and
-                    $ContentType -eq 'application/octet-stream'
-                }
-            }
-
-            It 'Should accept pipeline input by property name' {
-                [PSCustomObject]@{Id = '12345678-1234-1234-1234-123456789abc' } | Export-IMAssetThumbnail -Path $TestDrive
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/assets/12345678-1234-1234-1234-123456789abc/thumbnail'
-                }
-            }
-
-            It 'Should process multiple IDs from pipeline' {
-                @('12345678-1234-1234-1234-123456789abc', '87654321-4321-4321-4321-cba987654321') | Export-IMAssetThumbnail -Path $TestDrive
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 2 -Scope It
-            }
-        }
-
-        Context 'File Output' {
-            It 'Should generate correct output file path with JPEG extension' {
-                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $OutFilePath -like '*12345678-1234-1234-1234-123456789abc.jpeg'
-                }
-            }
-
-            It 'Should use provided path directory' {
-                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path (Join-Path $TestDrive 'Thumbnails')
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $OutFilePath -like "$(Join-Path $TestDrive 'Thumbnails')*" -and
-                    $OutFilePath -like '*12345678-1234-1234-1234-123456789abc.jpeg'
-                }
-            }
-        }
-
-        Context 'Progress Preference Handling' {
-            It 'Should call InvokeImmichRestMethod correctly' {
-                # Test basic functionality without modifying read-only PSVersionTable
-                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
-            }
-        }
-
-        Context 'REST Method Parameters' {
-            It 'Should call with correct HTTP method and content type' {
-                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $ContentType -eq 'application/octet-stream'
-                }
-            }
+            Mock Invoke-ImmichApiViewAsset -ModuleName PSImmich { }
         }
 
         Context 'Parameter Validation' {
@@ -1694,91 +1618,68 @@ InModuleScope $ProjectName {
             }
 
             It 'Should accept valid GUID for Id parameter' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
                 { Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive } | Should -Not -Throw
             }
         }
 
         Context 'Pipeline Support' {
             It 'Should accept pipeline input by value' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
-
                 '12345678-1234-1234-1234-123456789abc' | Export-IMAssetThumbnail -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/assets/12345678-1234-1234-1234-123456789abc/thumbnail' -and
-                    $ContentType -eq 'application/octet-stream'
+                Should -Invoke Invoke-ImmichApiViewAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
 
             It 'Should accept pipeline input by property name' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
-
                 [PSCustomObject]@{Id = '12345678-1234-1234-1234-123456789abc' } | Export-IMAssetThumbnail -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/assets/12345678-1234-1234-1234-123456789abc/thumbnail' -and
-                    $ContentType -eq 'application/octet-stream'
+                Should -Invoke Invoke-ImmichApiViewAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
 
             It 'Should process multiple IDs from pipeline' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
-
                 @('12345678-1234-1234-1234-123456789abc', '87654321-4321-4321-4321-cba987654321') | Export-IMAssetThumbnail -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 2 -Scope It
+                Should -Invoke Invoke-ImmichApiViewAsset -ModuleName PSImmich -Exactly 2 -Scope It
             }
         }
 
         Context 'File Output' {
             It 'Should generate correct output file path with JPEG extension' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
-
                 Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $OutFilePath -like '*12345678-1234-1234-1234-123456789abc.jpeg'
+                Should -Invoke Invoke-ImmichApiViewAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    "$OutFilePath" -like '*12345678-1234-1234-1234-123456789abc.jpeg'
                 }
             }
 
             It 'Should use provided path directory' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
+                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path (Join-Path $TestDrive 'Thumbnails')
 
-                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path "$TestDrive\Thumbnails"
+                Should -Invoke Invoke-ImmichApiViewAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    "$OutFilePath" -like "$(Join-Path $TestDrive 'Thumbnails')*" -and
+                    "$OutFilePath" -like '*12345678-1234-1234-1234-123456789abc.jpeg'
+                }
+            }
+        }
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $OutFilePath -like '*Thumbnails*' -and
-                    $OutFilePath -like '*12345678-1234-1234-1234-123456789abc.jpeg'
+        Context 'Session forwarding' {
+            It 'Should call Invoke-ImmichApiViewAsset once with the asset id' {
+                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive
+
+                Should -Invoke Invoke-ImmichApiViewAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
         }
 
         Context 'Progress Preference Handling' {
-            It 'Should call InvokeImmichRestMethod correctly' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
-
-                # Test basic functionality without modifying read-only PSVersionTable
+            It 'Should call Invoke-ImmichApiViewAsset exactly once' {
                 Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
-            }
-        }
-
-        # Session Parameter tests removed due to network call conflicts
-
-        Context 'REST Method Parameters' {
-            It 'Should call with correct HTTP method and content type' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
-
-                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $ContentType -eq 'application/octet-stream'
-                }
+                Should -Invoke Invoke-ImmichApiViewAsset -ModuleName PSImmich -Exactly 1 -Scope It
             }
         }
     }
@@ -1884,19 +1785,23 @@ InModuleScope $ProjectName {
             }
 
             It 'Should pass Key parameter when provided' {
-                Mock ConvertTo-ApiParameters -MockWith { return @{ key = 'test-key' } } -ModuleName PSImmich
+                Mock Invoke-ImmichApiGetAssetInfo -ModuleName PSImmich { return @{ id = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f' } }
                 $testId = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
 
                 Get-IMAsset -Id $testId -Key 'test-key'
-                Should -Invoke ConvertTo-ApiParameters -Exactly 1 -Scope It -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiGetAssetInfo -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq $testId -and $Key -eq 'test-key'
+                }
             }
 
             It 'Should pass Slug parameter when provided' {
-                Mock ConvertTo-ApiParameters -MockWith { return @{ slug = 'test-slug' } } -ModuleName PSImmich
+                Mock Invoke-ImmichApiGetAssetInfo -ModuleName PSImmich { return @{ id = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f' } }
                 $testId = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
 
                 Get-IMAsset -Id $testId -Slug 'test-slug'
-                Should -Invoke ConvertTo-ApiParameters -Exactly 1 -Scope It -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiGetAssetInfo -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq $testId -and $Slug -eq 'test-slug'
+                }
             }
         }
 
@@ -2028,15 +1933,19 @@ InModuleScope $ProjectName {
 
         Context 'Parameter Validation' {
             It 'Should accept IsFavorite parameter' {
+                Mock Invoke-ImmichApiGetAssetStatistics -ModuleName PSImmich { return @{ images = 1 } }
                 Get-IMAssetStatistic -IsFavorite:$true
-                Should -Invoke ConvertTo-ApiParameters -Exactly 1 -Scope It -ModuleName PSImmich
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiGetAssetStatistics -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $IsFavorite -eq $true
+                }
             }
 
             It 'Should accept IsTrashed parameter' {
+                Mock Invoke-ImmichApiGetAssetStatistics -ModuleName PSImmich { return @{ images = 1 } }
                 Get-IMAssetStatistic -IsTrashed:$false
-                Should -Invoke ConvertTo-ApiParameters -Exactly 1 -Scope It -ModuleName PSImmich
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiGetAssetStatistics -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $IsTrashed -eq $false
+                }
             }
 
             It 'Should accept valid Visibility values' {
@@ -2053,9 +1962,11 @@ InModuleScope $ProjectName {
             }
 
             It 'Should accept multiple parameters together' {
+                Mock Invoke-ImmichApiGetAssetStatistics -ModuleName PSImmich { return @{ images = 1 } }
                 Get-IMAssetStatistic -IsFavorite:$true -IsTrashed:$false -Visibility 'timeline'
-                Should -Invoke ConvertTo-ApiParameters -Exactly 1 -Scope It -ModuleName PSImmich
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiGetAssetStatistics -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $IsFavorite -eq $true -and $IsTrashed -eq $false -and $Visibility -eq 'timeline'
+                }
             }
         }
 
@@ -2700,8 +2611,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Save-IMAsset' -Tag 'Unit', 'Save-IMAsset' {
         BeforeAll {
-            Mock ConvertTo-ApiParameters { return @{} } -ModuleName PSImmich
-            Mock InvokeImmichRestMethod { } -ModuleName PSImmich
+            Mock Invoke-ImmichApiDownloadAsset { } -ModuleName PSImmich
             Mock Get-IMAsset {
                 return [PSCustomObject]@{
                     id               = $Id
@@ -2766,12 +2676,12 @@ InModuleScope $ProjectName {
                 }
             }
 
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiDownloadAsset with the asset id' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Save-IMAsset -Id $TestId -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq "/assets/$TestId/original" -and $ContentType -eq 'application/octet-stream'
+                Should -Invoke Invoke-ImmichApiDownloadAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestId
                 }
             }
 
@@ -2780,39 +2690,19 @@ InModuleScope $ProjectName {
                 $TestPath = $TestDrive
                 Save-IMAsset -Id $TestId -Path $TestPath
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $OutFilePath -like (Join-Path $TestPath 'test-image.jpg')
+                Should -Invoke Invoke-ImmichApiDownloadAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    "$OutFilePath" -like (Join-Path $TestPath 'test-image.jpg')
                 }
             }
         }
 
         Context 'API Parameters' {
-            It 'Should call ConvertTo-ApiParameters' {
-                $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
-                Save-IMAsset -Id $TestId -Path $TestDrive
-
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Exactly 1 -Scope It
-            }
-
-            It 'Should handle Key parameter' {
-                Mock ConvertTo-ApiParameters { return @{ key = 'test-key' } } -ModuleName PSImmich
-
+            It 'Should forward Key parameter to the download function' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Save-IMAsset -Id $TestId -Path $TestDrive -Key 'test-key'
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $BoundParameters.Key -eq 'test-key'
-                }
-            }
-
-            It 'Should pass QueryParameters to REST method' {
-                Mock ConvertTo-ApiParameters { return @{ key = 'test-key' } } -ModuleName PSImmich
-
-                $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
-                Save-IMAsset -Id $TestId -Path $TestDrive -Key 'test-key'
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $QueryParameters.key -eq 'test-key'
+                Should -Invoke Invoke-ImmichApiDownloadAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestId -and $Key -eq 'test-key'
                 }
             }
         }
@@ -2823,16 +2713,13 @@ InModuleScope $ProjectName {
                 $Command = Get-Command Save-IMAsset -Module PSImmich
                 $Command.Parameters.ContainsKey('Session') | Should -Be $true
                 $Command.Parameters['Session'].ParameterType.Name | Should -Be 'ImmichSession'
-
-                # Verify that InvokeImmichRestMethod is called when session handling occurs
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 0 -Scope It
             }
 
             It 'Should use default session when no session parameter provided' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Save-IMAsset -Id $TestId -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDownloadAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }

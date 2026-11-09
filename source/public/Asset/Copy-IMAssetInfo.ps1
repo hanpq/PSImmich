@@ -110,7 +110,7 @@
             $BodyParameters = @{}
             $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
 
-            InvokeImmichRestMethod -Method PUT -RelativePath '/assets/copy' -ImmichSession:$Session -Body $BodyParameters
+            Invoke-ImmichApiCopyAsset -Body $BodyParameters -ImmichSession $Session
         }
     }
 }

@@ -255,14 +255,14 @@
     $BodyParameters = @{}
     $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
 
-    $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/metadata' -ImmichSession:$Session -Body $BodyParameters | Select-Object -ExpandProperty assets
-    $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
+    $Response = Invoke-ImmichApiSearchAssets -Body $BodyParameters -ImmichSession $Session
+    $Response.assets.items | ForEach-Object { [AssetResponseDto]::new($PSItem) }
 
-    while ($Result.NextPage)
+    while ($Response.assets.nextPage)
     {
-        $BodyParameters.page = [int]$Result.NextPage
-        $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/metadata' -ImmichSession:$Session -Body $BodyParameters | Select-Object -ExpandProperty assets
-        $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
+        $BodyParameters.page = [int]$Response.assets.nextPage
+        $Response = Invoke-ImmichApiSearchAssets -Body $BodyParameters -ImmichSession $Session
+        $Response.assets.items | ForEach-Object { [AssetResponseDto]::new($PSItem) }
     }
 
 }

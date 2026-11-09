@@ -2,9 +2,9 @@
 <Configuration>
     <ViewDefinitions>
         <View>
-            <Name>PSImmich.ObjectType.IMAsset</Name>
+            <Name>AssetResponseDto</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMAsset</TypeName>
+                <TypeName>AssetResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>

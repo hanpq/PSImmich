@@ -238,14 +238,14 @@
     $Body = @{}
     $Body += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
 
-    $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/smart' -ImmichSession:$Session -Body $Body | Select-Object -ExpandProperty assets
-    $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
+    $Response = Invoke-ImmichApiSearchSmart -Body $Body -ImmichSession $Session
+    $Response.assets.items | ForEach-Object { [AssetResponseDto]::new($PSItem) }
 
-    while ($Result.NextPage)
+    while ($Response.assets.nextPage)
     {
-        $Body.page = [int]$Result.NextPage
-        $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/smart' -ImmichSession:$Session -Body $Body | Select-Object -ExpandProperty assets
-        $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
+        $Body.page = [int]$Response.assets.nextPage
+        $Response = Invoke-ImmichApiSearchSmart -Body $Body -ImmichSession $Session
+        $Response.assets.items | ForEach-Object { [AssetResponseDto]::new($PSItem) }
     }
 }
 #endregion

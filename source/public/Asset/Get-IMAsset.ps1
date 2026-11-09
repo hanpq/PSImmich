@@ -93,28 +93,19 @@
         $IncludeOCR
     )
 
-    begin
-    {
-        switch ($PSCmdlet.ParameterSetName)
-        {
-            'id'
-            {
-                $QueryParameters = @{}
-                $QueryParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-            }
-        }
-    }
-
     process
     {
         switch ($PSCmdlet.ParameterSetName)
         {
             'id'
             {
-                $Result = InvokeImmichRestMethod -Method Get -RelativePath "/assets/$Id" -ImmichSession:$Session -QueryParameters $QueryParameters | AddCustomType IMAsset
+                $ApiArguments = @{ Id = $Id; ImmichSession = $Session }
+                if ($PSBoundParameters.ContainsKey('Key')) { $ApiArguments.Key = $Key }
+                if ($PSBoundParameters.ContainsKey('Slug')) { $ApiArguments.Slug = $Slug }
+                $Result = [AssetResponseDto]::new((Invoke-ImmichApiGetAssetInfo @ApiArguments))
                 if ($IncludeOCR.IsPresent)
                 {
-                    $OcrData = InvokeImmichRestMethod -Method Get -RelativePath "/assets/$Id/ocr" -ImmichSession:$Session
+                    $OcrData = Invoke-ImmichApiGetAssetOcr -Id $Id -ImmichSession $Session | ForEach-Object { [AssetOcrResponseDto]::new($PSItem) }
                     $Result | Add-Member -MemberType NoteProperty -Name OCR -Value $OcrData
                 }
                 $Result
@@ -129,23 +120,22 @@
                     tagIds = @($TagId)
                 }
 
-                $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/metadata' -ImmichSession:$Session -Body $Body | Select-Object -ExpandProperty assets
-                $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
+                $Response = Invoke-ImmichApiSearchAssets -Body $Body -ImmichSession $Session
+                $Response.assets.items | ForEach-Object { [AssetResponseDto]::new($PSItem) }
 
-                while ($Result.NextPage)
+                while ($Response.assets.nextPage)
                 {
-                    $Body.page = $Result.NextPage
-                    $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/metadata' -ImmichSession:$Session -Body $Body | Select-Object -ExpandProperty assets
-                    $Result | Select-Object -ExpandProperty items | AddCustomType IMAsset
+                    $Body.page = $Response.assets.nextPage
+                    $Response = Invoke-ImmichApiSearchAssets -Body $Body -ImmichSession $Session
+                    $Response.assets.items | ForEach-Object { [AssetResponseDto]::new($PSItem) }
                 }
             }
             'random'
             {
-                # Requires body, but we wont provide any parameters in this case. TBD
                 $Body = @{
                     size = $Count
                 }
-                InvokeImmichRestMethod -Method POST -RelativePath '/search/random' -ImmichSession:$Session -Body:$Body | AddCustomType IMAsset
+                Invoke-ImmichApiSearchRandom -Body $Body -ImmichSession $Session | ForEach-Object { [AssetResponseDto]::new($PSItem) }
             }
             'list'
             {

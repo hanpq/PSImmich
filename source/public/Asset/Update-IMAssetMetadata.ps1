@@ -58,7 +58,7 @@
     {
         if ($PSCmdlet.ShouldProcess(($BodyParameters.assetIds -join ','), 'Update metadata'))
         {
-            InvokeImmichRestMethod -Method POST -RelativePath '/assets/jobs' -ImmichSession:$Session -Body:$BodyParameters
+            Invoke-ImmichApiRunAssetJobs -Body $BodyParameters -ImmichSession $Session
         }
     }
 

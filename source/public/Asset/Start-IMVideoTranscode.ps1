@@ -60,7 +60,7 @@
     {
         if ($PSCmdlet.ShouldProcess(($BodyParameters.assetIds -join ','), 'Transcode videos'))
         {
-            InvokeImmichRestMethod -Method POST -RelativePath '/assets/jobs' -ImmichSession:$Session -Body:$BodyParameters
+            Invoke-ImmichApiRunAssetJobs -Body $BodyParameters -ImmichSession $Session
         }
     }
 
