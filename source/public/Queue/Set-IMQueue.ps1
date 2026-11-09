@@ -47,7 +47,6 @@
         $Name,
 
         [Parameter(Mandatory)]
-        [ApiParameter('isPaused')]
         [bool]
         $IsPaused
     )
@@ -64,11 +63,8 @@
         }
         if ($PSCmdlet.ShouldProcess($Name, "$StatusText queue"))
         {
-            $Body = @{}
-            $Body += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-
-            $Result = InvokeImmichRestMethod -Method PUT -RelativePath "/queues/$Name" -ImmichSession:$Session -Body $Body
-            $Result | AddCustomType IMQueue
+            Invoke-ImmichApiUpdateQueue -Name $Name -Body @{ isPaused = $IsPaused } -ImmichSession $Session |
+                ForEach-Object { [QueueResponseDto]::new($PSItem) }
         }
     }
 }

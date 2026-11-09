@@ -8896,6 +8896,65 @@ InModuleScope $ProjectName {
     }
 
     Describe 'Set-IMQueue' -Tag 'Unit', 'Set-IMQueue' {
+        BeforeAll {
+            Mock Invoke-ImmichApiUpdateQueue -ModuleName PSImmich {
+                [pscustomobject]@{ name = $Name; isPaused = $Body.isPaused; statistics = [pscustomobject]@{ waiting = 0; active = 0; completed = 1; failed = 0; delayed = 0; paused = 0 } }
+            }
+        }
+
+        Context 'Request mapping' {
+            It 'Should pause the queue with isPaused=true' {
+                Set-IMQueue -Name 'thumbnailGeneration' -IsPaused $true -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpdateQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq 'thumbnailGeneration' -and $Body.isPaused -eq $true
+                }
+            }
+
+            It 'Should resume the queue with isPaused=false' {
+                Set-IMQueue -Name 'faceDetection' -IsPaused $false -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpdateQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq 'faceDetection' -and $Body.isPaused -eq $false
+                }
+            }
+
+            It 'Should update each queue received from the pipeline' {
+                @('thumbnailGeneration', 'videoConversion') | Set-IMQueue -IsPaused $true -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpdateQueue -ModuleName PSImmich -Exactly 2 -Scope It
+            }
+
+            It 'Should forward an explicit session' {
+                $TestSession = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Set-IMQueue -Session $TestSession -Name 'ocr' -IsPaused $true -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpdateQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $TestSession
+                }
+            }
+
+            It 'Should not call the API when WhatIf is specified' {
+                Set-IMQueue -Name 'ocr' -IsPaused $true -WhatIf
+
+                Should -Invoke Invoke-ImmichApiUpdateQueue -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return a QueueResponseDto' {
+                $Result = Set-IMQueue -Name 'ocr' -IsPaused $true -Confirm:$false
+
+                $Result.GetType().Name | Should -Be 'QueueResponseDto'
+                $Result.name | Should -Be 'ocr'
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid queue name' {
+                { Set-IMQueue -Name 'invalidQueue' -IsPaused $true -Confirm:$false } | Should -Throw
+            }
+        }
     }
     Describe 'Clear-IMQueue' -Tag 'Unit', 'Clear-IMQueue' {
         BeforeAll {
@@ -8949,8 +9008,124 @@ InModuleScope $ProjectName {
         }
     }
     Describe 'Get-IMQueue' -Tag 'Unit', 'Get-IMQueue' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetQueue -ModuleName PSImmich {
+                [pscustomobject]@{ name = $Name; isPaused = $false; statistics = [pscustomobject]@{ waiting = 2; active = 1; completed = 3; failed = 0; delayed = 0; paused = 0 } }
+            }
+            Mock Invoke-ImmichApiGetQueues -ModuleName PSImmich {
+                @(
+                    [pscustomobject]@{ name = 'thumbnailGeneration'; isPaused = $false; statistics = [pscustomobject]@{ waiting = 2; active = 1; completed = 3; failed = 0; delayed = 0; paused = 0 } }
+                    [pscustomobject]@{ name = 'faceDetection'; isPaused = $true; statistics = [pscustomobject]@{ waiting = 0; active = 0; completed = 0; failed = 0; delayed = 0; paused = 0 } }
+                )
+            }
+        }
+
+        Context 'Request mapping' {
+            It 'Should call Invoke-ImmichApiGetQueues when no name is specified' {
+                Get-IMQueue
+
+                Should -Invoke Invoke-ImmichApiGetQueues -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiGetQueue -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+
+            It 'Should call Invoke-ImmichApiGetQueue with the queue name' {
+                Get-IMQueue -Name 'thumbnailGeneration'
+
+                Should -Invoke Invoke-ImmichApiGetQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq 'thumbnailGeneration'
+                }
+                Should -Invoke Invoke-ImmichApiGetQueues -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+
+            It 'Should retrieve each queue received from the pipeline' {
+                'thumbnailGeneration', 'facialRecognition' | Get-IMQueue
+
+                Should -Invoke Invoke-ImmichApiGetQueue -ModuleName PSImmich -Exactly 2 -Scope It
+            }
+
+            It 'Should forward an explicit session' {
+                $TestSession = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMQueue -Session $TestSession
+
+                Should -Invoke Invoke-ImmichApiGetQueues -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $TestSession
+                }
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return a QueueResponseDto per queue' {
+                $Result = Get-IMQueue
+
+                $Result | Should -HaveCount 2
+                $Result[0].GetType().Name | Should -Be 'QueueResponseDto'
+                $Result[0].statistics.waiting | Should -Be 2
+                $Result[1].isPaused | Should -BeTrue
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid queue name' {
+                { Get-IMQueue -Name 'invalidQueue' } | Should -Throw
+            }
+        }
     }
     Describe 'Get-IMQueueJob' -Tag 'Unit', 'Get-IMQueueJob' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetQueueJobs -ModuleName PSImmich {
+                @([pscustomobject]@{ id = 'job-1'; name = 'thumbnailGeneration'; timestamp = 1700000000000; data = @{ assetId = 'a1' } })
+            }
+        }
+
+        Context 'Request mapping' {
+            It 'Should call Invoke-ImmichApiGetQueueJobs with the queue name and no status filter' {
+                Get-IMQueueJob -Name 'thumbnailGeneration'
+
+                Should -Invoke Invoke-ImmichApiGetQueueJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq 'thumbnailGeneration' -and -not $Status
+                }
+            }
+
+            It 'Should pass the status filter as a query value, not a request body' {
+                Get-IMQueueJob -Name 'faceDetection' -Status failed
+
+                Should -Invoke Invoke-ImmichApiGetQueueJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq 'faceDetection' -and $Status -contains 'failed'
+                }
+            }
+
+            It 'Should pass multiple status values' {
+                Get-IMQueueJob -Name 'videoConversion' -Status active, waiting
+
+                Should -Invoke Invoke-ImmichApiGetQueueJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Status -contains 'active' -and $Status -contains 'waiting'
+                }
+            }
+
+            It 'Should forward an explicit session' {
+                $TestSession = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMQueueJob -Session $TestSession -Name 'ocr'
+
+                Should -Invoke Invoke-ImmichApiGetQueueJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $TestSession
+                }
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return a QueueJobResponseDto' {
+                $Result = Get-IMQueueJob -Name 'thumbnailGeneration'
+
+                $Result.GetType().Name | Should -Be 'QueueJobResponseDto'
+                $Result.id | Should -Be 'job-1'
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid status value' {
+                { Get-IMQueueJob -Name 'ocr' -Status 'bogus' } | Should -Throw
+            }
+        }
     }
 
     Describe 'Get-IMUserStatistic' -Tag 'Unit', 'Get-IMUserStatistic' {

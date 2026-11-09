@@ -69,8 +69,8 @@ class ActivityResponseDto
 
 class ActivityStatisticsResponseDto
 {
-    [int]$comments
-    [int]$likes
+    [long]$comments
+    [long]$likes
 
     ActivityStatisticsResponseDto()
     {
@@ -117,7 +117,7 @@ class AdminConfigDatabaseBackupDto
 {
     [string]$cronExpression
     [bool]$enabled
-    [int]$keepLastAmount
+    [long]$keepLastAmount
 
     AdminConfigDatabaseBackupDto()
     {
@@ -189,7 +189,7 @@ class AdminConfigFFmpegDto
     [int]$bframes
     [string]$cqMode
     [int]$crf
-    [int]$gopSize
+    [long]$gopSize
     [string]$maxBitrate
     [string]$preferredHwDevice
     [string]$preset
@@ -199,7 +199,7 @@ class AdminConfigFFmpegDto
     [string]$targetResolution
     [string]$targetVideoCodec
     [bool]$temporalAQ
-    [int]$threads
+    [long]$threads
     [string]$tonemap
     [string]$transcode
     [bool]$twoPass
@@ -260,7 +260,7 @@ class AdminConfigGeneratedImageDto
     [string]$format
     [bool]$progressive
     [int]$quality
-    [int]$size
+    [long]$size
 
     AdminConfigGeneratedImageDto()
     {
@@ -302,7 +302,7 @@ class AdminConfigIntegrityChecksumJobDto
     [string]$cronExpression
     [bool]$enabled
     [double]$percentageLimit
-    [int]$timeLimit
+    [long]$timeLimit
 
     AdminConfigIntegrityChecksumJobDto()
     {
@@ -353,7 +353,7 @@ class AdminConfigIntegrityChecksDto
 
 class AdminConfigJobSettingsDto
 {
-    [int]$concurrency
+    [long]$concurrency
 
     AdminConfigJobSettingsDto()
     {
@@ -472,8 +472,8 @@ class AdminConfigLoggingDto
 class AdminConfigMachineLearningAvailabilityChecksDto
 {
     [bool]$enabled
-    [int]$interval
-    [int]$timeout
+    [long]$interval
+    [long]$timeout
 
     AdminConfigMachineLearningAvailabilityChecksDto()
     {
@@ -507,7 +507,7 @@ class AdminConfigFacialRecognitionDto
 {
     [bool]$enabled
     [double]$maxDistance
-    [int]$minFaces
+    [long]$minFaces
     [double]$minScore
     [string]$modelName
 
@@ -528,7 +528,7 @@ class AdminConfigFacialRecognitionDto
 class AdminConfigOcrDto
 {
     [bool]$enabled
-    [int]$maxResolution
+    [long]$maxResolution
     [double]$minDetectionScore
     [double]$minRecognitionScore
     [string]$modelName
@@ -726,7 +726,7 @@ class AdminConfigOAuthDto
     [string]$buttonText
     [string]$clientId
     [string]$clientSecret
-    [int]$defaultStorageQuota
+    [long]$defaultStorageQuota
     [bool]$enabled
     [string]$endSessionEndpoint
     [string]$issuerUrl
@@ -739,7 +739,7 @@ class AdminConfigOAuthDto
     [string]$signingAlgorithm
     [string]$storageLabelClaim
     [string]$storageQuotaClaim
-    [int]$timeout
+    [long]$timeout
     [string]$tokenEndpointAuthMethod
 
     AdminConfigOAuthDto()
@@ -885,7 +885,7 @@ class AdminConfigThemeDto
 
 class AdminConfigTrashDto
 {
-    [int]$days
+    [long]$days
     [bool]$enabled
 
     AdminConfigTrashDto()
@@ -901,7 +901,7 @@ class AdminConfigTrashDto
 
 class AdminConfigUserDto
 {
-    [int]$deleteDelay
+    [long]$deleteDelay
 
     AdminConfigUserDto()
     {
@@ -1001,7 +1001,7 @@ class AlbumUserResponseDto
 
 class ContributorCountResponseDto
 {
-    [int]$assetCount
+    [long]$assetCount
     [string]$userId
 
     ContributorCountResponseDto()
@@ -1020,7 +1020,7 @@ class AlbumResponseDto
     [string]$albumName
     [string]$albumThumbnailAssetId
     [AlbumUserResponseDto[]]$albumUsers
-    [int]$assetCount
+    [long]$assetCount
     [ContributorCountResponseDto[]]$contributorCounts
     [datetime]$createdAt
     [string]$description
@@ -1107,9 +1107,9 @@ class AlbumsResponse
 
 class AlbumStatisticsResponseDto
 {
-    [int]$notShared
-    [int]$owned
-    [int]$shared
+    [long]$notShared
+    [long]$owned
+    [long]$shared
 
     AlbumStatisticsResponseDto()
     {
@@ -1252,7 +1252,7 @@ class AssetBulkDeleteDto
 class AssetBulkUpdateDto
 {
     [string]$dateTimeOriginal
-    [int]$dateTimeRelative
+    [long]$dateTimeRelative
     [string]$description
     [string]$duplicateId
     [string[]]$ids
@@ -1442,14 +1442,14 @@ class AssetEditsResponseDto
 class AssetFaceCreateDto
 {
     [string]$assetId
-    [int]$height
-    [int]$imageHeight
-    [int]$imageWidth
+    [long]$height
+    [long]$imageHeight
+    [long]$imageWidth
     [string]$personId
     [string]$userId
-    [int]$width
-    [int]$x
-    [int]$y
+    [long]$width
+    [long]$x
+    [long]$y
 
     AssetFaceCreateDto()
     {
@@ -1485,13 +1485,13 @@ class AssetFaceDeleteDto
 
 class AssetFaceResponseDto
 {
-    [int]$boundingBoxX1
-    [int]$boundingBoxX2
-    [int]$boundingBoxY1
-    [int]$boundingBoxY2
+    [long]$boundingBoxX1
+    [long]$boundingBoxX2
+    [long]$boundingBoxY1
+    [long]$boundingBoxY2
     [string]$id
-    [int]$imageHeight
-    [int]$imageWidth
+    [long]$imageHeight
+    [long]$imageWidth
     [object]$person
     [string]$sourceType
 
@@ -1640,7 +1640,7 @@ class AssetMetadataUpsertItemDto
 class AssetMediaCreateDto
 {
     [object]$assetData
-    [int]$duration
+    [long]$duration
     [datetime]$fileCreatedAt
     [datetime]$fileModifiedAt
     [string]$filename
@@ -1843,13 +1843,13 @@ class ExifResponseDto
     [string]$country
     [datetime]$dateTimeOriginal
     [string]$description
-    [int]$exifImageHeight
-    [int]$exifImageWidth
+    [long]$exifImageHeight
+    [long]$exifImageWidth
     [string]$exposureTime
     [double]$fNumber
-    [int]$fileSizeInByte
+    [long]$fileSizeInByte
     [double]$focalLength
-    [int]$iso
+    [long]$iso
     [double]$latitude
     [string]$lensModel
     [double]$longitude
@@ -2009,7 +2009,7 @@ class AssetResponseDto
     [datetime]$fileCreatedAt
     [datetime]$fileModifiedAt
     [bool]$hasMetadata
-    [int]$height
+    [long]$height
     [string]$id
     [bool]$isArchived
     [bool]$isEdited
@@ -2032,7 +2032,7 @@ class AssetResponseDto
     [string]$type
     [datetime]$updatedAt
     [string]$visibility
-    [int]$width
+    [long]$width
 
     AssetResponseDto()
     {
@@ -2077,7 +2077,7 @@ class AssetResponseDto
 
 class AssetStackResponseDto
 {
-    [int]$assetCount
+    [long]$assetCount
     [string]$id
     [string]$primaryAssetId
 
@@ -2095,9 +2095,9 @@ class AssetStackResponseDto
 
 class AssetStatsResponseDto
 {
-    [int]$images
-    [int]$total
-    [int]$videos
+    [long]$images
+    [long]$total
+    [long]$videos
 
     AssetStatsResponseDto()
     {
@@ -2200,7 +2200,7 @@ class CalendarHeatmapResponseDto
     [string]$from
     [object[]]$series
     [string]$to
-    [int]$totalCount
+    [long]$totalCount
 
     CalendarHeatmapResponseDto()
     {
@@ -2369,10 +2369,10 @@ class CreateProfileImageResponseDto
 
 class CropParameters
 {
-    [int]$height
-    [int]$width
-    [int]$x
-    [int]$y
+    [long]$height
+    [long]$width
+    [long]$x
+    [long]$y
 
     CropParameters()
     {
@@ -2404,7 +2404,7 @@ class DatabaseBackupDeleteDto
 class DatabaseBackupDto
 {
     [string]$filename
-    [int]$filesize
+    [long]$filesize
     [string]$timezone
 
     DatabaseBackupDto()
@@ -2516,7 +2516,7 @@ class DownloadArchiveDto
 class DownloadArchiveInfo
 {
     [string[]]$assetIds
-    [int]$size
+    [long]$size
 
     DownloadArchiveInfo()
     {
@@ -2532,7 +2532,7 @@ class DownloadArchiveInfo
 class DownloadInfoDto
 {
     [string]$albumId
-    [int]$archiveSize
+    [long]$archiveSize
     [string[]]$assetIds
     [string]$userId
 
@@ -2551,7 +2551,7 @@ class DownloadInfoDto
 
 class DownloadResponse
 {
-    [int]$archiveSize
+    [long]$archiveSize
     [bool]$includeEmbeddedVideos
 
     DownloadResponse()
@@ -2568,7 +2568,7 @@ class DownloadResponse
 class DownloadResponseDto
 {
     [DownloadArchiveInfo[]]$archives
-    [int]$totalSize
+    [long]$totalSize
 
     DownloadResponseDto()
     {
@@ -2583,7 +2583,7 @@ class DownloadResponseDto
 
 class DownloadUpdate
 {
-    [int]$archiveSize
+    [long]$archiveSize
     [bool]$includeEmbeddedVideos
 
     DownloadUpdate()
@@ -2837,9 +2837,9 @@ class IntegrityReportResponseDto
 
 class IntegrityReportSummaryResponseDto
 {
-    [int]$checksum_mismatch
-    [int]$missing_file
-    [int]$untracked_file
+    [long]$checksum_mismatch
+    [long]$missing_file
+    [long]$untracked_file
 
     IntegrityReportSummaryResponseDto()
     {
@@ -2869,7 +2869,7 @@ class JobCreateDto
 
 class LibraryResponseDto
 {
-    [int]$assetCount
+    [long]$assetCount
     [datetime]$createdAt
     [string[]]$exclusionPatterns
     [string]$id
@@ -2899,10 +2899,10 @@ class LibraryResponseDto
 
 class LibraryStatsResponseDto
 {
-    [int]$photos
-    [int]$total
-    [int]$usage
-    [int]$videos
+    [long]$photos
+    [long]$total
+    [long]$usage
+    [long]$videos
 
     LibraryStatsResponseDto()
     {
@@ -3009,7 +3009,7 @@ class MaintenanceAuthDto
 
 class MaintenanceDetectInstallStorageFolderDto
 {
-    [int]$files
+    [long]$files
     [string]$folder
     [bool]$readable
     [bool]$writable
@@ -3060,7 +3060,7 @@ class MaintenanceStatusResponseDto
     [string]$action
     [bool]$active
     [string]$error
-    [int]$progress
+    [long]$progress
     [string]$task
 
     MaintenanceStatusResponseDto()
@@ -3121,7 +3121,7 @@ class MapReverseGeocodeResponseDto
 
 class MemoriesResponse
 {
-    [int]$duration
+    [long]$duration
     [bool]$enabled
     [bool]$sidebarWeb
 
@@ -3139,7 +3139,7 @@ class MemoriesResponse
 
 class MemoriesUpdate
 {
-    [int]$duration
+    [long]$duration
     [bool]$enabled
     [bool]$sidebarWeb
 
@@ -3241,7 +3241,7 @@ class MemoryResponseDto
 
 class MemoryStatisticsResponseDto
 {
-    [int]$total
+    [long]$total
 
     MemoryStatisticsResponseDto()
     {
@@ -3620,7 +3620,7 @@ class MetadataSearchDto
     [SearchOrder]$orderBy
     [string]$originalFileName
     [string]$originalPath
-    [int]$page
+    [long]$page
     [string[]]$personIds
     [string]$previewPath
     [int]$rating
@@ -3972,7 +3972,7 @@ class PeopleDeleteDto
 class PeopleResponse
 {
     [bool]$enabled
-    [int]$minimumFaces
+    [long]$minimumFaces
     [bool]$sidebarWeb
     [string]$updateStrategy
 
@@ -3992,9 +3992,9 @@ class PeopleResponse
 class PeopleResponseDto
 {
     [bool]$hasNextPage
-    [int]$hidden
+    [long]$hidden
     [PersonResponseDto[]]$people
-    [int]$total
+    [long]$total
 
     PeopleResponseDto()
     {
@@ -4012,7 +4012,7 @@ class PeopleResponseDto
 class PeopleUpdate
 {
     [bool]$enabled
-    [int]$minimumFaces
+    [long]$minimumFaces
     [bool]$sidebarWeb
     [string]$updateStrategy
 
@@ -4129,7 +4129,7 @@ class PersonDeleteDto
 
 class PersonStatisticsResponseDto
 {
-    [int]$assets
+    [long]$assets
 
     PersonStatisticsResponseDto()
     {
@@ -4484,7 +4484,7 @@ class QueueJobResponseDto
     [object]$data
     [string]$id
     [string]$name
-    [int]$timestamp
+    [long]$timestamp
 
     QueueJobResponseDto()
     {
@@ -4501,12 +4501,12 @@ class QueueJobResponseDto
 
 class QueueStatisticsDto
 {
-    [int]$active
-    [int]$completed
-    [int]$delayed
-    [int]$failed
-    [int]$paused
-    [int]$waiting
+    [long]$active
+    [long]$completed
+    [long]$delayed
+    [long]$failed
+    [long]$paused
+    [long]$waiting
 
     QueueStatisticsDto()
     {
@@ -4773,10 +4773,10 @@ class RecentlyAddedUpdate
 
 class ServerVersionResponseDto
 {
-    [int]$major
-    [int]$minor
-    [int]$patch
-    [int]$prerelease
+    [long]$major
+    [long]$minor
+    [long]$patch
+    [long]$prerelease
 
     ServerVersionResponseDto()
     {
@@ -4845,7 +4845,7 @@ class RotateParameters
 
 class SearchFacetCountResponseDto
 {
-    [int]$count
+    [long]$count
     [string]$value
 
     SearchFacetCountResponseDto()
@@ -4877,10 +4877,10 @@ class SearchFacetResponseDto
 
 class SearchAlbumResponseDto
 {
-    [int]$count
+    [long]$count
     [SearchFacetResponseDto[]]$facets
     [AlbumResponseDto[]]$items
-    [int]$total
+    [long]$total
 
     SearchAlbumResponseDto()
     {
@@ -4897,12 +4897,12 @@ class SearchAlbumResponseDto
 
 class SearchAssetResponseDto
 {
-    [int]$count
+    [long]$count
     [SearchFacetResponseDto[]]$facets
     [AssetResponseDto[]]$items
     [string]$nextCursor
     [string]$nextPage
-    [int]$total
+    [long]$total
 
     SearchAssetResponseDto()
     {
@@ -4969,7 +4969,7 @@ class SearchResponseDto
 
 class SearchStatisticsResponseDto
 {
-    [int]$total
+    [long]$total
 
     SearchStatisticsResponseDto()
     {
@@ -5064,12 +5064,12 @@ class ServerConfigDto
     [bool]$maintenanceMode
     [string]$mapDarkStyleUrl
     [string]$mapLightStyleUrl
-    [int]$minFaces
+    [long]$minFaces
     [string]$oauthAccountManagementUrl
     [string]$oauthButtonText
     [bool]$publicUsers
-    [int]$trashDays
-    [int]$userDeleteDelay
+    [long]$trashDays
+    [long]$userDeleteDelay
 
     ServerConfigDto()
     {
@@ -5171,14 +5171,14 @@ class ServerPingResponse
 
 class UsageByUserDto
 {
-    [int]$photos
-    [int]$quotaSizeInBytes
-    [int]$usage
-    [int]$usagePhotos
-    [int]$usageVideos
+    [long]$photos
+    [long]$quotaSizeInBytes
+    [long]$usage
+    [long]$usagePhotos
+    [long]$usageVideos
     [string]$userId
     [string]$userName
-    [int]$videos
+    [long]$videos
 
     UsageByUserDto()
     {
@@ -5199,12 +5199,12 @@ class UsageByUserDto
 
 class ServerStatsResponseDto
 {
-    [int]$photos
-    [int]$usage
+    [long]$photos
+    [long]$usage
     [UsageByUserDto[]]$usageByUser
-    [int]$usagePhotos
-    [int]$usageVideos
-    [int]$videos
+    [long]$usagePhotos
+    [long]$usageVideos
+    [long]$videos
 
     ServerStatsResponseDto()
     {
@@ -5224,12 +5224,12 @@ class ServerStatsResponseDto
 class ServerStorageResponseDto
 {
     [string]$diskAvailable
-    [int]$diskAvailableRaw
+    [long]$diskAvailableRaw
     [string]$diskSize
-    [int]$diskSizeRaw
+    [long]$diskSizeRaw
     [double]$diskUsagePercentage
     [string]$diskUse
-    [int]$diskUseRaw
+    [long]$diskUseRaw
 
     ServerStorageResponseDto()
     {
@@ -5269,7 +5269,7 @@ class SessionCreateDto
 {
     [string]$deviceOS
     [string]$deviceType
-    [int]$duration
+    [long]$duration
 
     SessionCreateDto()
     {
@@ -5572,7 +5572,7 @@ class SmartSearchDto
     [string]$make
     [string]$model
     [string]$ocr
-    [int]$page
+    [long]$page
     [string[]]$personIds
     [string]$query
     [string]$queryAssetId
@@ -5979,7 +5979,7 @@ class SyncAssetEditV1
     [string]$assetId
     [string]$id
     [object]$parameters
-    [int]$sequence
+    [long]$sequence
 
     SyncAssetEditV1()
     {
@@ -6002,14 +6002,14 @@ class SyncAssetExifV1
     [string]$country
     [datetime]$dateTimeOriginal
     [string]$description
-    [int]$exifImageHeight
-    [int]$exifImageWidth
+    [long]$exifImageHeight
+    [long]$exifImageWidth
     [string]$exposureTime
     [double]$fNumber
-    [int]$fileSizeInByte
+    [long]$fileSizeInByte
     [double]$focalLength
     [double]$fps
-    [int]$iso
+    [long]$iso
     [double]$latitude
     [string]$lensModel
     [double]$longitude
@@ -6019,7 +6019,7 @@ class SyncAssetExifV1
     [string]$orientation
     [string]$profileDescription
     [string]$projectionType
-    [int]$rating
+    [long]$rating
     [string]$state
     [string]$timeZone
 
@@ -6074,13 +6074,13 @@ class SyncAssetFaceDeleteV1
 class SyncAssetFaceV1
 {
     [string]$assetId
-    [int]$boundingBoxX1
-    [int]$boundingBoxX2
-    [int]$boundingBoxY1
-    [int]$boundingBoxY2
+    [long]$boundingBoxX1
+    [long]$boundingBoxX2
+    [long]$boundingBoxY1
+    [long]$boundingBoxY2
     [string]$id
-    [int]$imageHeight
-    [int]$imageWidth
+    [long]$imageHeight
+    [long]$imageWidth
     [string]$personId
     [string]$sourceType
 
@@ -6106,14 +6106,14 @@ class SyncAssetFaceV1
 class SyncAssetFaceV3
 {
     [string]$assetId
-    [int]$boundingBoxX1
-    [int]$boundingBoxX2
-    [int]$boundingBoxY1
-    [int]$boundingBoxY2
+    [long]$boundingBoxX1
+    [long]$boundingBoxX2
+    [long]$boundingBoxY1
+    [long]$boundingBoxY2
     [datetime]$deletedAt
     [string]$id
-    [int]$imageHeight
-    [int]$imageWidth
+    [long]$imageHeight
+    [long]$imageWidth
     [bool]$isVisible
     [string]$personId
     [string]$sourceType
@@ -6239,7 +6239,7 @@ class SyncAssetV1
     [string]$duration
     [datetime]$fileCreatedAt
     [datetime]$fileModifiedAt
-    [int]$height
+    [long]$height
     [string]$id
     [bool]$isEdited
     [bool]$isFavorite
@@ -6252,7 +6252,7 @@ class SyncAssetV1
     [string]$thumbhash
     [string]$type
     [string]$visibility
-    [int]$width
+    [long]$width
 
     SyncAssetV1()
     {
@@ -6291,7 +6291,7 @@ class SyncAssetV2
     [int]$duration
     [datetime]$fileCreatedAt
     [datetime]$fileModifiedAt
-    [int]$height
+    [long]$height
     [string]$id
     [bool]$isEdited
     [bool]$isFavorite
@@ -6304,7 +6304,7 @@ class SyncAssetV2
     [string]$thumbhash
     [string]$type
     [string]$visibility
-    [int]$width
+    [long]$width
 
     SyncAssetV2()
     {
@@ -6347,8 +6347,8 @@ class SyncAuthUserV1
     [string]$oauthId
     [string]$pinCode
     [datetime]$profileChangedAt
-    [int]$quotaSizeInBytes
-    [int]$quotaUsageInBytes
+    [long]$quotaSizeInBytes
+    [long]$quotaUsageInBytes
     [string]$storageLabel
 
     SyncAuthUserV1()
@@ -6385,8 +6385,8 @@ class SyncAuthUserV2
     [string]$oauthId
     [string]$pinCode
     [datetime]$profileChangedAt
-    [int]$quotaSizeInBytes
-    [int]$quotaUsageInBytes
+    [long]$quotaSizeInBytes
+    [long]$quotaUsageInBytes
     [string]$storageLabel
 
     SyncAuthUserV2()
@@ -6805,7 +6805,7 @@ class TagBulkAssetsDto
 
 class TagBulkAssetsResponseDto
 {
-    [int]$count
+    [long]$count
 
     TagBulkAssetsResponseDto()
     {
@@ -6993,7 +6993,7 @@ class TimeBucketAssetResponseDto
 
 class TimeBucketsResponseDto
 {
-    [int]$count
+    [long]$count
     [string]$timeBucket
 
     TimeBucketsResponseDto()
@@ -7009,7 +7009,7 @@ class TimeBucketsResponseDto
 
 class TrashResponseDto
 {
-    [int]$count
+    [long]$count
 
     TrashResponseDto()
     {
@@ -7112,7 +7112,7 @@ class UserAdminCreateDto
     [bool]$notify
     [string]$password
     [string]$pinCode
-    [int]$quotaSizeInBytes
+    [long]$quotaSizeInBytes
     [bool]$shouldChangePassword
     [string]$storageLabel
 
@@ -7163,8 +7163,8 @@ class UserAdminResponseDto
     [string]$oauthId
     [datetime]$profileChangedAt
     [string]$profileImagePath
-    [int]$quotaSizeInBytes
-    [int]$quotaUsageInBytes
+    [long]$quotaSizeInBytes
+    [long]$quotaUsageInBytes
     [bool]$shouldChangePassword
     [string]$status
     [string]$storageLabel
@@ -7205,7 +7205,7 @@ class UserAdminUpdateDto
     [string]$name
     [string]$password
     [string]$pinCode
-    [int]$quotaSizeInBytes
+    [long]$quotaSizeInBytes
     [bool]$shouldChangePassword
     [string]$storageLabel
 
@@ -7289,7 +7289,7 @@ class UserConfigGeneratedFullsizeImageDto
 
 class UserConfigGeneratedImageDto
 {
-    [int]$size
+    [long]$size
 
     UserConfigGeneratedImageDto()
     {
@@ -7336,7 +7336,7 @@ class UserConfigDuplicateDetectionDto
 class UserConfigFacialRecognitionDto
 {
     [bool]$enabled
-    [int]$minFaces
+    [long]$minFaces
 
     UserConfigFacialRecognitionDto()
     {
@@ -7483,7 +7483,7 @@ class UserConfigThemeDto
 
 class UserConfigTrashDto
 {
-    [int]$days
+    [long]$days
     [bool]$enabled
 
     UserConfigTrashDto()
@@ -7499,7 +7499,7 @@ class UserConfigTrashDto
 
 class UserConfigUserDto
 {
-    [int]$deleteDelay
+    [long]$deleteDelay
 
     UserConfigUserDto()
     {

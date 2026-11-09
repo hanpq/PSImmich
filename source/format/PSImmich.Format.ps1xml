@@ -361,9 +361,9 @@
             </TableControl>
         </View>
         <View>
-            <Name>PSImmich.ObjectType.IMQueue</Name>
+            <Name>QueueResponseDto</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMQueue</TypeName>
+                <TypeName>QueueResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
@@ -408,16 +408,24 @@
                                 </ScriptBlock>
                             </TableColumnItem>
                             <TableColumnItem>
-                                <PropertyName>waiting</PropertyName>
+                                <ScriptBlock>
+                                    if ($_.statistics) { $_.statistics.waiting } else { 'N/A' }
+                                </ScriptBlock>
                             </TableColumnItem>
                             <TableColumnItem>
-                                <PropertyName>active</PropertyName>
+                                <ScriptBlock>
+                                    if ($_.statistics) { $_.statistics.active } else { 'N/A' }
+                                </ScriptBlock>
                             </TableColumnItem>
                             <TableColumnItem>
-                                <PropertyName>completed</PropertyName>
+                                <ScriptBlock>
+                                    if ($_.statistics) { $_.statistics.completed } else { 'N/A' }
+                                </ScriptBlock>
                             </TableColumnItem>
                             <TableColumnItem>
-                                <PropertyName>failed</PropertyName>
+                                <ScriptBlock>
+                                    if ($_.statistics) { $_.statistics.failed } else { 'N/A' }
+                                </ScriptBlock>
                             </TableColumnItem>
                         </TableColumnItems>
                     </TableRowEntry>
@@ -425,36 +433,23 @@
             </TableControl>
         </View>
         <View>
-            <Name>PSImmich.ObjectType.IMQueueJob</Name>
+            <Name>QueueJobResponseDto</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMQueueJob</TypeName>
+                <TypeName>QueueJobResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
                     <TableColumnHeader>
                         <Label>Id</Label>
-                        <Width>8</Width>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Status</Label>
-                        <Width>10</Width>
+                        <Width>38</Width>
                     </TableColumnHeader>
                     <TableColumnHeader>
                         <Label>Name</Label>
                         <Width>20</Width>
                     </TableColumnHeader>
                     <TableColumnHeader>
-                        <Label>Progress</Label>
-                        <Width>10</Width>
-                        <Alignment>Right</Alignment>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Created</Label>
-                        <Width>20</Width>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Updated</Label>
-                        <Width>20</Width>
+                        <Label>Timestamp</Label>
+                        <Width>16</Width>
                     </TableColumnHeader>
                 </TableHeaders>
                 <TableRowEntries>
@@ -464,21 +459,10 @@
                                 <PropertyName>id</PropertyName>
                             </TableColumnItem>
                             <TableColumnItem>
-                                <PropertyName>status</PropertyName>
-                            </TableColumnItem>
-                            <TableColumnItem>
                                 <PropertyName>name</PropertyName>
                             </TableColumnItem>
                             <TableColumnItem>
-                                <ScriptBlock>
-                                    if ($_.progress) { "$($_.progress)%" } else { 'N/A' }
-                                </ScriptBlock>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <PropertyName>createdAt</PropertyName>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <PropertyName>updatedAt</PropertyName>
+                                <PropertyName>timestamp</PropertyName>
                             </TableColumnItem>
                         </TableColumnItems>
                     </TableRowEntry>

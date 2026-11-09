@@ -609,6 +609,10 @@ function Get-DtoPropertyType($Property, [string]$Context, [hashtable]$Done)
         return [pscustomobject]@{ Type = $Item.Type; Array = $true; Kind = $Kind }
     }
     $Scalar = Get-ScalarType $Property $Context
+    if ($Scalar.Type -eq 'int' -and (($Property.maximum -gt [int]::MaxValue) -or ($Property.minimum -lt [int]::MinValue)))
+    {
+        $Scalar = [pscustomobject]@{ Type = 'long' }
+    }
     $Kind = 'scalar'
     if ($Scalar.Type -eq 'object')
     {

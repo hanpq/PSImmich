@@ -274,6 +274,14 @@ undefined `withoutAssets` query. It pages `POST /search/metadata` filtered by `a
 and attaches the items as `assets`. The `IMAlbum` view is now `AlbumResponseDto`, and the
 Owner column is dropped because 3.3.6 `AlbumResponseDto` has no `owner`.
 
+Queue batch: `Get-IMQueue`, `Set-IMQueue`, and `Get-IMQueueJob` call the generated functions and
+return `QueueResponseDto` and `QueueJobResponseDto` directly, with no `AddCustomType` wrapper,
+matching the Library and Job batches. The `IMQueue` and `IMQueueJob` format views now match the
+DTO class names, so the public type name changes. `Get-IMQueueJob -Status` is a query parameter
+again; previously it was sent in the GET body. The generator now maps DTO integer properties
+whose spec bounds exceed Int32 to `[long]`. This widened 148 DTO properties, including
+`QueueJobResponseDto.timestamp` (epoch milliseconds). Route query parameters stay `[int]`.
+
 ## Next handoff
 
 Continue on branch `upgrade/immich-3.3.6`. Committed batches:
