@@ -232,14 +232,15 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Status | Count |
 | --- | ---: |
 | Excluded (`exclusions.json`, method and path) | 59 |
-| Tested (generated function named under `tests/Unit`) | 17 |
+| Tested (generated function named under `tests/Unit`) | 18 |
 | Reachable (generated function used by module source) | 50 |
-| Unreachable | 153 |
+| Unreachable | 152 |
 | Total | 279 |
 
-Wired for 67 of 220 non-excluded operations (30.5%) after the Server batch
-(was 49, 22.3%, after the Person batch; 41, 18.6%, after the Set-IMAsset batch; 37, 16.8%, after the restore batch; 35, 15.9%, after the asset batch; 25, 11.4%, before it). This is a route
-metric, not parameter or contract parity. The 153 unreachable operations are the backlog.
+Wired for 68 of 220 non-excluded operations (30.9%) after the raw-JSON admin config change
+(was 67, 30.5%, after the Server batch;
+49, 22.3%, after the Person batch; 41, 18.6%, after the Set-IMAsset batch; 37, 16.8%, after the restore batch; 35, 15.9%, after the asset batch; 25, 11.4%, before it). This is a route
+metric, not parameter or contract parity. The 152 unreachable operations are the backlog.
 20 unreachable operations are deprecated; each needs the
 replacement-or-retain decision under the maintainer policy before implementation.
 

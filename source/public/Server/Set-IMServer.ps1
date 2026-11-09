@@ -32,7 +32,7 @@
 
     if ($PSCmdlet.ShouldProcess('Config', 'Set'))
     {
-        InvokeImmichRestMethod -Method Put -RelativePath '/admin/config' -ImmichSession:$Session -RawBody:$RawJSONConfig
+        Invoke-ImmichApiUpdateAdminConfig -RawBody $RawJSONConfig -ImmichSession:$Session
     }
 }
 #endregion

@@ -7674,15 +7674,26 @@ InModuleScope $ProjectName {
     }
     Describe 'Set-IMServer' -Tag 'Unit', 'Set-IMServer' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiUpdateAdminConfig {}
         }
-        Context '-RawJSON' {
-            It 'Should set config with correct API call' {
+        Context '-RawJSONConfig' {
+            It 'Should call the admin config API with the raw JSON text' {
                 $config = @{ ffmpeg = @{ crf = 25 } }
-                Set-IMServer -RawJSON ($config | ConvertTo-Json)
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/admin/config'
+                Set-IMServer -RawJSONConfig ($config | ConvertTo-Json -Compress)
+                Should -Invoke Invoke-ImmichApiUpdateAdminConfig -Times 1 -ParameterFilter {
+                    $RawBody -eq '{"ffmpeg":{"crf":25}}'
                 }
+            }
+            It 'Should pass nested JSON through without depth truncation' {
+                $json = '{"ffmpeg":{"crf":25,"preset":{"name":"fast","nested":{"deep":{"value":1}}}}}'
+                Set-IMServer -RawJSONConfig $json
+                Should -Invoke Invoke-ImmichApiUpdateAdminConfig -Times 1 -ParameterFilter {
+                    $RawBody -ceq $json -and -not $Body
+                }
+            }
+            It 'Should not call the admin config API when WhatIf is used' {
+                Set-IMServer -RawJSONConfig '{}' -WhatIf
+                Should -Invoke Invoke-ImmichApiUpdateAdminConfig -Times 0
             }
         }
     }

@@ -152,7 +152,7 @@ function Get-RouteParameterType($Schema, [string]$Context)
     return [pscustomobject]@{ Type = $Scalar.Type; Array = $false; Values = $Scalar.Values }
 }
 
-function New-ParameterRecord([string]$Name, [string]$Wire, $ParameterType, [bool]$Mandatory)
+function New-ParameterRecord([string]$Name, [string]$Wire, $ParameterType, [bool]$Mandatory, [string]$ParameterSet = '')
 {
     $TypeName = $ParameterType.Type
     if ($ParameterType.Array)
@@ -160,9 +160,18 @@ function New-ParameterRecord([string]$Name, [string]$Wire, $ParameterType, [bool
         $TypeName += '[]'
     }
     $Attributes = ''
+    $AttributeArguments = @()
     if ($Mandatory)
     {
-        $Attributes += '[Parameter(Mandatory)]'
+        $AttributeArguments += 'Mandatory'
+    }
+    if ($ParameterSet)
+    {
+        $AttributeArguments += "ParameterSetName='$ParameterSet'"
+    }
+    if ($AttributeArguments.Count -gt 0)
+    {
+        $Attributes += '[Parameter(' + ($AttributeArguments -join ', ') + ')]'
     }
     if ($ParameterType.Values)
     {
@@ -312,7 +321,10 @@ function New-RouteFunction($Operation, [string]$Method, [string]$Path, [bool]$Ro
             'application/json'
             {
                 $BodyKind = 'json'
-                $Declarations.Add((New-ParameterRecord 'Body' 'Body' ([pscustomobject]@{ Type = 'hashtable'; Array = $false; Values = $null }) $BodyMandatory))
+                # Body (hashtable) and RawBody (pre-serialized JSON text) are mutually exclusive
+                # parameter sets. RawBody avoids ConvertTo-Json depth limits for nested documents.
+                $Declarations.Add((New-ParameterRecord 'Body' 'Body' ([pscustomobject]@{ Type = 'hashtable'; Array = $false; Values = $null }) $BodyMandatory 'Json'))
+                $Declarations.Add((New-ParameterRecord 'RawBody' 'RawBody' ([pscustomobject]@{ Type = 'string'; Array = $false; Values = $null }) $BodyMandatory 'RawJson'))
             }
             'application/x-www-form-urlencoded'
             {
@@ -444,7 +456,11 @@ function New-RouteFunction($Operation, [string]$Method, [string]$Path, [bool]$Ro
         }
         switch ($BodyKind)
         {
-            'json' { $Lines.Add('    if ($PSBoundParameters.ContainsKey(''Body'')) { $Request.Body = $Body }') }
+            'json'
+            {
+                $Lines.Add('    if ($PSBoundParameters.ContainsKey(''Body'')) { $Request.Body = $Body }')
+                $Lines.Add('    if ($PSBoundParameters.ContainsKey(''RawBody'')) { $Request.RawBody = $RawBody }')
+            }
             'form'
             {
                 $Lines.Add('    $Request.ContentType = ''application/x-www-form-urlencoded''')
@@ -463,7 +479,12 @@ function New-RouteFunction($Operation, [string]$Method, [string]$Path, [bool]$Ro
     $Text.Add("# $MarkerText")
     $Text.Add("function $FunctionName")
     $Text.Add('{')
-    $Text.Add('    [CmdletBinding()]')
+    $CmdletBindingLine = '    [CmdletBinding()]'
+    if ($BodyKind -eq 'json')
+    {
+        $CmdletBindingLine = "    [CmdletBinding(DefaultParameterSetName = 'Json')]"
+    }
+    $Text.Add($CmdletBindingLine)
     # Names mirror the Immich operationIds on purpose, so the plural nouns are kept.
     $Text.Add("    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '', Justification = 'Name mirrors the Immich operationId.')]")
     $Text.Add('    param(')
