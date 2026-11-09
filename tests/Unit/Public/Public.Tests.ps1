@@ -3364,62 +3364,54 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMAuthSession' -Tag 'Unit', 'Get-IMAuthSession' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                switch ($RelativePath)
-                {
-                    '/sessions'
-                    {
-                        return @(
-                            [PSCustomObject]@{
-                                id         = 'session1-guid-here-1234567890abcdef'
-                                deviceType = 'web'
-                                deviceOS   = 'Windows'
-                                createdAt  = '2024-01-01T10:00:00Z'
-                                updatedAt  = '2024-01-01T12:00:00Z'
-                                current    = $true
-                                ipAddress  = '192.168.1.100'
-                                userAgent  = 'Mozilla/5.0'
-                            },
-                            [PSCustomObject]@{
-                                id         = 'session2-guid-here-1234567890abcdef'
-                                deviceType = 'mobile'
-                                deviceOS   = 'iOS'
-                                createdAt  = '2024-01-01T08:00:00Z'
-                                updatedAt  = '2024-01-01T11:30:00Z'
-                                current    = $false
-                                ipAddress  = '192.168.1.101'
-                                userAgent  = 'Immich/1.0 iOS'
-                            }
-                        )
+            Mock Invoke-ImmichApiGetSessions -ModuleName PSImmich {
+                @(
+                    [PSCustomObject]@{
+                        id                 = 'session1-guid-here-1234567890abcdef'
+                        appVersion         = '2.3.1'
+                        createdAt          = '2024-01-01T10:00:00Z'
+                        current            = $true
+                        deviceOS           = 'Windows'
+                        deviceType         = 'web'
+                        expiresAt          = $null
+                        isPendingSyncReset = $false
+                        updatedAt          = '2024-01-01T12:00:00Z'
+                    },
+                    [PSCustomObject]@{
+                        id                 = 'session2-guid-here-1234567890abcdef'
+                        appVersion         = '2.3.1'
+                        createdAt          = '2024-01-01T08:00:00Z'
+                        current            = $false
+                        deviceOS           = 'iOS'
+                        deviceType         = 'mobile'
+                        expiresAt          = $null
+                        isPendingSyncReset = $false
+                        updatedAt          = '2024-01-01T11:30:00Z'
                     }
-                    default
-                    {
-                        throw "Unmocked path: $RelativePath"
-                    }
-                }
+                )
             }
         }
 
         Context 'Session Retrieval' {
-            It 'Should retrieve active sessions using GET method' {
+            It 'Should call Invoke-ImmichApiGetSessions once' {
                 Get-IMAuthSession
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'GET' -and
-                    $RelativePath -eq '/sessions'
+                Should -Invoke Invoke-ImmichApiGetSessions -ModuleName PSImmich -Times 1
+            }
+
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMAuthSession -Session $Session
+
+                Should -Invoke Invoke-ImmichApiGetSessions -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $ImmichSession -eq $Session
                 }
             }
 
-            It 'Should pass Session parameter when provided' {
-                # Verify Session parameter is accepted by checking parameter definition
-                $function = Get-Command Get-IMAuthSession
-                $sessionParam = $function.Parameters['Session']
-                $sessionParam.ParameterType.Name | Should -Be 'ImmichSession'
-            }
-
-            It 'Should return array of session objects' {
+            It 'Should return SessionResponseDto objects' {
                 $result = Get-IMAuthSession
                 $result | Should -HaveCount 2
+                $result[0].GetType().Name | Should -Be 'SessionResponseDto'
                 $result[0].id | Should -Be 'session1-guid-here-1234567890abcdef'
                 $result[0].deviceType | Should -Be 'web'
                 $result[0].current | Should -Be $true
@@ -3429,7 +3421,7 @@ InModuleScope $ProjectName {
             }
 
             It 'Should handle empty session list' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich {
+                Mock Invoke-ImmichApiGetSessions -ModuleName PSImmich {
                     return @()
                 }
 
@@ -3440,10 +3432,8 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMAuthSession' -Tag 'Unit', 'Remove-IMAuthSession' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                # Mock returns nothing for DELETE operations
-                return $null
-            }
+            Mock Invoke-ImmichApiDeleteAllSessions -ModuleName PSImmich {}
+            Mock Invoke-ImmichApiDeleteSession -ModuleName PSImmich {}
         }
 
         Context 'Parameter Set: list (remove all sessions)' {
@@ -3453,20 +3443,26 @@ InModuleScope $ProjectName {
                     ForEach-Object { $_.SupportsShouldProcess } | Should -Be $true
             }
 
-            It 'Should remove all sessions except current using DELETE method' {
+            It 'Should call Invoke-ImmichApiDeleteAllSessions when no Id is given' {
                 Remove-IMAuthSession -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq '/sessions'
-                }
+                Should -Invoke Invoke-ImmichApiDeleteAllSessions -ModuleName PSImmich -Times 1 -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteSession -ModuleName PSImmich -Times 0 -Scope It
             }
 
-            It 'Should pass Session parameter when provided' {
-                # Verify Session parameter is accepted by checking parameter definition
-                $function = Get-Command Remove-IMAuthSession
-                $sessionParam = $function.Parameters['Session']
-                $sessionParam.ParameterType.Name | Should -Be 'ImmichSession'
+            It 'Should not call the API when -WhatIf is specified' {
+                Remove-IMAuthSession -WhatIf
+
+                Should -Invoke Invoke-ImmichApiDeleteAllSessions -ModuleName PSImmich -Times 0 -Scope It
+            }
+
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Remove-IMAuthSession -Session $Session -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteAllSessions -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
             }
         }
 
@@ -3483,30 +3479,28 @@ InModuleScope $ProjectName {
                 $validationAttribute.RegexPattern | Should -Be '^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$'
             }
 
-            It 'Should remove specific session by ID using DELETE method' {
+            It 'Should call Invoke-ImmichApiDeleteSession for a specific session ID' {
                 Remove-IMAuthSession -id $TestSessionId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq "/sessions/$TestSessionId"
+                Should -Invoke Invoke-ImmichApiDeleteSession -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq $TestSessionId
                 }
+                Should -Invoke Invoke-ImmichApiDeleteAllSessions -ModuleName PSImmich -Times 0 -Scope It
             }
 
             It 'Should handle multiple session IDs' {
                 Remove-IMAuthSession -id @($TestSessionId, $TestSessionId2) -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    ($RelativePath -eq "/sessions/$TestSessionId" -or $RelativePath -eq "/sessions/$TestSessionId2")
+                Should -Invoke Invoke-ImmichApiDeleteSession -ModuleName PSImmich -Times 2 -ParameterFilter {
+                    $Id -eq $TestSessionId -or $Id -eq $TestSessionId2
                 }
             }
 
             It 'Should accept pipeline input by value' {
                 $TestSessionId | Remove-IMAuthSession -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq "/sessions/$TestSessionId"
+                Should -Invoke Invoke-ImmichApiDeleteSession -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq $TestSessionId
                 }
             }
 
@@ -3514,9 +3508,8 @@ InModuleScope $ProjectName {
                 $sessionObject = [PSCustomObject]@{ id = $TestSessionId }
                 $sessionObject | Remove-IMAuthSession -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq "/sessions/$TestSessionId"
+                Should -Invoke Invoke-ImmichApiDeleteSession -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq $TestSessionId
                 }
             }
 

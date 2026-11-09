@@ -237,8 +237,9 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Unreachable | 110 |
 | Total | 279 |
 
-Wired for 142 of 219 non-excluded operations (64.8%) after the Face batch
-(was 138, 63.0%, after the Workflow batch;
+Wired for 145 of 219 non-excluded operations (66.2%) after the AuthSession batch
+(was 142, 64.8%, after the Face batch;
+was 138, 63.0%, after the Workflow batch;
 was 130, 59.4%, after the Memories batch;
 was 124, 56.6%, after the Partner batch;
 was 120, 54.8%, after the APIKey batch;
@@ -255,6 +256,10 @@ was 67, 30.5%, after the Server batch;
 metric, not parameter or contract parity. The 129 unreachable operations are the backlog.
 20 unreachable operations are deprecated; each needs the
 replacement-or-retain decision under the maintainer policy before implementation.
+
+AuthSession batch: `Get-IMAuthSession` (`getSessions`) returns `SessionResponseDto`; `Remove-IMAuthSession` calls
+`deleteAllSessions` (no `-Id`) or `deleteSession` (per `-Id`). Breaking: the 3.3.6 `SessionResponseDto` has no
+`ipAddress` or `userAgent`, so those properties are no longer returned. Targeted tests: 29 passed, 0 failed.
 
 Face batch: `Get-IMFace` (`getFaces`), `New-IMFace` (`createFace`, no response body), `Set-IMFace`
 (`reassignFacesById`, path id = person, body id = face; returns `PersonResponseDto`), and `Remove-IMFace`

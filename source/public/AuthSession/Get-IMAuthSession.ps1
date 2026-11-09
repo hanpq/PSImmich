@@ -32,6 +32,11 @@
         $Session = $null
     )
 
-    InvokeImmichRestMethod -Method GET -RelativePath '/sessions' -ImmichSession:$Session
+    process
+    {
+        Invoke-ImmichApiGetSessions -ImmichSession $Session | ForEach-Object {
+            [SessionResponseDto]::new($PSItem)
+        }
+    }
 }
 #endregion
