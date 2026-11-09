@@ -230,6 +230,210 @@ function Get-PathExpression([string]$Path, [hashtable]$PathParams, [string]$Cont
     return (@($Parts) -join ' + ')
 }
 
+# Sample values drive the generated route tests; they are fixed so the output is deterministic.
+function Get-TestSampleValue($ParameterType, [string]$Context)
+{
+    if ($ParameterType.Array)
+    {
+        if ($ParameterType.Values)
+        {
+            return ,@(@($ParameterType.Values | ForEach-Object { [string]$_ }) | Select-Object -First 2)
+        }
+        return ,@('sample-a', 'sample-b')
+    }
+    if ($ParameterType.Values)
+    {
+        return [string](@($ParameterType.Values)[0])
+    }
+    switch ($ParameterType.Type)
+    {
+        'string' { return 'sample' }
+        'int' { return [int]1 }
+        'long' { return [long]1 }
+        'double' { return [double]1.5 }
+        'bool' { return $true }
+        'datetime' { return [datetime]::SpecifyKind([datetime]'2024-01-02T03:04:05', [DateTimeKind]::Utc) }
+        default { throw "$Context has no test sample for type '$($ParameterType.Type)'." }
+    }
+}
+
+function ConvertTo-TestText($Value)
+{
+    $Invariant = [System.Globalization.CultureInfo]::InvariantCulture
+    if ($Value -is [bool])
+    {
+        if ($Value) { return 'True' }
+        return 'False'
+    }
+    if ($Value -is [datetime]) { return $Value.ToString('o', $Invariant) }
+    if ($Value -is [double]) { return $Value.ToString($Invariant) }
+    return [string]$Value
+}
+
+function ConvertTo-TestLiteral($Value)
+{
+    if ($Value -is [array])
+    {
+        return '@(' + ((@($Value) | ForEach-Object { ConvertTo-TestLiteral $_ }) -join ', ') + ')'
+    }
+    if ($Value -is [string]) { return ConvertTo-SingleQuoted $Value }
+    if ($Value -is [bool])
+    {
+        if ($Value) { return '$true' }
+        return '$false'
+    }
+    if ($Value -is [datetime]) { return "([datetime]'" + (ConvertTo-TestText $Value) + "')" }
+    return ConvertTo-TestText $Value
+}
+
+# Emits Pester blocks that call the generated function and assert the mocked transport call.
+function New-RouteTests([string]$FunctionName, [string]$HttpMethodName, [string]$Path, [object[]]$Bindings, [string]$BodyKind, [bool]$Secured)
+{
+    $Multipart = $BodyKind -eq 'multipart'
+    $MockTarget = 'InvokeImmichRestMethod'
+    $MockBody = '{ }'
+    if ($Multipart)
+    {
+        $MockTarget = 'Invoke-MultipartHttpUpload'
+        $MockBody = "{ '{}' }"
+    }
+
+    $Bindings = @($Bindings)
+    $ExpectedPath = $Path
+    foreach ($Binding in @($Bindings | Where-Object { $_.Kind -eq 'path' }))
+    {
+        $ExpectedPath = $ExpectedPath.Replace('{' + $Binding.Wire + '}', [uri]::EscapeDataString((ConvertTo-TestText $Binding.Value)))
+    }
+
+    $Conditions = @()
+    if (-not $Multipart)
+    {
+        $Conditions += '$Method -eq ' + (ConvertTo-SingleQuoted $HttpMethodName)
+    }
+    $Conditions += '$RelativePath -eq ' + (ConvertTo-SingleQuoted $ExpectedPath)
+    if (-not $Multipart)
+    {
+        if ($Secured) { $Conditions += '-not [bool]$NoAuth' } else { $Conditions += '[bool]$NoAuth' }
+    }
+
+    $CallArgs = @($Bindings | Where-Object { $_.Kind -eq 'path' } | ForEach-Object { ' -' + $_.Name + ' ' + (ConvertTo-TestLiteral $_.Value) })
+    switch ($BodyKind)
+    {
+        'json'
+        {
+            $CallArgs += ' -Body @{}'
+            $Conditions += '$Body -is [hashtable]'
+        }
+        'form'
+        {
+            $CallArgs += ' -RawBody ' + (ConvertTo-SingleQuoted 'sample=1')
+            $Conditions += '$RawBody -eq ' + (ConvertTo-SingleQuoted 'sample=1')
+            $Conditions += '$ContentType -eq ' + (ConvertTo-SingleQuoted 'application/x-www-form-urlencoded')
+        }
+        'multipart'
+        {
+            $CallArgs += ' -FileInfo [System.IO.FileInfo]' + (ConvertTo-SingleQuoted 'sample.bin')
+        }
+    }
+
+    $BasicArgs = @($CallArgs)
+    $BasicConditions = @($Conditions)
+    $AllArgs = @($CallArgs)
+    $AllConditions = @($Conditions)
+    $HasOptional = $false
+    foreach ($Binding in @($Bindings | Where-Object { $_.Kind -ne 'path' }))
+    {
+        $Arg = ' -' + $Binding.Name + ' ' + (ConvertTo-TestLiteral $Binding.Value)
+        $Wire = ConvertTo-SingleQuoted $Binding.Wire
+        if ($Binding.Kind -eq 'query')
+        {
+            if ($Binding.Value -is [array])
+            {
+                $Condition = '(@($QueryParameters[' + $Wire + ']) -join ' + (ConvertTo-SingleQuoted ',') + ') -eq ' + (ConvertTo-SingleQuoted (@($Binding.Value) -join ','))
+            }
+            else
+            {
+                $Condition = '$QueryParameters[' + $Wire + '] -eq ' + (ConvertTo-TestLiteral $Binding.Value)
+            }
+        }
+        else
+        {
+            $Condition = '$Headers[' + $Wire + '] -eq ' + (ConvertTo-SingleQuoted (ConvertTo-TestText $Binding.Value))
+        }
+        if ($Binding.Mandatory)
+        {
+            $BasicArgs += $Arg
+            $BasicConditions += $Condition
+        }
+        else
+        {
+            $HasOptional = $true
+        }
+        $AllArgs += $Arg
+        $AllConditions += $Condition
+    }
+
+    $Cases = @(@{ Title = 'Should send the route method and path with required parameters'; Args = $BasicArgs; Conditions = $BasicConditions })
+    if ($HasOptional)
+    {
+        $Cases += @{ Title = 'Should forward every supplied query and header parameter'; Args = $AllArgs; Conditions = $AllConditions }
+    }
+
+    $Lines = New-Object System.Collections.Generic.List[string]
+    $Lines.Add("    Describe '$FunctionName' -Tag 'Unit', 'ImmichApiLayer', 'Generated' {")
+    $Lines.Add('        BeforeAll {')
+    $Lines.Add("            Mock -CommandName $MockTarget -MockWith $MockBody")
+    $Lines.Add('        }')
+    for ($Index = 0; $Index -lt $Cases.Count; $Index++)
+    {
+        $Case = $Cases[$Index]
+        if ($Index -gt 0)
+        {
+            $Lines.Add('')
+        }
+        $Lines.Add("        It '$($Case.Title)' {")
+        $Lines.Add("            $FunctionName$(@($Case.Args) -join '')")
+        $Lines.Add("            Should -Invoke -CommandName $MockTarget -Times 1 -Exactly -ParameterFilter {")
+        $Lines.Add('                ' + ((@($Case.Conditions) | ForEach-Object { '(' + $_ + ')' }) -join ' -and '))
+        $Lines.Add('            }')
+        $Lines.Add('        }')
+    }
+    $Lines.Add('    }')
+    return ($Lines -join $NewLine)
+}
+
+function New-GeneratedTestFileText([object[]]$RouteTests)
+{
+    $Header = @'
+BeforeDiscovery {
+    $RootItem = Get-Item $PSScriptRoot
+    while ($RootItem.GetDirectories().Name -notcontains 'source')
+    {
+        $RootItem = $RootItem.Parent
+    }
+    $ProjectPath = $RootItem.FullName
+    $ProjectName = (Get-ChildItem $ProjectPath\*\*.psd1 | Where-Object {
+            ($_.Directory.Name -eq 'source') -and
+            $(try
+                {
+                    Test-ModuleManifest $_.FullName -ErrorAction Stop
+                }
+                catch
+                {
+                    $false
+                })
+        }
+    ).BaseName
+
+    Import-Module $ProjectName -Force
+}
+
+InModuleScope $ProjectName {
+'@
+    $Head = (@("# $MarkerText") + @($Header -split "\r?\n")) -join $NewLine
+    return $Head + $NewLine + (@($RouteTests) -join ($NewLine + $NewLine)) + $NewLine + '}' + $NewLine
+}
+
 function New-RouteFunction($Operation, [string]$Method, [string]$Path, [bool]$RootSecured)
 {
     $OperationId = [string]$Operation.operationId
@@ -246,6 +450,7 @@ function New-RouteFunction($Operation, [string]$Method, [string]$Path, [bool]$Ro
     $Declarations = New-Object System.Collections.Generic.List[object]
     $QueryParams = New-Object System.Collections.Generic.List[object]
     $HeaderParams = New-Object System.Collections.Generic.List[object]
+    $Bindings = New-Object System.Collections.Generic.List[object]
 
     $OperationParameters = @()
     if (Test-Property $Operation 'parameters')
@@ -273,6 +478,7 @@ function New-RouteFunction($Operation, [string]$Method, [string]$Path, [bool]$Ro
                 $Name = Get-PSParameterName $Wire $UsedNames $Context
                 $PathParams[$Wire] = $Name
                 $Declarations.Add((New-ParameterRecord $Name $Wire $ParameterType $true))
+                $Bindings.Add([pscustomobject]@{ Kind = 'path'; Name = $Name; Wire = $Wire; Mandatory = $true; Value = (Get-TestSampleValue $ParameterType $Context) })
             }
             'query'
             {
@@ -284,6 +490,7 @@ function New-RouteFunction($Operation, [string]$Method, [string]$Path, [bool]$Ro
                 $Record = New-ParameterRecord $Name $Wire $ParameterType $Mandatory
                 $QueryParams.Add($Record)
                 $Declarations.Add($Record)
+                $Bindings.Add([pscustomobject]@{ Kind = 'query'; Name = $Name; Wire = $Wire; Mandatory = $Mandatory; Value = (Get-TestSampleValue $ParameterType $Context) })
             }
             'header'
             {
@@ -295,6 +502,7 @@ function New-RouteFunction($Operation, [string]$Method, [string]$Path, [bool]$Ro
                 $Record = New-ParameterRecord $Name $Wire $ParameterType $Mandatory
                 $HeaderParams.Add($Record)
                 $Declarations.Add($Record)
+                $Bindings.Add([pscustomobject]@{ Kind = 'header'; Name = $Name; Wire = $Wire; Mandatory = $Mandatory; Value = (Get-TestSampleValue $ParameterType $Context) })
             }
             default
             {
@@ -507,7 +715,8 @@ function New-RouteFunction($Operation, [string]$Method, [string]$Path, [bool]$Ro
     }
     $Text.Add('}')
 
-    return [pscustomobject]@{ Name = $FunctionName; Text = (@($Text) -join $NewLine) + $NewLine }
+    $Tests = New-RouteTests $FunctionName $Method $Path $Bindings.ToArray() $BodyKind $Secured
+    return [pscustomobject]@{ Name = $FunctionName; Text = (@($Text) -join $NewLine) + $NewLine; Tests = $Tests }
 }
 
 function Get-ClassDependencies($Schema)
@@ -729,8 +938,10 @@ $RootSecured = Test-Property $Spec 'security'
 
 $PrivateApiPath = Join-Path $SourcePath 'private\api'
 $DtoPath = Join-Path $SourcePath 'classes\dto'
+$GeneratedTestPath = Join-Path (Split-Path -Parent $SourcePath) 'tests\Unit\Private\ImmichApi.Generated.Tests.ps1'
 
 $Files = @{}
+$RouteTests = New-Object System.Collections.Generic.List[object]
 $OperationNames = @{}
 foreach ($PathProperty in $Spec.paths.PSObject.Properties)
 {
@@ -752,8 +963,11 @@ foreach ($PathProperty in $Spec.paths.PSObject.Properties)
         }
         $OperationNames[$Route.Name] = "$Method $($PathProperty.Name)"
         $Files[(Join-Path $PrivateApiPath ($Route.Name + '.ps1'))] = $Route.Text
+        $RouteTests.Add($Route.Tests)
     }
 }
+
+$Files[$GeneratedTestPath] = New-GeneratedTestFileText $RouteTests.ToArray()
 
 if (@(Get-ClassEmissionOrder).Count -gt 0)
 {
