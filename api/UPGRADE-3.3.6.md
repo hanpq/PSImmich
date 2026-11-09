@@ -225,6 +225,24 @@ The analyzer's counts are not parity evidence. The per-operation ledger
 (one status per row) is **not yet written**. Until it is, the upgrade is not
 complete under section 4 of the upgrade skill.
 
+## Route coverage baseline (generated internal layer)
+
+Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
+
+| Status | Count |
+| --- | ---: |
+| Excluded (`exclusions.json`, method and path) | 59 |
+| Tested (generated function named under `tests/Unit`) | 2 |
+| Reachable (generated function used by module source) | 4 |
+| Unreachable | 214 |
+| Total | 279 |
+
+Wired for 6 of 220 non-excluded operations (2.7%). This is a route metric, not
+parameter or contract parity. The 214 unreachable operations are the backlog.
+The largest unreachable domains are admin (30), assets (19), server (14), people
+(12) and albums (12). 20 unreachable operations are deprecated; each needs the
+replacement-or-retain decision under the maintainer policy before implementation.
+
 ## Next handoff
 
 Continue on branch `upgrade/immich-3.3.6`. Committed batches:
