@@ -9048,9 +9048,8 @@ InModuleScope $ProjectName {
             $script:ImmichSession = $MockSession
 
             # Mock the new private function that handles HTTP uploads
-            Mock Invoke-MultipartHttpUpload -MockWith {
-                param($Uri, $Session, $FormData, $FileInfo, $FileFieldName)
-                return '{"userId":"test-user-id","profileImagePath":"/profile/test.jpg"}'
+            Mock Invoke-ImmichApiCreateProfileImage -MockWith {
+                return [PSCustomObject]@{ userId = 'test-user-id'; profileImagePath = '/profile/test.jpg' }
             } -ModuleName PSImmich
 
             Mock ConvertFromSecureString -MockWith {
@@ -9086,20 +9085,14 @@ InModuleScope $ProjectName {
         }
 
         Context 'HTTP Upload Integration' {
-            It 'Should call Invoke-MultipartHttpUpload with correct parameters' {
+            It 'Should upload the file through the CreateProfileImage wrapper' {
                 Mock Get-Item {
                     return [System.IO.FileInfo]::new($TestFile)
                 } -ModuleName PSImmich
 
-                Mock Invoke-MultipartHttpUpload -MockWith {
-                    return '{"userId":"test-user-id","profileImagePath":"/profile/test.jpg"}'
-                } -ModuleName PSImmich
-
                 Add-IMMyProfilePicture -FilePath $TestFile
 
-                Should -Invoke Invoke-MultipartHttpUpload -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
-                    $RelativePath -eq '/users/profile-image' -and
-                    $FileFieldName -eq 'file' -and
+                Should -Invoke Invoke-ImmichApiCreateProfileImage -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
                     $FileInfo.Name -eq 'test-avatar.jpg'
                 }
             }
@@ -9115,7 +9108,7 @@ InModuleScope $ProjectName {
                     return [System.IO.FileInfo]::new($TestFile)
                 } -ModuleName PSImmich
 
-                Mock Invoke-MultipartHttpUpload -MockWith {
+                Mock Invoke-ImmichApiCreateProfileImage -MockWith {
                     throw 'HTTP 400: Bad Request'
                 } -ModuleName PSImmich
 
@@ -9242,140 +9235,151 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMUser' -Tag 'Unit', 'Get-IMUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiSearchUsersAdmin {
                 return @(
                     [PSCustomObject]@{ id = 'user1-guid'; email = 'user1@example.com'; name = 'User One' },
                     [PSCustomObject]@{ id = 'user2-guid'; email = 'user2@example.com'; name = 'User Two' }
                 )
-            }
+            } -ModuleName PSImmich
+            Mock Invoke-ImmichApiGetUserAdmin {
+                return [PSCustomObject]@{ id = '12345678-1234-5678-9012-123456789abc'; email = 'user@example.com'; name = 'User' }
+            } -ModuleName PSImmich
+            Mock Invoke-ImmichApiGetMyUser {
+                return [PSCustomObject]@{ id = 'me-guid'; email = 'me@example.com'; name = 'Me' }
+            } -ModuleName PSImmich
         }
         Context 'User Retrieval' {
-            It 'Should get users with correct API call' {
-                Get-IMUser
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/admin/users'
+            It 'Should list users via the admin search endpoint' {
+                $result = Get-IMUser
+                $result | Should -HaveCount 2
+                Should -Invoke Invoke-ImmichApiSearchUsersAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    -not $WithDeleted
                 }
             }
             It 'Should get a single user by id' {
-                Get-IMUser -Id '12345678-1234-5678-9012-123456789abc'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/admin/users/12345678-1234-5678-9012-123456789abc'
+                $null = Get-IMUser -Id '12345678-1234-5678-9012-123456789abc'
+                Should -Invoke Invoke-ImmichApiGetUserAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
                 }
             }
             It 'Should get the current user with -Me' {
-                Get-IMUser -Me
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/users/me'
-                }
+                $null = Get-IMUser -Me
+                Should -Invoke Invoke-ImmichApiGetMyUser -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
             It 'Should request deleted users with -IncludeDeleted' {
-                Get-IMUser -IncludeDeleted
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/admin/users' -and $QueryParameters.withDeleted -eq $true
+                $null = Get-IMUser -IncludeDeleted
+                Should -Invoke Invoke-ImmichApiSearchUsersAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $WithDeleted -eq $true
                 }
             }
         }
     }
     Describe 'Get-IMUserPreference' -Tag 'Unit', 'Get-IMUserPreference' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetMyPreferences {
                 return [PSCustomObject]@{ avatar = [PSCustomObject]@{ color = 'primary' }; download = [PSCustomObject]@{ includeEmbeddedVideos = $true } }
-            }
+            } -ModuleName PSImmich
+            Mock Invoke-ImmichApiGetUserPreferencesAdmin {
+                return [PSCustomObject]@{ avatar = [PSCustomObject]@{ color = 'orange' } }
+            } -ModuleName PSImmich
         }
         Context 'User Preference Retrieval' {
-            It 'Should get user preferences with correct API call' {
-                Get-IMUserPreference
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/users/me/preferences'
+            It 'Should get the current user preferences without an id' {
+                $null = Get-IMUserPreference
+                Should -Invoke Invoke-ImmichApiGetMyPreferences -ModuleName PSImmich -Times 1 -Exactly -Scope It
+            }
+            It 'Should get preferences for a specific user by id' {
+                $null = Get-IMUserPreference -Id '12345678-1234-1234-1234-123456789abc'
+                Should -Invoke Invoke-ImmichApiGetUserPreferencesAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
         }
     }
     Describe 'New-IMUser' -Tag 'Unit', 'New-IMUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiCreateUserAdmin {
                 return [PSCustomObject]@{ id = 'new-user-guid'; email = 'new@example.com'; name = 'New User' }
-            }
+            } -ModuleName PSImmich
         }
         Context 'User Creation' {
             It 'Should create user with correct API call' {
                 $securePassword = ConvertTo-SecureString 'password123' -AsPlainText -Force
-                New-IMUser -Email 'new@example.com' -Password $securePassword -Name 'New User'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/admin/users'
+                $result = New-IMUser -Email 'new@example.com' -Password $securePassword -Name 'New User'
+                $result.Email | Should -Be 'new@example.com'
+                Should -Invoke Invoke-ImmichApiCreateUserAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.email -eq 'new@example.com' -and $Body.name -eq 'New User'
                 }
             }
         }
     }
     Describe 'Remove-IMMyProfilePicture' -Tag 'Unit', 'Remove-IMMyProfilePicture' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiDeleteProfileImage { return $null } -ModuleName PSImmich
         }
         Context 'Profile Picture Removal' {
             It 'Should remove profile picture with correct API call' {
                 Remove-IMMyProfilePicture
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/users/profile-image'
-                }
+                Should -Invoke Invoke-ImmichApiDeleteProfileImage -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
     }
     Describe 'Remove-IMUser' -Tag 'Unit', 'Remove-IMUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiDeleteUserAdmin {
                 return [PSCustomObject]@{ id = 'deleted-user-guid'; deletedAt = '2024-01-01T10:00:00Z' }
-            }
+            } -ModuleName PSImmich
         }
         Context 'User Removal' {
             It 'Should remove user with correct API call' {
-                Remove-IMUser -id '12345678-1234-5678-9012-123456789abc'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq '/admin/users/12345678-1234-5678-9012-123456789abc'
+                Remove-IMUser -id '12345678-1234-5678-9012-123456789abc' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiDeleteUserAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
                 }
             }
         }
     }
     Describe 'Restore-IMUser' -Tag 'Unit', 'Restore-IMUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiRestoreUserAdmin {
                 return [PSCustomObject]@{ id = 'restored-user-guid'; deletedAt = $null }
-            }
+            } -ModuleName PSImmich
         }
         Context 'User Restoration' {
             It 'Should restore user with correct API call' {
                 Restore-IMUser -id '12345678-1234-5678-9012-123456789abc'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/admin/users/12345678-1234-5678-9012-123456789abc/restore'
+                Should -Invoke Invoke-ImmichApiRestoreUserAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
                 }
             }
         }
     }
     Describe 'Set-IMUser' -Tag 'Unit', 'Set-IMUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiUpdateUserAdmin {
                 return [PSCustomObject]@{ id = 'updated-user-guid'; name = 'Updated Name' }
-            }
+            } -ModuleName PSImmich
         }
         Context 'User Updates' {
             It 'Should update user with correct API call' {
-                Set-IMUser -id '12345678-1234-5678-9012-123456789abc' -Name 'Updated Name'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq '/admin/users/12345678-1234-5678-9012-123456789abc'
+                Set-IMUser -id '12345678-1234-5678-9012-123456789abc' -Name 'Updated Name' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiUpdateUserAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc' -and $Body.name -eq 'Updated Name'
                 }
             }
         }
     }
     Describe 'Set-IMUserPreference' -Tag 'Unit', 'Set-IMUserPreference' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiUpdateUserPreferencesAdmin {
                 return [PSCustomObject]@{ avatar = [PSCustomObject]@{ color = 'orange' } }
-            }
+            } -ModuleName PSImmich
         }
         Context 'User Preference Updates' {
             It 'Should update user preferences with correct API call' {
-                Set-IMUserPreference -id '12345678-1234-1234-1234-123456789abc' -AvatarColor 'orange'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/admin/users/12345678-1234-1234-1234-123456789abc/preferences'
+                Set-IMUserPreference -id '12345678-1234-1234-1234-123456789abc' -AvatarColor 'orange' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiUpdateUserPreferencesAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc' -and $Body.avatar.color -eq 'orange'
                 }
             }
         }
@@ -10349,9 +10353,34 @@ InModuleScope $ProjectName {
     }
 
     Describe 'Get-IMUserStatistic' -Tag 'Unit', 'Get-IMUserStatistic' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetUserStatisticsAdmin {
+                return [PSCustomObject]@{ photos = 10; videos = 2; usage = 12345 }
+            } -ModuleName PSImmich
+        }
+        Context 'User Statistics' {
+            It 'Should get statistics for a user by id' {
+                $null = Get-IMUserStatistic -Id '12345678-1234-5678-9012-123456789abc'
+                Should -Invoke Invoke-ImmichApiGetUserStatisticsAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
+                }
+            }
+        }
     }
     Describe 'Get-ImUserSession' -Tag 'Unit', 'Get-ImUserSession' {
-
+        BeforeAll {
+            Mock Invoke-ImmichApiGetUserSessionsAdmin {
+                return @([PSCustomObject]@{ id = 'session-1'; current = $false })
+            } -ModuleName PSImmich
+        }
+        Context 'User Sessions' {
+            It 'Should get sessions for a user by id' {
+                $null = Get-IMUserSession -Id '12345678-1234-5678-9012-123456789abc'
+                Should -Invoke Invoke-ImmichApiGetUserSessionsAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
+                }
+            }
+        }
     }
 
     Describe 'Copy-IMAssetInfo' -Tag 'Unit', 'Copy-IMAssetInfo' {
