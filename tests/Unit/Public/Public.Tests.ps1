@@ -4939,6 +4939,33 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'Get-IMMaintenanceStatus' -Tag 'Unit', 'Get-IMMaintenanceStatus' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetMaintenanceStatus -ModuleName PSImmich {
+                [PSCustomObject]@{ action = 'start'; active = $true; error = $null; progress = 42; task = 'Restoring' }
+            }
+        }
+
+        It 'Should return a MaintenanceStatusResponseDto' {
+            $Result = Get-IMMaintenanceStatus
+
+            Should -Invoke Invoke-ImmichApiGetMaintenanceStatus -ModuleName PSImmich -Times 1 -Exactly -Scope It
+            $Result.GetType().Name | Should -Be 'MaintenanceStatusResponseDto'
+            $Result.active | Should -BeTrue
+            $Result.progress | Should -Be 42
+        }
+
+        It 'Should forward the session' {
+            $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+            $null = Get-IMMaintenanceStatus -Session $Session
+
+            Should -Invoke Invoke-ImmichApiGetMaintenanceStatus -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $null -ne $ImmichSession
+            }
+        }
+    }
+
     Describe 'Start-IMMaintenanceMode' -Tag 'Unit', 'Start-IMMaintenanceMode' -Skip:$true {
         BeforeAll {
             Mock Invoke-ImmichApiSetMaintenanceMode {} -ModuleName PSImmich
@@ -8348,6 +8375,20 @@ InModuleScope $ProjectName {
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
                     $Method -eq 'Get' -and $RelativePath -eq '/admin/config'
                 }
+            }
+        }
+        Context '-VersionCheckState' {
+            BeforeAll {
+                Mock Invoke-ImmichApiGetVersionCheckState -ModuleName PSImmich {
+                    [PSCustomObject]@{ checkedAt = '2026-01-01T00:00:00Z'; releaseVersion = 'v3.3.6' }
+                }
+            }
+            It 'Should return a VersionCheckStateResponseDto' {
+                $Result = Get-IMServer -VersionCheckState
+
+                Should -Invoke Invoke-ImmichApiGetVersionCheckState -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.GetType().Name | Should -Be 'VersionCheckStateResponseDto'
+                $Result.releaseVersion | Should -Be 'v3.3.6'
             }
         }
         Context '-Ping' {

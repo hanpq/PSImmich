@@ -41,6 +41,8 @@
         Checks for available server updates.
     .PARAMETER Ping
         Tests server connectivity and responsiveness.
+    .PARAMETER VersionCheckState
+        Retrieves the state of the last server version check, including the checked time and the latest release version found.
     .EXAMPLE
         Get-IMServer
 
@@ -132,7 +134,11 @@
 
         [Parameter(ParameterSetName = 'ping')]
         [switch]
-        $Ping
+        $Ping,
+
+        [Parameter(ParameterSetName = 'versioncheckstate')]
+        [switch]
+        $VersionCheckState
     )
 
     switch ($PSCmdlet.ParameterSetName)
@@ -224,6 +230,10 @@
         'versioncheck'
         {
             Invoke-ImmichApiGetVersionCheck -ImmichSession:$Session
+        }
+        'versioncheckstate'
+        {
+            [VersionCheckStateResponseDto]::new((Invoke-ImmichApiGetVersionCheckState -ImmichSession:$Session))
         }
     }
 }
