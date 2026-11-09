@@ -136,6 +136,16 @@
         $InvokeRestMethodSplat.Uri += '?'
         $QueryParameterStringArray = foreach ($QueryParameter in $QueryParameters.Keys)
         {
+            # Arrays are sent as repeated keys, e.g. status=a&status=b
+            if ($QueryParameters.$QueryParameter -is [System.Collections.IEnumerable] -and $QueryParameters.$QueryParameter -isnot [string])
+            {
+                foreach ($Item in $QueryParameters.$QueryParameter)
+                {
+                    "$($QueryParameter)=$($Item)"
+                }
+                continue
+            }
+
             switch ($QueryParameters.$QueryParameter.GetType().Name)
             {
                 'string'
@@ -179,8 +189,8 @@
 
     Write-Debug -Message "InvokeImmichRestMethod; Calling Invoke-RestMethod with settings`r`n$($InvokeRestMethodSplat | ConvertTo-Json)"
 
-    # Output response to file if content type is octet-stream
-    if ($ContentType -eq 'application/octet-stream' -and $Method -eq 'Get')
+    # Write the response to the requested file when an output path is supplied
+    if ($OutFilePath)
     {
         Invoke-RestMethod @InvokeRestMethodSplat -Verbose:$false -OutFile $OutFilePath
     }
