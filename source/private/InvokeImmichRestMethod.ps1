@@ -136,12 +136,13 @@
         $InvokeRestMethodSplat.Uri += '?'
         $QueryParameterStringArray = foreach ($QueryParameter in $QueryParameters.Keys)
         {
-            # Arrays are sent as repeated keys, e.g. status=a&status=b
+            # Arrays are sent as bracketed keys, e.g. status[]=a&status[]=b. A single repeated-key value
+            # is parsed as a string by the server, which rejects it for array-typed parameters.
             if ($QueryParameters.$QueryParameter -is [System.Collections.IEnumerable] -and $QueryParameters.$QueryParameter -isnot [string])
             {
                 foreach ($Item in $QueryParameters.$QueryParameter)
                 {
-                    "$($QueryParameter)=$($Item)"
+                    "$($QueryParameter)[]=$($Item)"
                 }
                 continue
             }

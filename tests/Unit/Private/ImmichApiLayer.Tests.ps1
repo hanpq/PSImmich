@@ -107,10 +107,16 @@ InModuleScope $ProjectName {
             Mock -CommandName Invoke-RestMethod -MockWith {}
             $Session = [ImmichSession]::New('https://immich.domain.com', 'AccessToken', (ConvertTo-SecureString -String 'accesstoken' -AsPlainText -Force), $true, (New-Object -TypeName pscredential -ArgumentList 'username', (ConvertTo-SecureString -String 'password' -AsPlainText -Force)), (ConvertTo-SecureString -String 'jwt' -AsPlainText -Force), '1.1.1', (New-Guid).Guid)
         }
-        It 'Should send array query values as repeated keys' {
+        It 'Should send array query values as bracketed keys' {
             InvokeImmichRestMethod -Method get -ImmichSession:$Session -RelativePath '/auth/login' -QueryParameters:@{ status = @('active', 'failed') }
             Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
-                $Uri -match 'status=active&status=failed$'
+                $Uri -match 'status\[\]=active&status\[\]=failed$'
+            }
+        }
+        It 'Should send a single array query value with a bracketed key' {
+            InvokeImmichRestMethod -Method get -ImmichSession:$Session -RelativePath '/auth/login' -QueryParameters:@{ status = @('waiting') }
+            Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
+                $Uri -match 'status\[\]=waiting$'
             }
         }
         It 'Should write a POST octet-stream response to the output path' {

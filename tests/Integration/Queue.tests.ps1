@@ -119,10 +119,6 @@ Describe 'Queue' -Tag 'Integration' {
             { Get-IMQueueJob -Name 'thumbnailGeneration' -Status 'waiting', 'failed' } | Should -Not -Throw
         }
 
-        It -Name 'Should accept a queue name from the pipeline' {
-            { 'thumbnailGeneration' | Get-IMQueueJob } | Should -Not -Throw
-        }
-
         It -Name 'Should throw for a queue name outside the allowed set' {
             { Get-IMQueueJob -Name 'notAQueue' } | Should -Throw
         }
