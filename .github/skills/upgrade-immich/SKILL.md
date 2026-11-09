@@ -137,6 +137,19 @@ row (section 4). Analyzer output is a starting point, not proof: it can miss
 dynamic/splatted calls and cannot detect source calls to endpoints physically
 absent from the target, so also run the inventory in section 4.5.
 
+Route coverage, from the generated internal layer (`source/private/api`, one
+function per operation). It is a static reference check, not a parameter check:
+
+```powershell
+.\tools\Get-ImmichApiCoverage.ps1 -OutputPath .\output\api-coverage.csv
+```
+
+Each non-excluded operation is `Tested` (its `Invoke-ImmichApi*` function is
+referenced under `tests/Unit`), `Reachable` (referenced from module source) or
+`Unreachable`. Exclusions come from `api/exclusions.json` by method and path.
+Use `-Strict` to fail when an operation is unreachable. Report the wired
+percentage over non-excluded operations; do not treat it as contract parity.
+
 Parameter-mapping preflight:
 
 ```powershell
