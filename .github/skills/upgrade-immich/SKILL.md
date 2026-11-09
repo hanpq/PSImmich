@@ -116,26 +116,13 @@ as the endpoint key; do not count path-item metadata as operations. Record raw
 added, physically removed, common, and deprecated operations separately.
 An endpoint can be deprecated yet still present and usable.
 
-Run implementation discovery:
-
-```powershell
-.\api\Analyze-PSImmichAPI.ps1
-```
-
-This script has no spec-selection parameter. It selects the most recently
-modified `api.*.json`, not the highest version. Confirm its printed filename
-and embedded version before using the output. If it selects the wrong spec,
-stop relying on that run; use an explicit-spec inventory or deliberately
-improve the tool with tests. Do not alter historical timestamps to hide this.
-
-The analyzer's `Work Items Summary` is the **required backlog**, not optional
-noise. Every `REMOVE` (deprecated but still implemented) and `IMPLEMENT`
-(missing) entry must end in one of: an implemented and tested batch, an
-explicit exclusion with a reason approved by the maintainer, or a `blocked`
-row with an owner. Do not start implementation until every entry has a ledger
-row (section 4). Analyzer output is a starting point, not proof: it can miss
-dynamic/splatted calls and cannot detect source calls to endpoints physically
-absent from the target, so also run the inventory in section 4.5.
+The spec comparison above is the **required backlog**, not optional noise.
+Every operation it reports as removed, deprecated, or added must end in one of:
+an implemented and tested batch, an explicit exclusion with a reason approved by
+the maintainer, or a `blocked` row with an owner. Do not start implementation
+until every entry has a ledger row (section 4). The comparison is a starting
+point, not proof: it does not compare DTO schemas, so also run the inventory in
+section 4.5.
 
 Route coverage, from the generated internal layer (`source/private/api`, one
 function per operation). It is a static reference check, not a parameter check:
@@ -150,28 +137,15 @@ referenced under `tests/Unit`), `Reachable` (referenced from module source) or
 Use `-Strict` to fail when an operation is unreachable. Report the wired
 percentage over non-excluded operations; do not treat it as contract parity.
 
-Parameter-mapping preflight:
-
-```powershell
-.\tools\Validate-ApiParameters.ps1 `
-    -Path .\source\public -OpenApiSpec $NewSpec
-```
-
-This writes a timestamped CSV in the current directory and exits 1 for invalid
-mappings. For scratch output, invoke it in a separate PowerShell process from
-the scratch directory, passing absolute `-Path` and `-OpenApiSpec` paths.
-Always inspect `TotalOperations` and `FoundInOperations`, not just the exit
-code. Currently it compares slashless source paths with slash-prefixed OpenAPI
-paths without normalizing them, and cannot resolve splats or arbitrary
-expressions. Zero matched operations indicates inconclusive analysis, not
-proof that every parameter is wrong. It also cannot detect API properties
-that have no PowerShell parameter at all.
+No automated tool checks `[ApiParameter]` mappings against the target spec.
+Review each affected mapping by hand against the target operation's parameters
+and DTO schema, and record the result in the ledger (section 4).
 
 ## 4. Build the actionable parity ledger
 
 **Gate:** do not begin implementation until every target operation has a row
-with one status, and every analyzer `REMOVE`/`IMPLEMENT` item is covered by a
-row. The analyzer's counts (covered, excluded, work items) must reconcile to
+with one status, and every removed, deprecated, or added operation from the spec
+comparison is covered by a row. The coverage and comparison counts must reconcile to
 the spec's total operation count; record the reconciliation in the assessment.
 Record the scope as full parity with the target unless the maintainer narrows it.
 
@@ -232,13 +206,12 @@ For every changed **and unchanged** endpoint used by the module:
    returned types, format views and comment-based help.
 4. Check release notes for behavior not represented by OpenAPI.
 5. Inventory all source REST calls too, so physically removed endpoints are
-   caught even when the analyzer reports no work for them.
+   caught even when the coverage tool reports no work for them.
 
 Report verified coverage as `verified / eligible target operations`.
 Report excluded, deprecated, missing, blocked and unverified counts separately.
-Never use the analyzer's printed "working correctly" count as a parity gate:
-it subtracts all exclusions and work items, including deprecations, without
-proving request/response behavior.
+Never treat the wired percentage as a parity gate: it measures reachability,
+not request/response behavior.
 
 ## 5. Implement in bounded, testable batches
 
@@ -387,7 +360,7 @@ An upgrade is complete only when every item below is true, and the handoff
 states each one with evidence:
 
 1. The target spec is verified (`info.version`, commit, SHA256) and committed.
-2. Every analyzer `REMOVE` and `IMPLEMENT` item, and every eligible
+2. Every removed, deprecated, or added operation from the spec comparison, and every eligible
    non-deprecated target endpoint, is `verified`, `excluded` with a reason that
    the maintainer has approved, or `blocked` with an owner. No `needs-change`,
    `missing` or unreviewed `covered` rows remain. An exclusion added by the
@@ -397,8 +370,8 @@ states each one with evidence:
    with user impact noted.
 4. Every deprecated route used by source is either migrated to a verified
    successor (a replacement that the spec or release notes present as its
-   successor) or retained with a recorded reason. Analyzer `REMOVE` labels are
-   not instructions to delete.
+   successor) or retained with a recorded reason. Deprecation is not an
+      instruction to delete.
 5. `.\build.ps1 -Task Build` and `.\build.ps1 -Task Test -TestSuite Module` pass,
    apart from failures recorded as pre-existing with their cause.
 6. Live integration tests pass against an authorized target-version demo

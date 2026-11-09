@@ -60,7 +60,7 @@ function Get-IMAsset {
 - Develop each Immich upgrade on a dedicated branch, never on `main`. Implement and validate coherent feature/change batches, committing each with a meaningful Conventional Commit so Release Please can generate the changelog.
 - Leave upgrade PR creation, verification, merging and subsequent release initiation to the maintainer. Do not open PRs, merge, prepare or publish releases during upgrade work; push only when requested.
 - Keep version-specific gaps and evidence in an assessment under `api/`; start with [the provisional 3.4.0 assessment](../api/UPGRADE-3.4.0.md).
-- Verify the spec's embedded version against an immutable upstream release. Endpoint presence and analyzer coverage alone do not establish feature parity.
+- Verify the spec's embedded version against an immutable upstream release. Endpoint presence and coverage-tool output alone do not establish feature parity.
 - Follow [BUILDING.md](../BUILDING.md) for the current build and Release Please process; do not manually bump release metadata during routine API implementation.
 
 ### Build System
@@ -72,7 +72,7 @@ function Get-IMAsset {
 ```
 
 ### API Development
-- **API Tracking**: `api/Analyze-PSImmichAPI.ps1` identifies endpoint candidates; `api/Compare-OpenApiSpecs.ps1` compares specifications. Account for their limitations documented in the upgrade workflow.
+- **API Tracking**: `tools/Get-ImmichApiCoverage.ps1` reports endpoint reachability and test coverage; `api/Compare-OpenApiSpecs.ps1` compares specifications. Account for their limitations documented in the upgrade workflow.
 - **Coverage Metrics**: Recompute against the explicitly verified target spec; distinguish endpoint detection from tested contract parity and report exclusions separately.
 - **New Functions**: Follow existing pattern in appropriate `source/Public/{Domain}/` folder
 - **Version Strategy**: Record the supported Immich API version explicitly; coordinate module major/minor alignment through the documented Release Please process
@@ -163,7 +163,7 @@ Use parameter sets for different function modes (e.g., 'list', 'id', 'random', '
 ## Key Files for New Development
 - **Function Template**: Reference `source/Public/Asset/Get-IMAsset.ps1` for standard patterns
 - **Session Logic**: Extend `source/Classes/ImmichSession.class.ps1` for auth features
-- **API Mapping**: Verify new endpoints with `api/Analyze-PSImmichAPI.ps1` and the explicit target-spec contract ledger
+- **API Mapping**: Verify new endpoints with `tools/Get-ImmichApiCoverage.ps1` and the explicit target-spec contract ledger
 - **Build Entry Point**: `build.ps1` defines the current tasks; `BUILDING.md` documents build and release behavior
 
 ## Integration Points
@@ -177,7 +177,7 @@ When implementing new features, prioritize consistency with existing patterns ov
 ## API Implementation Workflow
 
 ### Discovery and Analysis
-- **OpenAPI Exploration**: Use `api/Analyze-PSImmichAPI.ps1` to identify uncovered endpoints and understand API structure
+- **OpenAPI Exploration**: Use `tools/Get-ImmichApiCoverage.ps1` to identify uncovered endpoints and understand API structure
 - **Schema Research**: Examine DTO schemas (e.g., `StackCreateDto`, `StackResponseDto`) in OpenAPI spec for parameter requirements
 - **Endpoint Mapping**: Check for bulk vs individual operations (e.g., `DELETE /stacks` vs `DELETE /stacks/{id}`)
 
@@ -194,7 +194,7 @@ When implementing new features, prioritize consistency with existing patterns ov
 - **Edge Case Validation**: Test both success and failure scenarios (e.g., invalid parameters)
 
 ### API Coverage Verification
-- **Coverage Tracking**: Run analyzer after implementation to verify endpoints are detected
+- **Coverage Tracking**: Run `tools/Get-ImmichApiCoverage.ps1` after implementation to verify endpoints are reachable and tested
 - **Documentation Updates**: Update coverage metrics and changelog with user-facing changes
 - **Pattern Consistency**: Ensure new cmdlets follow established naming and parameter conventions
 - **Unit Test Implementation**: When implementing new cmdlets, create comprehensive unit tests following the `Get-IMLibrary` pattern instead of placeholder tests
