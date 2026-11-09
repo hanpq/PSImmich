@@ -14,7 +14,7 @@
     .PARAMETER AvatarColor
         Sets avatar background color for the user.
     .PARAMETER email
-        Defines a specific user id to be retreived
+        Defines a specific user id to be retrieved
     .PARAMETER MemoriesEnabled
         Should Memories enabled. Enabled by default
     .PARAMETER Name
