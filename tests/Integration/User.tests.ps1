@@ -22,13 +22,35 @@ BeforeDiscovery {
 }
 
 Describe 'User' -Tag 'Integration' {
-    # Intentionally excluded: New-IMUser, Remove-IMUser, Restore-IMUser and Set-IMUser (create, delete or change real accounts).
+    # Intentionally excluded: Set-IMUser -Password and -QuotaSizeInBytes, and Remove-IMUser -Force (not reversible by the test).
+    # User changes are limited to the persistent psimtest-persistent-* accounts and are always reverted.
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
         $Me = Get-IMUser -Me
         $MyId = $Me.id
         $ExportPath = Join-Path $PSScriptRoot 'ProfileExport'
         New-Item -Path $ExportPath -ItemType Directory -Force | Out-Null
+
+        # Persistent accounts that survive between runs. They are created once and reused. A trashed one is restored first.
+        $Local, $Domain = $Me.email -split '@'
+        $script:PersistentUsers = foreach ($Index in 1..2)
+        {
+            $PersistentEmail = "$Local+psimtest-persistent-$Index@$Domain"
+            $Existing = Get-IMUser -IncludeDeleted | Where-Object email -eq $PersistentEmail | Select-Object -First 1
+            if ($Existing)
+            {
+                if ($Existing.deletedAt)
+                {
+                    Restore-IMUser -Id $Existing.id | Out-Null
+                }
+                $Existing
+            }
+            else
+            {
+                $Password = [guid]::NewGuid().ToString('N') + 'Aa1!'
+                New-IMUser -Email $PersistentEmail -Name "PSImmich-Persistent-$Index" -Password (ConvertTo-SecureString -String $Password -AsPlainText -Force) -Notify:$false
+            }
+        }
     }
     AfterAll {
         Remove-Item -Path $ExportPath -Recurse -Force -ErrorAction SilentlyContinue
@@ -210,6 +232,118 @@ Describe 'User' -Tag 'Integration' {
         It 'Should remove the profile picture of the current user' {
             Remove-IMMyProfilePicture -Confirm:$false
             (Get-IMUser -Me).profileImagePath | Should -BeNullOrEmpty
+        }
+    }
+
+    Context 'New-IMUser' -Tag 'New-IMUser' {
+        It 'Should have the persistent test users available and active' {
+            $script:PersistentUsers | Should -HaveCount 2
+            foreach ($User in $script:PersistentUsers)
+            {
+                (Get-IMUser -Id $User.id).email | Should -Be $User.email
+            }
+        }
+    }
+
+    # Only the persistent psimtest-persistent-* accounts are changed. Every change is restored in finally or AfterAll.
+    Context 'Set-IMUser' -Tag 'Set-IMUser' {
+        BeforeAll {
+            $script:Target = $script:PersistentUsers[0]
+            $script:TargetId = $script:Target.id
+            $Original = Get-IMUser -Id $script:TargetId
+            $script:OriginalName = $Original.name
+            $script:OriginalShouldChangePassword = [bool]$Original.shouldChangePassword
+        }
+
+        AfterAll {
+            Set-IMUser -Id $script:TargetId -Name $script:OriginalName -ShouldChangePassword:$script:OriginalShouldChangePassword -Confirm:$false
+        }
+
+        It 'Should update the name and restore the original name' {
+            $Marker = "PSImmich-Renamed-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+            try
+            {
+                Set-IMUser -Id $script:TargetId -Name $Marker -Confirm:$false
+                (Get-IMUser -Id $script:TargetId).name | Should -BeExactly $Marker
+            }
+            finally
+            {
+                Set-IMUser -Id $script:TargetId -Name $script:OriginalName -Confirm:$false
+            }
+            (Get-IMUser -Id $script:TargetId).name | Should -BeExactly $script:OriginalName
+        }
+
+        It 'Should set ShouldChangePassword to true and back to the original value' {
+            try
+            {
+                Set-IMUser -Id $script:TargetId -ShouldChangePassword:$true -Confirm:$false
+                (Get-IMUser -Id $script:TargetId).shouldChangePassword | Should -BeTrue
+            }
+            finally
+            {
+                Set-IMUser -Id $script:TargetId -ShouldChangePassword:$script:OriginalShouldChangePassword -Confirm:$false
+            }
+            [bool](Get-IMUser -Id $script:TargetId).shouldChangePassword | Should -Be $script:OriginalShouldChangePassword
+        }
+
+        It 'Should accept the user id from the pipeline' {
+            $Marker = "PSImmich-Piped-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+            try
+            {
+                [pscustomobject]@{ id = $script:TargetId } | Set-IMUser -Name $Marker -Confirm:$false
+                (Get-IMUser -Id $script:TargetId).name | Should -BeExactly $Marker
+            }
+            finally
+            {
+                Set-IMUser -Id $script:TargetId -Name $script:OriginalName -Confirm:$false
+            }
+        }
+
+        It 'Should not change the user with -WhatIf' {
+            Set-IMUser -Id $script:TargetId -Name 'PSImmich-WhatIf-Marker' -WhatIf
+            (Get-IMUser -Id $script:TargetId).name | Should -BeExactly $script:OriginalName
+        }
+
+        It 'Should throw for a malformed id' {
+            { Set-IMUser -Id 'not-a-guid' -Name 'PSImmich-Invalid' -Confirm:$false } | Should -Throw
+        }
+    }
+
+    # Remove-IMUser without -Force only moves the account to trash. Restore-IMUser brings it back.
+    Context 'Remove-IMUser and Restore-IMUser' -Tag 'Remove-IMUser' {
+        BeforeAll {
+            $script:RemoveTargetId = $script:PersistentUsers[1].id
+        }
+
+        AfterAll {
+            $Current = Get-IMUser -IncludeDeleted | Where-Object id -eq $script:RemoveTargetId
+            if ($Current.deletedAt)
+            {
+                Restore-IMUser -Id $script:RemoveTargetId | Out-Null
+            }
+        }
+
+        It 'Should not remove the user with -WhatIf' {
+            Remove-IMUser -Id $script:RemoveTargetId -WhatIf
+            (Get-IMUser | Where-Object id -eq $script:RemoveTargetId) | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Should move the user to trash without permanently deleting it' {
+            Remove-IMUser -Id $script:RemoveTargetId -Confirm:$false
+            $Trashed = Get-IMUser -IncludeDeleted | Where-Object id -eq $script:RemoveTargetId
+            ([datetime]$Trashed.deletedAt).Year | Should -BeGreaterThan 1
+            Get-IMUser | Where-Object id -eq $script:RemoveTargetId | Should -BeNullOrEmpty
+        }
+
+        It 'Should restore the user from trash' {
+            Restore-IMUser -Id $script:RemoveTargetId | Out-Null
+            (Get-IMUser | Where-Object id -eq $script:RemoveTargetId) | Should -Not -BeNullOrEmpty
+            # The server reports 0001-01-01 instead of null for an account that is not in trash.
+            ([datetime](Get-IMUser -IncludeDeleted | Where-Object id -eq $script:RemoveTargetId).deletedAt).Year | Should -Be 1
+        }
+
+        It 'Should throw for a malformed id' {
+            { Remove-IMUser -Id 'not-a-guid' -Confirm:$false } | Should -Throw
         }
     }
 
