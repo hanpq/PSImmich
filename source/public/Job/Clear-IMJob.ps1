@@ -74,12 +74,12 @@
         if ($FailedOnly)
         {
             $Body = @{ command = 'clear-failed' }
-            InvokeImmichRestMethod -Method PUT -RelativePath "/jobs/$CurrentJob" -ImmichSession:$Session -Body:$Body
+            Invoke-ImmichApiRunQueueCommandLegacy -Name $CurrentJob -Body $Body -ImmichSession $Session
         }
         else
         {
             $Body = @{ failed = $false }
-            InvokeImmichRestMethod -Method DELETE -RelativePath "/queues/$CurrentJob/jobs" -ImmichSession:$Session -Body:$Body
+            Invoke-ImmichApiEmptyQueue -Name $CurrentJob -Body $Body -ImmichSession $Session
         }
     }
 }

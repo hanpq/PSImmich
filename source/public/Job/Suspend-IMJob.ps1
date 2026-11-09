@@ -71,7 +71,7 @@
         $Body = @{
             isPaused = $true
         }
-        InvokeImmichRestMethod -Method PUT -RelativePath "/queues/$CurrentJob" -ImmichSession:$Session -Body:$Body
+        Invoke-ImmichApiUpdateQueue -Name $CurrentJob -Body $Body -ImmichSession $Session
     }
 }
 #endregion

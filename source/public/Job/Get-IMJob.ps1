@@ -36,7 +36,7 @@
         $Session = $null
     )
 
-    InvokeImmichRestMethod -Method GET -RelativePath '/queues' -ImmichSession:$Session
+    Invoke-ImmichApiGetQueues -ImmichSession $Session | ForEach-Object { [QueueResponseDto]::new($PSItem) }
 
 }
 #endregion

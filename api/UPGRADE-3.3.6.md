@@ -233,12 +233,13 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | --- | ---: |
 | Excluded (`exclusions.json`, method and path) | 59 |
 | Tested (generated function named under `tests/Unit`) | 19 |
-| Reachable (generated function used by module source) | 72 |
-| Unreachable | 129 |
+| Reachable (generated function used by module source) | 78 |
+| Unreachable | 123 |
 | Total | 279 |
 
-Wired for 91 of 220 non-excluded operations (41.4%) after the Library batch
-(was 83, 37.7%, after the User batch and the profile-image export;
+Wired for 97 of 220 non-excluded operations (44.1%) after the Job batch
+(was 91, 41.4%, after the Library batch;
+was 83, 37.7%, after the User batch and the profile-image export;
 was 82, 37.3%, after the User batch;
 was 68, 30.9%, after the raw-JSON admin config change;
 was 67, 30.5%, after the Server batch;
@@ -252,6 +253,19 @@ Library batch: `Get-IMLibrary`, `New-IMLibrary`, `Set-IMLibrary`, `Test-IMLibrar
 -IncludeStatistics` reads `GET /libraries/{id}/statistics` into `LibraryStatsResponseDto`
 (`photos`, `videos`, `total`, `usage`). `LibraryResponseDto` in 3.3.6 has no `type` property,
 so the former `type` help example was replaced with an `assetCount` filter.
+
+Job batch: `Start-IMJob`, `Clear-IMJob`, `Suspend-IMJob`, `Resume-IMJob`, and `Get-IMJob`
+call the generated functions. `emptyTrash` uses `POST /trash/empty`, and the cleanup and
+memory jobs use `POST /jobs`. Pause and resume use `PUT /queues/{name}` with `isPaused`.
+`Clear-IMJob` (default) uses `DELETE /queues/{name}/jobs` with `failed=false`. `Get-IMJob`
+reads `GET /queues` into `QueueResponseDto`.
+
+Deliberate deprecated retention: `Start-IMJob` for queue jobs and `Clear-IMJob -FailedOnly`
+still call the deprecated `PUT /jobs/{name}` (`runQueueCommandLegacy`) because the 3.3.6
+queue routes have no equivalent. `start` queues every asset for the job, and `force` reprocesses
+all. The maintainer decides whether to migrate or keep these paths. Known issue, not fixed:
+`DELETE /queues/{name}/jobs` removes all jobs, not only failed ones, so `Clear-IMJob` is not
+equivalent to clearing failed jobs.
 
 Album batch (uncommitted at this writing): `Get-IMAlbum` and the album write cmdlets
 call the generated functions. `Get-IMAlbum -Shared` now sends the spec's `isShared`
