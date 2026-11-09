@@ -237,8 +237,9 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Unreachable | 110 |
 | Total | 279 |
 
-Wired for 150 of 219 non-excluded operations (68.5%) after the Auth batch
-(was 149, 68.0%, after the Plugin batch;
+Wired for 151 of 219 non-excluded operations (68.9%) after the Notification batch
+(was 150, 68.5%, after the Auth batch;
+was 149, 68.0%, after the Plugin batch;
 was 147, 67.1%, after the Duplicates batch;
 was 145, 66.2%, after the AuthSession batch;
 was 142, 64.8%, after the Face batch;
@@ -277,6 +278,12 @@ plugin operations carry no `x-immich-state`. Targeted tests: 17 passed, 0 failed
 Auth batch: `Test-IMAccessToken` calls `validateAccessToken` (`POST /auth/validateToken`) and casts the result to
 `ValidateAccessTokenResponseDto`, returning its `authStatus`. Output and behavior are unchanged. Targeted tests:
 12 passed, 0 failed.
+
+Notification batch: `Send-IMTestMessage` calls `sendTestEmailAdmin` (`POST /admin/notifications/test-email`) with the
+`AdminConfigSmtpDto` body and returns `TestEmailResponseDto`. Fixes: the spec requires every `transport` field, but the
+previous cmdlet omitted `transport.secure`; a new `-Secure` parameter (default `$false`) now sends it. The password was
+converted with `ConvertFromSecureString` without `-AsPlainText`, which produces an encrypted string rather than the
+password; it is now sent as plain text. Targeted tests: 15 passed, 0 failed.
 
 AuthSession batch: `Get-IMAuthSession` (`getSessions`) returns `SessionResponseDto`; `Remove-IMAuthSession` calls
 `deleteAllSessions` (no `-Id`) or `deleteSession` (per `-Id`). Breaking: the 3.3.6 `SessionResponseDto` has no

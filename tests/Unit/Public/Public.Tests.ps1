@@ -6405,33 +6405,11 @@ InModuleScope $ProjectName {
     }
     Describe 'Send-IMTestMessage' -Tag 'Unit', 'Send-IMTestMessage' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiSendTestEmailAdmin {
                 return [PSCustomObject]@{
-                    success = $true
-                    message = 'Test notification sent successfully'
+                    messageId = '<test-message-id@example.com>'
                 }
-            }
-
-            Mock ConvertTo-ApiParameters {
-                param($BoundParameters, $CmdletName)
-                $result = @{
-                    enabled   = $BoundParameters.enabled
-                    from      = $BoundParameters.from
-                    replyTo   = $BoundParameters.replyto
-                    transport = @{
-                        host       = $BoundParameters.hostname
-                        port       = $BoundParameters.port
-                        username   = $BoundParameters.username
-                        password   = 'converted-password'
-                        ignoreCert = $BoundParameters.ignoreCert
-                    }
-                }
-                return $result
-            }
-
-            Mock ConvertFromSecureString {
-                return 'converted-secure-password'
-            }
+            } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -6465,42 +6443,59 @@ InModuleScope $ProjectName {
         }
 
         Context 'Message Sending' {
-            It 'Should send test message with correct API call' {
+            It 'Should send the full SMTP body through the generated sendTestEmailAdmin function' {
                 $securePassword = ConvertTo-SecureString 'testpassword' -AsPlainText -Force
                 Send-IMTestMessage -from 'test@example.com' -replyto 'reply@example.com' -hostname 'smtp.example.com' -Password $securePassword
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and
-                    $RelativePath -eq '/admin/notifications/test-email'
+                Should -Invoke Invoke-ImmichApiSendTestEmailAdmin -Times 1 -ModuleName PSImmich -ParameterFilter {
+                    $Body.from -eq 'test@example.com' -and
+                    $Body.replyTo -eq 'reply@example.com' -and
+                    $Body.enabled -eq $true -and
+                    $Body.transport.host -eq 'smtp.example.com' -and
+                    $Body.transport.port -eq 25 -and
+                    $Body.transport.secure -eq $false -and
+                    $Body.transport.ignoreCert -eq $false -and
+                    $Body.transport.username -eq ''
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters with SMTP configuration' {
-                $securePassword = ConvertTo-SecureString 'testpassword' -AsPlainText -Force
-                Send-IMTestMessage -from 'test@example.com' -replyto 'reply@example.com' -hostname 'smtp.example.com' -Password $securePassword -port 587 -username 'user@example.com'
-
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -ParameterFilter {
-                    $BoundParameters.from -eq 'test@example.com' -and
-                    $BoundParameters.hostname -eq 'smtp.example.com' -and
-                    $BoundParameters.port -eq 587
-                }
-            }
-
-            It 'Should convert SecureString password' {
+            It 'Should send the SecureString password as plain text' {
                 $securePassword = ConvertTo-SecureString 'testpassword' -AsPlainText -Force
                 Send-IMTestMessage -from 'test@example.com' -replyto 'reply@example.com' -hostname 'smtp.example.com' -Password $securePassword
 
-                Should -Invoke ConvertFromSecureString -Times 1
+                Should -Invoke Invoke-ImmichApiSendTestEmailAdmin -Times 1 -ModuleName PSImmich -ParameterFilter {
+                    $Body.transport.password -eq 'testpassword'
+                }
             }
 
-            It 'Should handle optional parameters with defaults' {
+            It 'Should forward explicit transport settings' {
                 $securePassword = ConvertTo-SecureString 'testpassword' -AsPlainText -Force
-                Send-IMTestMessage -from 'test@example.com' -replyto 'reply@example.com' -hostname 'smtp.example.com' -Password $securePassword -ignoreCert:$true
+                Send-IMTestMessage -enabled $false -from 'test@example.com' -replyto 'reply@example.com' -hostname 'smtp.example.com' -Password $securePassword -port 587 -username 'user@example.com' -ignoreCert $true -Secure $true
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/admin/notifications/test-email'
+                Should -Invoke Invoke-ImmichApiSendTestEmailAdmin -Times 1 -ModuleName PSImmich -ParameterFilter {
+                    $Body.enabled -eq $false -and
+                    $Body.transport.port -eq 587 -and
+                    $Body.transport.username -eq 'user@example.com' -and
+                    $Body.transport.ignoreCert -eq $true -and
+                    $Body.transport.secure -eq $true
                 }
+            }
+
+            It 'Should forward the Session parameter' {
+                $securePassword = ConvertTo-SecureString 'testpassword' -AsPlainText -Force
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Send-IMTestMessage -from 'test@example.com' -replyto 'reply@example.com' -hostname 'smtp.example.com' -Password $securePassword -Session $Session
+
+                Should -Invoke Invoke-ImmichApiSendTestEmailAdmin -Times 1 -ModuleName PSImmich -ParameterFilter {
+                    $ImmichSession.GetType().Name -eq 'ImmichSession'
+                }
+            }
+
+            It 'Should return a TestEmailResponseDto' {
+                $securePassword = ConvertTo-SecureString 'testpassword' -AsPlainText -Force
+                $result = Send-IMTestMessage -from 'test@example.com' -replyto 'reply@example.com' -hostname 'smtp.example.com' -Password $securePassword
+                $result.GetType().Name | Should -Be 'TestEmailResponseDto'
+                $result.messageId | Should -Be '<test-message-id@example.com>'
             }
         }
 
