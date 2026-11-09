@@ -8641,77 +8641,120 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMStack' -Tag 'Unit', 'Get-IMStack' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            $StackId = '12345678-1234-1234-1234-123456789abc'
+            $PrimaryId = '12345678-1234-1234-1234-123456789def'
+            Mock Invoke-ImmichApiSearchStacks -ModuleName PSImmich {
                 return @(
-                    [PSCustomObject]@{ id = 'stack1-guid'; primaryAssetId = 'asset1-guid'; assetCount = 5 },
-                    [PSCustomObject]@{ id = 'stack2-guid'; primaryAssetId = 'asset2-guid'; assetCount = 3 }
+                    [PSCustomObject]@{ id = $StackId; primaryAssetId = $PrimaryId; assets = @() },
+                    [PSCustomObject]@{ id = 'stack2-guid'; primaryAssetId = 'asset2-guid'; assets = @() }
                 )
             }
+            Mock Invoke-ImmichApiGetStack -ModuleName PSImmich {
+                return [PSCustomObject]@{ id = $StackId; primaryAssetId = $PrimaryId; assets = @() }
+            }
         }
-        Context 'Stack Retrieval' {
-            It 'Should get stacks with correct API call' {
-                Get-IMStack
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/stacks'
+        Context 'List' {
+            It 'Should call SearchStacks without a query when no PrimaryAssetId is given' {
+                $Result = Get-IMStack
+                Should -Invoke Invoke-ImmichApiSearchStacks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    -not $PrimaryAssetId
                 }
+                $Result | Should -HaveCount 2
+                $Result[0].GetType().Name | Should -Be 'StackResponseDto'
+            }
+            It 'Should pass PrimaryAssetId as a query parameter' {
+                Get-IMStack -PrimaryAssetId $PrimaryId
+                Should -Invoke Invoke-ImmichApiSearchStacks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $PrimaryAssetId -eq $PrimaryId
+                }
+            }
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMStack -Session $Session
+                Should -Invoke Invoke-ImmichApiSearchStacks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+        }
+        Context 'By Id' {
+            It 'Should call GetStack with the id' {
+                $Result = Get-IMStack -Id $StackId
+                Should -Invoke Invoke-ImmichApiGetStack -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $StackId
+                }
+                Should -Invoke Invoke-ImmichApiSearchStacks -ModuleName PSImmich -Exactly 0 -Scope It
+                $Result.GetType().Name | Should -Be 'StackResponseDto'
             }
         }
     }
     Describe 'New-IMStack' -Tag 'Unit', 'New-IMStack' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ id = 'new-stack-guid'; primaryAssetId = 'primary-asset-guid'; assetCount = 3 }
+            Mock Invoke-ImmichApiCreateStack -ModuleName PSImmich {
+                return [PSCustomObject]@{ id = 'new-stack-guid'; primaryAssetId = '12345678-1234-5678-9012-123456789abc'; assets = @() }
             }
         }
         Context 'Stack Creation' {
-            It 'Should create stack with correct API call' {
-                New-IMStack -AssetIds @('12345678-1234-5678-9012-123456789abc', '23456789-2345-6789-0123-23456789abcd', '34567890-3456-7890-1234-3456789abcde')
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and $RelativePath -eq '/stacks'
+            It 'Should send the asset ids in the body' {
+                $Result = New-IMStack -AssetIds @('12345678-1234-5678-9012-123456789abc', '23456789-2345-6789-0123-23456789abcd', '34567890-3456-7890-1234-3456789abcde')
+                Should -Invoke Invoke-ImmichApiCreateStack -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.assetIds.Count -eq 3 -and $Body.assetIds[0] -eq '12345678-1234-5678-9012-123456789abc'
                 }
+                $Result.GetType().Name | Should -Be 'StackResponseDto'
+            }
+            It 'Should reject an invalid asset id' {
+                { New-IMStack -AssetIds @('not-a-guid') } | Should -Throw
             }
         }
     }
     Describe 'Remove-IMStack' -Tag 'Unit', 'Remove-IMStack' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiDeleteStacks -ModuleName PSImmich { return $null }
         }
         Context 'Stack Removal' {
-            It 'Should remove stack with correct API call' {
+            It 'Should bulk delete the stack id' {
                 Remove-IMStack -Id '12345678-1234-5678-9012-123456789abc' -Confirm:$false
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/stacks' -and $Body.ids -contains '12345678-1234-5678-9012-123456789abc'
+                Should -Invoke Invoke-ImmichApiDeleteStacks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.ids -contains '12345678-1234-5678-9012-123456789abc'
                 }
+            }
+            It 'Should send all ids from the pipeline in one request' {
+                @('12345678-1234-5678-9012-123456789abc', '23456789-2345-6789-0123-23456789abcd') | Remove-IMStack -Force
+                Should -Invoke Invoke-ImmichApiDeleteStacks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.ids.Count -eq 2
+                }
+            }
+            It 'Should not call the API when -WhatIf is used' {
+                Remove-IMStack -Id '12345678-1234-5678-9012-123456789abc' -WhatIf
+                Should -Invoke Invoke-ImmichApiDeleteStacks -ModuleName PSImmich -Exactly 0 -Scope It
             }
         }
     }
     Describe 'Remove-IMStackAsset' -Tag 'Unit', 'Remove-IMStackAsset' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ id = 'updated-stack-guid'; assetCount = 2 }
-            }
+            Mock Invoke-ImmichApiRemoveAssetFromStack -ModuleName PSImmich { }
         }
         Context 'Stack Asset Removal' {
-            It 'Should remove asset from stack with correct API call' {
-                Remove-IMStackAsset -StackId '12345678-1234-1234-1234-123456789abc' -AssetId '12345678-1234-1234-1234-123456789def'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/stacks/12345678-1234-1234-1234-123456789abc/assets/12345678-1234-1234-1234-123456789def'
+            It 'Should remove the asset from the stack' {
+                Remove-IMStackAsset -StackId '12345678-1234-1234-1234-123456789abc' -AssetId '12345678-1234-1234-1234-123456789def' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiRemoveAssetFromStack -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc' -and $AssetId -eq '12345678-1234-1234-1234-123456789def'
                 }
             }
         }
     }
     Describe 'Set-IMStack' -Tag 'Unit', 'Set-IMStack' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ id = 'updated-stack-guid'; primaryAssetId = 'new-primary-asset-guid' }
+            Mock Invoke-ImmichApiUpdateStack -ModuleName PSImmich {
+                return [PSCustomObject]@{ id = '12345678-1234-1234-1234-123456789abc'; primaryAssetId = '12345678-1234-1234-1234-123456789def'; assets = @() }
             }
         }
         Context 'Stack Updates' {
-            It 'Should update stack with correct API call' {
-                Set-IMStack -Id '12345678-1234-1234-1234-123456789abc' -PrimaryAssetId '12345678-1234-1234-1234-123456789def'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/stacks/12345678-1234-1234-1234-123456789abc'
+            It 'Should send the primary asset id to the update route' {
+                $Result = Set-IMStack -Id '12345678-1234-1234-1234-123456789abc' -PrimaryAssetId '12345678-1234-1234-1234-123456789def'
+                Should -Invoke Invoke-ImmichApiUpdateStack -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc' -and $Body.primaryAssetId -eq '12345678-1234-1234-1234-123456789def'
                 }
+                $Result.GetType().Name | Should -Be 'StackResponseDto'
             }
         }
     }

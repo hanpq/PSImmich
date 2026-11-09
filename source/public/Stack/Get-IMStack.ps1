@@ -44,26 +44,23 @@
         $PrimaryAssetId
     )
 
-    begin
-    {
-        $QueryParameters = @{}
-        if ($PrimaryAssetId)
-        {
-            $QueryParameters.primaryAssetId = $PrimaryAssetId
-        }
-    }
-
     process
     {
         switch ($PSCmdlet.ParameterSetName)
         {
             'list'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/stacks' -ImmichSession:$Session -QueryParameters $QueryParameters | AddCustomType IMStack
+                # Only bound parameters are passed, so an unset PrimaryAssetId is not sent as a query value.
+                $SearchParameters = @{ ImmichSession = $Session }
+                if ($PrimaryAssetId)
+                {
+                    $SearchParameters.PrimaryAssetId = $PrimaryAssetId
+                }
+                Invoke-ImmichApiSearchStacks @SearchParameters | ForEach-Object { [StackResponseDto]::new($PSItem) }
             }
             'id'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/stacks/$Id" -ImmichSession:$Session | AddCustomType IMStack
+                Invoke-ImmichApiGetStack -Id $Id -ImmichSession $Session | ForEach-Object { [StackResponseDto]::new($PSItem) }
             }
         }
     }

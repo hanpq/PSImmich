@@ -237,8 +237,9 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Unreachable | 110 |
 | Total | 279 |
 
-Wired for 109 of 219 non-excluded operations (49.8%) after the Search batch
-(was 105, 47.7%, after the SharedLink batch;
+Wired for 115 of 219 non-excluded operations (52.5%) after the Stack batch
+(was 109, 49.8%, after the Search batch;
+was 105, 47.7%, after the SharedLink batch;
 was 97, 44.1%, after the Job batch;
 was 91, 41.4%, after the Library batch;
 was 83, 37.7%, after the User batch and the profile-image export;
@@ -249,6 +250,12 @@ was 67, 30.5%, after the Server batch;
 metric, not parameter or contract parity. The 129 unreachable operations are the backlog.
 20 unreachable operations are deprecated; each needs the
 replacement-or-retain decision under the maintainer policy before implementation.
+
+Stack batch: `Get-IMStack` (list: `searchStacks`, with `-PrimaryAssetId`; id: `getStack`),
+`New-IMStack` (`createStack`), `Remove-IMStack` (one bulk `DELETE /stacks` request for all ids),
+and `Remove-IMStackAsset` (`removeAssetFromStack`) call the generated functions and return
+`StackResponseDto`. `Set-IMStack` still calls `PUT /stacks/{id}`, which 3.3.6 marks deprecated
+with no replacement (`replacementId` is itself), so it is retained under the maintainer policy.
 
 Library batch: `Get-IMLibrary`, `New-IMLibrary`, `Set-IMLibrary`, `Test-IMLibrary`,
 `Remove-IMLibrary`, and `Sync-IMLibrary` call the generated functions. `Get-IMLibrary
