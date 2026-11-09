@@ -122,7 +122,7 @@
                 }
             }
         }
-        $InvokeRestMethodSplat.Body = $NewBody | ConvertTo-Json -Compress
+        $InvokeRestMethodSplat.Body = $NewBody | ConvertTo-Json -Compress -Depth 10
     }
 
     if ($RawBody)
