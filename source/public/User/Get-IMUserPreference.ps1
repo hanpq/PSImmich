@@ -38,12 +38,12 @@
             'id'
             {
                 $id | ForEach-Object {
-                    InvokeImmichRestMethod -Method Get -RelativePath "/admin/users/$PSItem/preferences" -ImmichSession:$Session | AddCustomType IMUserPreference
+                    Invoke-ImmichApiGetUserPreferencesAdmin -Id $PSItem -ImmichSession $Session | ForEach-Object { [UserPreferencesResponseDto]::new($PSItem) }
                 }
             }
             'me'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/users/me/preferences' -ImmichSession:$Session | AddCustomType IMUserPreference
+                Invoke-ImmichApiGetMyPreferences -ImmichSession $Session | ForEach-Object { [UserPreferencesResponseDto]::new($PSItem) }
             }
         }
     }

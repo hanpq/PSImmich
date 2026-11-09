@@ -33,7 +33,7 @@
     process
     {
         $id | ForEach-Object {
-            InvokeImmichRestMethod -Method Get -RelativePath "/admin/users/$PSItem/sessions" -ImmichSession:$Session | AddCustomType IMUserSession
+            Invoke-ImmichApiGetUserSessionsAdmin -Id $PSItem -ImmichSession $Session | ForEach-Object { [SessionResponseDto]::new($PSItem) }
         }
     }
 }

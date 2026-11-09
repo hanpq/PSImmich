@@ -239,7 +239,8 @@
         <View>
             <Name>PSImmich.ObjectType.IMUser</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMUser</TypeName>
+                <TypeName>UserAdminResponseDto</TypeName>
+                <TypeName>UserResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>

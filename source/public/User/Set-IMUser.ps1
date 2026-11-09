@@ -86,7 +86,7 @@
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Set'))
             {
-                InvokeImmichRestMethod -Method PUT -RelativePath "/admin/users/$PSItem" -ImmichSession:$Session -Body $BodyParameters
+                Invoke-ImmichApiUpdateUserAdmin -Id $PSItem -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [UserAdminResponseDto]::new($PSItem) }
             }
         }
     }

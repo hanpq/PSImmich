@@ -102,7 +102,7 @@
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Set'))
             {
-                InvokeImmichRestMethod -Method PUT -RelativePath "/admin/users/$PSItem/preferences" -ImmichSession:$Session -Body $BodyParameters
+                Invoke-ImmichApiUpdateUserPreferencesAdmin -Id $PSItem -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [UserPreferencesResponseDto]::new($PSItem) }
             }
         }
     }

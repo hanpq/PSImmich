@@ -30,7 +30,7 @@
     process
     {
         $id | ForEach-Object {
-            InvokeImmichRestMethod -Method Get -RelativePath "/admin/users/$PSItem/statistics" -ImmichSession:$Session | AddCustomType IMUserStatistics
+            Invoke-ImmichApiGetUserStatisticsAdmin -Id $PSItem -ImmichSession $Session
         }
     }
 }

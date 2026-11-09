@@ -8092,10 +8092,7 @@ InModuleScope $ProjectName {
 
                 # Mock file operations
                 Mock Get-Item {
-                    return [PSCustomObject]@{
-                        FullName = $TestFile
-                        Name     = 'valid-avatar.jpg'
-                    }
+                    return [System.IO.FileInfo]::new($TestFile)
                 } -ModuleName PSImmich
 
                 { Add-IMMyProfilePicture -FilePath $TestFile } | Should -Not -Throw
@@ -8105,10 +8102,7 @@ InModuleScope $ProjectName {
         Context 'HTTP Upload Integration' {
             It 'Should call Invoke-MultipartHttpUpload with correct parameters' {
                 Mock Get-Item {
-                    return [PSCustomObject]@{
-                        FullName = $TestFile
-                        Name     = 'test-avatar.jpg'
-                    }
+                    return [System.IO.FileInfo]::new($TestFile)
                 } -ModuleName PSImmich
 
                 Mock Invoke-MultipartHttpUpload -MockWith {
@@ -8132,10 +8126,7 @@ InModuleScope $ProjectName {
                 [System.IO.File]::WriteAllBytes($TestFile, $ErrorImageBytes)
 
                 Mock Get-Item {
-                    return [PSCustomObject]@{
-                        FullName = $TestFile
-                        Name     = 'error-avatar.jpg'
-                    }
+                    return [System.IO.FileInfo]::new($TestFile)
                 } -ModuleName PSImmich
 
                 Mock Invoke-MultipartHttpUpload -MockWith {
@@ -8312,6 +8303,24 @@ InModuleScope $ProjectName {
                 Get-IMUser
                 Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
                     $Method -eq 'Get' -and $RelativePath -eq '/admin/users'
+                }
+            }
+            It 'Should get a single user by id' {
+                Get-IMUser -Id '12345678-1234-5678-9012-123456789abc'
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/admin/users/12345678-1234-5678-9012-123456789abc'
+                }
+            }
+            It 'Should get the current user with -Me' {
+                Get-IMUser -Me
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/users/me'
+                }
+            }
+            It 'Should request deleted users with -IncludeDeleted' {
+                Get-IMUser -IncludeDeleted
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $Method -eq 'Get' -and $RelativePath -eq '/admin/users' -and $QueryParameters.withDeleted -eq $true
                 }
             }
         }
