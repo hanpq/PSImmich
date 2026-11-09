@@ -4183,7 +4183,7 @@ InModuleScope $ProjectName {
     # Skipped until we can exit maintenance mode via API
     Describe 'Start-IMMaintenanceMode' -Tag 'Unit', 'Start-IMMaintenanceMode' -Skip:$true {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiSetMaintenanceMode {} -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -4209,7 +4209,7 @@ InModuleScope $ProjectName {
             It 'Should not call API when ShouldProcess returns false' {
                 Start-IMMaintenanceMode -WhatIf
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 0 -Scope It
+                Should -Invoke Invoke-ImmichApiSetMaintenanceMode -ModuleName PSImmich -Exactly 0 -Scope It
             }
         }
 
@@ -4217,9 +4217,7 @@ InModuleScope $ProjectName {
             It 'Should call correct endpoint with start action' {
                 Start-IMMaintenanceMode -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/admin/maintenance' -and
+                Should -Invoke Invoke-ImmichApiSetMaintenanceMode -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.action -eq 'start'
                 }
             }
@@ -4228,7 +4226,7 @@ InModuleScope $ProjectName {
     # Skipped until we can exit maintenance mode via API
     Describe 'Stop-IMMaintenanceMode' -Tag 'Unit', 'Stop-IMMaintenanceMode' -Skip:$true {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiSetMaintenanceMode {} -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -4248,7 +4246,7 @@ InModuleScope $ProjectName {
             It 'Should not call API when ShouldProcess returns false' {
                 Stop-IMMaintenanceMode -WhatIf
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 0 -Scope It
+                Should -Invoke Invoke-ImmichApiSetMaintenanceMode -ModuleName PSImmich -Exactly 0 -Scope It
             }
         }
 
@@ -4256,9 +4254,7 @@ InModuleScope $ProjectName {
             It 'Should call correct endpoint with end action' {
                 Stop-IMMaintenanceMode -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/admin/maintenance' -and
+                Should -Invoke Invoke-ImmichApiSetMaintenanceMode -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.action -eq 'end'
                 }
             }

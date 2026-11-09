@@ -41,6 +41,6 @@
             action = 'start'
         }
 
-        InvokeImmichRestMethod -Method POST -RelativePath '/admin/maintenance' -ImmichSession:$Session -Body $Body
+        Invoke-ImmichApiSetMaintenanceMode -Body $Body -ImmichSession:$Session
     }
 }
