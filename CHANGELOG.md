@@ -3,6 +3,13 @@
 The format is based on and uses the types of changes according to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.7-beta003](https://github.com/hanpq/PSImmich/compare/v3.3.7-beta002...v3.3.7-beta003) (2026-11-09)
+
+
+### Bug Fixes
+
+* **changelog:** remove stale 3.3.7 section before stable promotion ([b5825f6](https://github.com/hanpq/PSImmich/commit/b5825f69fb53c8b53fd3737403f25a5f3c8b24ff))
+
 ## [3.3.7-beta002](https://github.com/hanpq/PSImmich/compare/v3.3.7-beta001...v3.3.7-beta002) (2026-11-09)
 
 
