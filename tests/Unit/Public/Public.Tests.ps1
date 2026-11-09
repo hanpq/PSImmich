@@ -9419,6 +9419,114 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'Get-IMPluginMethod' -Tag 'Unit', 'Get-IMPluginMethod' {
+        BeforeAll {
+            Mock Invoke-ImmichApiSearchPluginMethods -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ key = 'my-plugin#send'; name = 'send'; title = 'Send'; description = 'Sends'; hostFunctions = $false; types = @('AssetV1'); uiHints = @(); schema = @{} },
+                    [pscustomobject]@{ key = 'other#tag'; name = 'tag'; title = 'Tag'; description = 'Tags'; hostFunctions = $true; types = @('AssetV1'); uiHints = @(); schema = @{} }
+                )
+            }
+        }
+
+        Context 'When retrieving plugin methods' {
+            It 'Should call Invoke-ImmichApiSearchPluginMethods without filters' {
+                Get-IMPluginMethod
+
+                Should -Invoke Invoke-ImmichApiSearchPluginMethods -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $null -eq $Name -and $null -eq $Trigger -and $null -eq $Enabled
+                }
+            }
+
+            It 'Should return PluginMethodResponseDto objects' {
+                $Result = Get-IMPluginMethod
+
+                $Result | Should -HaveCount 2
+                $Result[0].GetType().Name | Should -Be 'PluginMethodResponseDto'
+                $Result[0].key | Should -Be 'my-plugin#send'
+            }
+
+            It 'Should forward filter parameters to Invoke-ImmichApiSearchPluginMethods' {
+                Get-IMPluginMethod -Name 'send' -Title 'Send' -Description 'Sends' -PluginName 'my-plugin' -PluginVersion '1.0.0' -Enabled $false -Trigger 'AssetCreate' -Type 'AssetV1'
+
+                Should -Invoke Invoke-ImmichApiSearchPluginMethods -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Name -eq 'send' -and $Title -eq 'Send' -and $Description -eq 'Sends' -and
+                    $PluginName -eq 'my-plugin' -and $PluginVersion -eq '1.0.0' -and $Enabled -eq $false -and
+                    $Trigger -eq 'AssetCreate' -and $Type -eq 'AssetV1'
+                }
+            }
+
+            It 'Should forward a plugin method ID filter' {
+                Get-IMPluginMethod -Id '123e4567-e89b-12d3-a456-426614174000'
+
+                Should -Invoke Invoke-ImmichApiSearchPluginMethods -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should pass the explicit Session to Invoke-ImmichApiSearchPluginMethods' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+                Get-IMPluginMethod -Session $Session
+
+                Should -Invoke Invoke-ImmichApiSearchPluginMethods -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+        }
+
+        Context 'Parameter validation' {
+            It 'Should reject an invalid Trigger value' {
+                { Get-IMPluginMethod -Trigger 'Invalid' } | Should -Throw
+            }
+
+            It 'Should reject an invalid Type value' {
+                { Get-IMPluginMethod -Type 'Invalid' } | Should -Throw
+            }
+
+            It 'Should validate Id GUID format' {
+                { Get-IMPluginMethod -Id 'invalid-guid' } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Get-IMPluginTemplate' -Tag 'Unit', 'Get-IMPluginTemplate' {
+        BeforeAll {
+            Mock Invoke-ImmichApiSearchPluginTemplates -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ key = 'template-1'; title = 'Template One'; description = 'First'; trigger = 'AssetCreate'; uiHints = @(); steps = @() },
+                    [pscustomobject]@{ key = 'template-2'; title = 'Template Two'; description = 'Second'; trigger = 'AssetTagged'; uiHints = @(); steps = @() }
+                )
+            }
+        }
+
+        Context 'When retrieving workflow templates' {
+            It 'Should call Invoke-ImmichApiSearchPluginTemplates' {
+                Get-IMPluginTemplate
+
+                Should -Invoke Invoke-ImmichApiSearchPluginTemplates -Times 1 -Exactly -Scope It -ModuleName PSImmich
+            }
+
+            It 'Should return PluginTemplateResponseDto objects' {
+                $Result = Get-IMPluginTemplate
+
+                $Result | Should -HaveCount 2
+                $Result[0].GetType().Name | Should -Be 'PluginTemplateResponseDto'
+                $Result[0].key | Should -Be 'template-1'
+            }
+
+            It 'Should pass the explicit Session to Invoke-ImmichApiSearchPluginTemplates' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+                Get-IMPluginTemplate -Session $Session
+
+                Should -Invoke Invoke-ImmichApiSearchPluginTemplates -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+        }
+    }
+
     Describe 'Get-IMWorkflow' -Tag 'Unit', 'Get-IMWorkflow' {
         BeforeAll {
             $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
