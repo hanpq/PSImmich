@@ -8697,58 +8697,66 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMPlugin' -Tag 'Unit', 'Get-IMPlugin' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                if ($RelativePath -eq '/plugins')
-                {
-                    return @(
-                        @{id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Plugin 1'; version = '1.0.0' },
-                        @{id = '223e4567-e89b-12d3-a456-426614174001'; name = 'Test Plugin 2'; version = '2.1.0' }
-                    )
-                }
-                elseif ($RelativePath -match '/plugins/[a-f0-9-]+')
-                {
-                    return @{id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Plugin 1'; version = '1.0.0' }
-                }
+            Mock Invoke-ImmichApiSearchPlugins -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Plugin 1'; title = 'Plugin One'; version = '1.0.0'; enabled = $true; methods = @() },
+                    [pscustomobject]@{ id = '223e4567-e89b-12d3-a456-426614174001'; name = 'Test Plugin 2'; title = 'Plugin Two'; version = '2.1.0'; enabled = $false; methods = @() }
+                )
             }
-            Mock AddCustomType {
-                param($InputObject, $Type)
-                return $InputObject
-            } -ModuleName 'PSImmich'
+            Mock Invoke-ImmichApiGetPlugin -ModuleName PSImmich {
+                return [pscustomobject]@{ id = $Id; name = 'Test Plugin 1'; title = 'Plugin One'; version = '1.0.0'; enabled = $true; methods = @() }
+            }
         }
 
         Context 'When retrieving all plugins (list parameter set)' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiSearchPlugins without filters' {
                 Get-IMPlugin
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/plugins'
+                Should -Invoke Invoke-ImmichApiSearchPlugins -Times 1 -Exactly -Scope It -ModuleName PSImmich
+            }
+
+            It 'Should return PluginResponseDto objects' {
+                $Result = Get-IMPlugin
+
+                $Result | Should -HaveCount 2
+                $Result[0].GetType().Name | Should -Be 'PluginResponseDto'
+                $Result[0].name | Should -Be 'Test Plugin 1'
+            }
+
+            It 'Should forward filter parameters to Invoke-ImmichApiSearchPlugins' {
+                Get-IMPlugin -Name 'Test Plugin 1' -Title 'Plugin One' -Version '1.0.0' -Description 'desc' -Enabled $true
+
+                Should -Invoke Invoke-ImmichApiSearchPlugins -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Name -eq 'Test Plugin 1' -and $Title -eq 'Plugin One' -and $Version -eq '1.0.0' -and
+                    $Description -eq 'desc' -and $Enabled -eq $true
                 }
             }
 
-            It 'Should add custom type to results' {
-                Get-IMPlugin
+            It 'Should pass the explicit Session to Invoke-ImmichApiSearchPlugins' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
 
-                Should -Invoke AddCustomType -Times 2 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
-                    $Type -eq 'IMPlugin'
+                Get-IMPlugin -Session $Session
+
+                Should -Invoke Invoke-ImmichApiSearchPlugins -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $ImmichSession -eq $Session
                 }
             }
         }
 
         Context 'When retrieving specific plugin by ID (id parameter set)' {
-            It 'Should call InvokeImmichRestMethod with plugin ID path' {
+            It 'Should call Invoke-ImmichApiGetPlugin with the plugin ID' {
                 Get-IMPlugin -Id '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/plugins/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetPlugin -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
-            It 'Should add custom type to single result' {
-                Get-IMPlugin -Id '123e4567-e89b-12d3-a456-426614174000'
+            It 'Should return a PluginResponseDto object' {
+                $Result = Get-IMPlugin -Id '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke AddCustomType -Times 1 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
-                    $Type -eq 'IMPlugin'
-                }
+                $Result.GetType().Name | Should -Be 'PluginResponseDto'
+                $Result.id | Should -Be '123e4567-e89b-12d3-a456-426614174000'
             }
         }
 
@@ -8756,16 +8764,16 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Get-IMPlugin
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/plugins/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetPlugin -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Get-IMPlugin
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/plugins/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetPlugin -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
         }

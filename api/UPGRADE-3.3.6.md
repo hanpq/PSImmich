@@ -237,8 +237,9 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Unreachable | 110 |
 | Total | 279 |
 
-Wired for 147 of 219 non-excluded operations (67.1%) after the Duplicates batch
-(was 145, 66.2%, after the AuthSession batch;
+Wired for 149 of 219 non-excluded operations (68.0%) after the Plugin batch
+(was 147, 67.1%, after the Duplicates batch;
+was 145, 66.2%, after the AuthSession batch;
 was 142, 64.8%, after the Face batch;
 was 138, 63.0%, after the Workflow batch;
 was 130, 59.4%, after the Memories batch;
@@ -266,6 +267,11 @@ as asset IDs, which conflicts with the group-ID contract documented in the cmdle
 maintainer decision and live verification. Still unimplemented: `deleteDuplicate` (`DELETE /duplicates/{id}`,
 dismiss a group; currently excluded as "Batch-version of this api is implemented as Remove-IMDuplicate") and
 `resolveDuplicates` (`POST /duplicates/resolve`, Alpha in 3.3.6). Targeted tests: 35 passed, 0 failed.
+
+Plugin batch: `Get-IMPlugin` list uses `searchPlugins` (`GET /plugins`) and now forwards its query filters as
+`-Name`, `-Title`, `-Version`, `-Description`, and `-Enabled`. The id set uses `getPlugin`. Output is
+`PluginResponseDto`, and `AddCustomType IMPlugin` is removed. The stale Alpha note is removed because the 3.3.6
+plugin operations carry no `x-immich-state`. Targeted tests: 17 passed, 0 failed.
 
 AuthSession batch: `Get-IMAuthSession` (`getSessions`) returns `SessionResponseDto`; `Remove-IMAuthSession` calls
 `deleteAllSessions` (no `-Id`) or `deleteSession` (per `-Id`). Breaking: the 3.3.6 `SessionResponseDto` has no

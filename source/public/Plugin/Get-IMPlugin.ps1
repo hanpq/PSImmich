@@ -4,12 +4,21 @@
     .SYNOPSIS
         Retrieves Immich plugins
     .DESCRIPTION
-        Retrieves one or more plugins from the Immich server. Can retrieve all plugins or a specific plugin by ID.
-        Note: Plugin functionality is in Alpha state as of Immich v2.3.1.
+        Retrieves one or more plugins from the Immich server. Can retrieve all plugins, optionally filtered, or a specific plugin by ID.
     .PARAMETER Session
         Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
     .PARAMETER Id
         The UUID of a specific plugin to retrieve. Accepts pipeline input.
+    .PARAMETER Name
+        Filter the plugin list by plugin name.
+    .PARAMETER Title
+        Filter the plugin list by plugin title.
+    .PARAMETER Version
+        Filter the plugin list by plugin version.
+    .PARAMETER Description
+        Filter the plugin list by plugin description.
+    .PARAMETER Enabled
+        Filter the plugin list by whether the plugin is enabled.
     .EXAMPLE
         Get-IMPlugin
 
@@ -22,8 +31,6 @@
         'plugin1-uuid', 'plugin2-uuid' | Get-IMPlugin
 
         Retrieves multiple plugins by piping their IDs.
-    .NOTES
-        This feature is in Alpha state and may be subject to changes in future Immich versions.
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'list')]
@@ -35,7 +42,27 @@
         [Parameter(Mandatory, ParameterSetName = 'id', ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $Id
+        $Id,
+
+        [Parameter(ParameterSetName = 'list')]
+        [string]
+        $Name,
+
+        [Parameter(ParameterSetName = 'list')]
+        [string]
+        $Title,
+
+        [Parameter(ParameterSetName = 'list')]
+        [string]
+        $Version,
+
+        [Parameter(ParameterSetName = 'list')]
+        [string]
+        $Description,
+
+        [Parameter(ParameterSetName = 'list')]
+        [bool]
+        $Enabled
     )
 
     process
@@ -44,11 +71,16 @@
         {
             'list'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/plugins' -ImmichSession:$Session | AddCustomType IMPlugin
+                $ApiParams = @{ ImmichSession = $Session }
+                foreach ($Filter in 'Name', 'Title', 'Version', 'Description', 'Enabled')
+                {
+                    if ($PSBoundParameters.ContainsKey($Filter)) { $ApiParams[$Filter] = $PSBoundParameters[$Filter] }
+                }
+                Invoke-ImmichApiSearchPlugins @ApiParams | ForEach-Object { [PluginResponseDto]::new($PSItem) }
             }
             'id'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/plugins/$Id" -ImmichSession:$Session | AddCustomType IMPlugin
+                Invoke-ImmichApiGetPlugin -Id $Id -ImmichSession $Session | ForEach-Object { [PluginResponseDto]::new($PSItem) }
             }
         }
     }
