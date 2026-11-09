@@ -93,13 +93,10 @@
                 year = $Year
             }
         }
-        $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-    }
-
-    process
-    {
-        $AssetIds | ForEach-Object {
-            $BodyParameters.assetIds += $PSItem
+        $ApiParameters = ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
+        foreach ($Key in $ApiParameters.Keys)
+        {
+            $BodyParameters[$Key] = $ApiParameters[$Key]
         }
     }
 
