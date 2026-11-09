@@ -45,6 +45,7 @@
 
     process
     {
-        InvokeImmichRestMethod -Method Put -RelativePath "/stacks/$Id" -ImmichSession:$Session -Body $BodyParameters | AddCustomType IMStack
+        # PUT /stacks/{id} (updateStack) is deprecated in Immich 3.3.6 with no replacement, so it stays on this route.
+        Invoke-ImmichApiUpdateStack -Id $Id -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [StackResponseDto]::new($PSItem) }
     }
 }

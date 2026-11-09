@@ -46,6 +46,12 @@
         [Parameter()][system.io.fileinfo]$OutFilePath
     )
 
+    # The session ApiUri has no trailing slash, so a path without a leading slash would be joined incorrectly.
+    if ($RelativeURI -and -not $RelativeURI.StartsWith('/'))
+    {
+        $RelativeURI = "/$RelativeURI"
+    }
+
     $Parameters = @{
         Method       = $Method
         RelativePath = $RelativeURI

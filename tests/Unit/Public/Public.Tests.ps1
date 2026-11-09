@@ -24,7 +24,7 @@ BeforeDiscovery {
 InModuleScope $ProjectName {
     Describe 'Add-IMActivity' -Tag 'Unit', 'Add-IMActivity' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiCreateActivity -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     id        = 'activity-123'
                     albumId   = 'album-456'
@@ -49,7 +49,7 @@ InModuleScope $ProjectName {
         }
 
         Context 'When adding a comment to an album' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiCreateActivity with correct parameters' {
                 $params = @{
                     AlbumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
                     Comment = 'Amazing sunset!'
@@ -58,9 +58,7 @@ InModuleScope $ProjectName {
 
                 Add-IMActivity @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Post' -and
-                    $RelativePath -eq '/activities' -and
+                Should -Invoke Invoke-ImmichApiCreateActivity -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.albumId -eq $params.AlbumId -and
                     $Body.comment -eq $params.Comment -and
                     $Body.type -eq $params.Type
@@ -69,7 +67,7 @@ InModuleScope $ProjectName {
         }
 
         Context 'When adding a like to a specific asset' {
-            It 'Should call InvokeImmichRestMethod with asset ID' {
+            It 'Should call Invoke-ImmichApiCreateActivity with asset ID' {
                 $params = @{
                     AlbumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
                     AssetId = 'a4908e1f-697f-4d7b-9330-93b5eabe3baf'
@@ -78,9 +76,7 @@ InModuleScope $ProjectName {
 
                 Add-IMActivity @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Post' -and
-                    $RelativePath -eq '/activities' -and
+                Should -Invoke Invoke-ImmichApiCreateActivity -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.albumId -eq $params.AlbumId -and
                     $Body.assetId -eq $params.AssetId -and
                     $Body.type -eq $params.Type
@@ -89,15 +85,28 @@ InModuleScope $ProjectName {
         }
 
         Context 'Pipeline support' {
-            It 'Should accept AlbumId from pipeline by property name' {
-                # Create objects with AlbumId property for pipeline test
+            It 'Should accept AlbumId from a piped string' {
+                'bde7ceba-f301-4e9e-87a2-163937a2a3db' | Add-IMActivity -Comment 'piped'
+
+                Should -Invoke Invoke-ImmichApiCreateActivity -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.albumId -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+                }
+            }
+
+            It 'Should accept AlbumId from a piped object by property name' {
                 $pipelineObject = [PSCustomObject]@{ AlbumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
 
-                # Test that function works when called with parameter from object property
-                Add-IMActivity -AlbumId $pipelineObject.AlbumId -Type 'like'
+                $pipelineObject | Add-IMActivity -Type 'like'
 
-                # Simply verify the function was called - implementation details tested elsewhere
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly
+                Should -Invoke Invoke-ImmichApiCreateActivity -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.albumId -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and $Body.type -eq 'like'
+                }
+            }
+
+            It 'Should send one request per piped album id' {
+                @('bde7ceba-f301-4e9e-87a2-163937a2a3db', '12345678-1234-1234-1234-123456789abc') | Add-IMActivity -Comment 'batch'
+
+                Should -Invoke Invoke-ImmichApiCreateActivity -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -117,7 +126,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMActivity' -Tag 'Unit', 'Get-IMActivity' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetActivities -ModuleName PSImmich {
                 return @(
                     [PSCustomObject]@{
                         id        = 'activity-1'
@@ -174,15 +183,13 @@ InModuleScope $ProjectName {
         }
 
         Context 'When retrieving all activities for an album' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiGetActivities with correct parameters' {
                 $albumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
 
                 $result = Get-IMActivity -AlbumId $albumId
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/activities' -and
-                    $QueryParameters.albumId -eq $albumId
+                Should -Invoke Invoke-ImmichApiGetActivities -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $AlbumId -eq $albumId
                 }
                 $result | Should -HaveCount 2
             }
@@ -197,9 +204,9 @@ InModuleScope $ProjectName {
 
                 Get-IMActivity @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $QueryParameters.albumId -eq $params.AlbumId -and
-                    $QueryParameters.assetId -eq $params.AssetId
+                Should -Invoke Invoke-ImmichApiGetActivities -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $AlbumId -eq $params.AlbumId -and
+                    $AssetId -eq $params.AssetId
                 }
             }
         }
@@ -214,10 +221,10 @@ InModuleScope $ProjectName {
 
                 Get-IMActivity @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $QueryParameters.albumId -eq $params.AlbumId -and
-                    $QueryParameters.type -eq $params.Type -and
-                    $QueryParameters.level -eq $params.Level
+                Should -Invoke Invoke-ImmichApiGetActivities -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $AlbumId -eq $params.AlbumId -and
+                    $Type -eq $params.Type -and
+                    $Level -eq $params.Level
                 }
             }
         }
@@ -231,9 +238,9 @@ InModuleScope $ProjectName {
 
                 Get-IMActivity @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $QueryParameters.albumId -eq $params.AlbumId -and
-                    $QueryParameters.userId -eq $params.UserId
+                Should -Invoke Invoke-ImmichApiGetActivities -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $AlbumId -eq $params.AlbumId -and
+                    $UserId -eq $params.UserId
                 }
             }
         }
@@ -246,18 +253,16 @@ InModuleScope $ProjectName {
                 # Test that function works when called with parameter from object property
                 Get-IMActivity -AlbumId $pipelineObject.AlbumId
 
-                # Simply verify the function was called - implementation details tested elsewhere
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly
+                Should -Invoke Invoke-ImmichApiGetActivities -ModuleName PSImmich -Times 1 -Exactly
             }
         }
 
-        Context 'Custom type assignment' {
-            It 'Should add IMActivity custom type to results' {
-                $albumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+        Context 'Returned object types' {
+            It 'Should return ActivityResponseDto objects' {
+                $result = Get-IMActivity -AlbumId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
 
-                Get-IMActivity -AlbumId $albumId
-
-                Should -Invoke AddCustomType -Times 2 -Exactly -Scope It
+                $result[0].GetType().Name | Should -Be 'ActivityResponseDto'
+                $result[0].user.GetType().Name | Should -Be 'UserResponseDto'
             }
         }
 
@@ -285,7 +290,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMActivityStatistic' -Tag 'Unit', 'Get-IMActivityStatistic' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetActivityStatistics -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     albumId         = 'album-456'
                     assetId         = 'asset-789'
@@ -309,15 +314,13 @@ InModuleScope $ProjectName {
         }
 
         Context 'When retrieving album statistics' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiGetActivityStatistics with correct parameters' {
                 $albumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
 
                 $result = Get-IMActivityStatistic -AlbumId $albumId
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/activities/statistics' -and
-                    $QueryParameters.albumId -eq $albumId
+                Should -Invoke Invoke-ImmichApiGetActivityStatistics -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $AlbumId -eq $albumId
                 }
                 $result | Should -Not -BeNullOrEmpty
                 $result.comments | Should -Be 5
@@ -334,11 +337,9 @@ InModuleScope $ProjectName {
 
                 Get-IMActivityStatistic @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/activities/statistics' -and
-                    $QueryParameters.albumId -eq $params.AlbumId -and
-                    $QueryParameters.assetId -eq $params.AssetId
+                Should -Invoke Invoke-ImmichApiGetActivityStatistics -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $AlbumId -eq $params.AlbumId -and
+                    $AssetId -eq $params.AssetId
                 }
             }
         }
@@ -351,8 +352,7 @@ InModuleScope $ProjectName {
                 # Test that function works when called with parameter from object property
                 Get-IMActivityStatistic -AlbumId $pipelineObject.AlbumId
 
-                # Simply verify the function was called - implementation details tested elsewhere
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly
+                Should -Invoke Invoke-ImmichApiGetActivityStatistics -ModuleName PSImmich -Times 1 -Exactly
             }
         }
 
@@ -373,22 +373,21 @@ InModuleScope $ProjectName {
 
                 Get-IMActivityStatistic -AlbumId $albumId
 
-                # Verify the REST method was called (session handling tested in integration tests)
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly
+                Should -Invoke Invoke-ImmichApiGetActivityStatistics -ModuleName PSImmich -Times 1 -Exactly
             }
         }
     }
     Describe 'Remove-IMActivity' -Tag 'Unit', 'Remove-IMActivity' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiDeleteActivity -ModuleName PSImmich { return $null }
         }
 
         Context 'When removing a single activity' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiDeleteActivity with correct parameters' {
                 Remove-IMActivity -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq '/activities/bde7ceba-f301-4e9e-87a2-163937a2a3db'
+                Should -Invoke Invoke-ImmichApiDeleteActivity -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
                 }
             }
         }
@@ -398,7 +397,7 @@ InModuleScope $ProjectName {
                 $activityIds = @('bde7ceba-f301-4e9e-87a2-163937a2a3db', '550e8400-e29b-41d4-a716-446655440000')
                 $activityIds | Remove-IMActivity -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteActivity -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -406,17 +405,17 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 'bde7ceba-f301-4e9e-87a2-163937a2a3db' | Remove-IMActivity -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/activities/bde7ceba-f301-4e9e-87a2-163937a2a3db'
+                Should -Invoke Invoke-ImmichApiDeleteActivity -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{Id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' } | Remove-IMActivity -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq '/activities/bde7ceba-f301-4e9e-87a2-163937a2a3db'
-                } -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiDeleteActivity -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+                }
             }
         }
 
@@ -434,7 +433,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Remove-IMActivity -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteActivity -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -442,16 +441,15 @@ InModuleScope $ProjectName {
     }
     Describe 'Add-IMAlbumUser' -Tag 'Unit', 'Add-IMAlbumUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{success = $true } }
+            Mock Invoke-ImmichApiAddUsersToAlbum -ModuleName PSImmich { return @{success = $true } }
         }
 
         Context 'When adding a single user to an album' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiAddUsersToAlbum with correct parameters' {
                 Add-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '223e4567-e89b-12d3-a456-426614174001' -Role 'editor'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/users' -and
+                Should -Invoke Invoke-ImmichApiAddUsersToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and
                     $Body.albumUsers -is [array] -and
                     $Body.albumUsers[0].userId -eq '223e4567-e89b-12d3-a456-426614174001' -and
                     $Body.albumUsers[0].role -eq 'editor'
@@ -463,7 +461,7 @@ InModuleScope $ProjectName {
             It 'Should create correct body with multiple user objects' {
                 Add-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId @('223e4567-e89b-12d3-a456-426614174001', '323e4567-e89b-12d3-a456-426614174002') -Role 'viewer'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiAddUsersToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $Body.albumUsers.Count -eq 2 -and
                     $Body.albumUsers[0].role -eq 'viewer' -and
                     $Body.albumUsers[1].role -eq 'viewer'
@@ -475,7 +473,7 @@ InModuleScope $ProjectName {
             It 'Should accept UserId from pipeline by value' {
                 @('223e4567-e89b-12d3-a456-426614174001', '323e4567-e89b-12d3-a456-426614174002') | Add-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Role 'editor'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiAddUsersToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $Body.albumUsers.Count -eq 2
                 }
             }
@@ -487,7 +485,7 @@ InModuleScope $ProjectName {
                 )
                 $users | Add-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Role 'viewer'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiAddUsersToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
 
@@ -509,7 +507,7 @@ InModuleScope $ProjectName {
             It 'Should use viewer as default role' {
                 Add-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '223e4567-e89b-12d3-a456-426614174001'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiAddUsersToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $Body.albumUsers[0].role -eq 'viewer'
                 }
             }
@@ -519,7 +517,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Add-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '223e4567-e89b-12d3-a456-426614174001'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiAddUsersToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -527,18 +525,14 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMAlbum' -Tag 'Unit', 'Get-IMAlbum' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                if ($RelativePath -eq '/albums')
-                {
-                    return @(
-                        @{id = '123e4567-e89b-12d3-a456-426614174000'; albumName = 'Family Photos'; shared = $false },
-                        @{id = '223e4567-e89b-12d3-a456-426614174001'; albumName = 'Vacation 2023'; shared = $true }
-                    )
-                }
-                elseif ($RelativePath -match '/albums/[a-f0-9-]+')
-                {
-                    return @{id = '123e4567-e89b-12d3-a456-426614174000'; albumName = 'Family Photos'; assets = @() }
-                }
+            Mock Invoke-ImmichApiGetAllAlbums -ModuleName PSImmich {
+                return @(
+                    @{id = '123e4567-e89b-12d3-a456-426614174000'; albumName = 'Family Photos'; shared = $false },
+                    @{id = '223e4567-e89b-12d3-a456-426614174001'; albumName = 'Vacation 2023'; shared = $true }
+                )
+            }
+            Mock Invoke-ImmichApiGetAlbumInfo -ModuleName PSImmich {
+                return @{id = '123e4567-e89b-12d3-a456-426614174000'; albumName = 'Family Photos'; assets = @() }
             }
             Mock ConvertTo-ApiParameters { return @{} }
             Mock AddCustomType {
@@ -548,60 +542,84 @@ InModuleScope $ProjectName {
         }
 
         Context 'When retrieving all albums (list parameter set)' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiGetAllAlbums without filters by default' {
                 Get-IMAlbum
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/albums'
+                Should -Invoke Invoke-ImmichApiGetAllAlbums -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $null -eq $IsShared -and $null -eq $AssetId
                 }
+                Should -Invoke Invoke-ImmichApiGetAlbumInfo -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
 
-            It 'Should call ConvertTo-ApiParameters for query parameters' {
+            It 'Should pass IsShared when Shared is specified' {
                 Get-IMAlbum -Shared $true
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetAllAlbums -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $IsShared -eq $true
+                }
             }
 
-            It 'Should add custom type to results' {
-                Get-IMAlbum
+            It 'Should pass IsShared as false when Shared is false' {
+                Get-IMAlbum -Shared $false
 
-                Should -Invoke AddCustomType -Times 2 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
-                    $Type -eq 'IMAlbum'
+                Should -Invoke Invoke-ImmichApiGetAllAlbums -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $IsShared -eq $false
                 }
+            }
+
+            It 'Should return AlbumResponseDto objects' {
+                $result = Get-IMAlbum
+
+                $result | ForEach-Object { $PSItem.GetType().Name | Should -Be 'AlbumResponseDto' }
             }
         }
 
         Context 'When retrieving specific album by ID (id parameter set)' {
-            It 'Should call InvokeImmichRestMethod with album ID path' {
+            It 'Should call Invoke-ImmichApiGetAlbumInfo with the album ID' {
                 Get-IMAlbum -AlbumId '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
+                Should -Invoke Invoke-ImmichApiGetAllAlbums -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+
+            It 'Should return AlbumResponseDto without assets when IncludeAssets is omitted' {
+                $result = Get-IMAlbum -AlbumId '123e4567-e89b-12d3-a456-426614174000'
+
+                $result.GetType().Name | Should -Be 'AlbumResponseDto'
+                $result.PSObject.Properties.Name | Should -Not -Contain 'assets'
+            }
+        }
+
+        Context 'When including assets' {
+            BeforeAll {
+                Mock Invoke-ImmichApiSearchAssets -ModuleName PSImmich {
+                    if ($Body.page -eq 1)
+                    {
+                        return @{ assets = @{ items = @(@{ id = 'asset-1' }); nextPage = '2' } }
+                    }
+                    return @{ assets = @{ items = @(@{ id = 'asset-2' }); nextPage = $null } }
                 }
             }
 
-            It 'Should include withoutAssets query parameter when IncludeAssets is false' {
-                Get-IMAlbum -AlbumId '123e4567-e89b-12d3-a456-426614174000'
+            It 'Should page through metadata search filtered by the album ID' {
+                $result = Get-IMAlbum -AlbumId '123e4567-e89b-12d3-a456-426614174000' -IncludeAssets
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $QueryParameters.withoutAssets -eq $true
+                Should -Invoke Invoke-ImmichApiSearchAssets -Times 2 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
+                    $Body.albumIds -contains '123e4567-e89b-12d3-a456-426614174000'
                 }
-            }
-
-            It 'Should set withoutAssets to false when IncludeAssets is true' {
-                Get-IMAlbum -AlbumId '123e4567-e89b-12d3-a456-426614174000' -IncludeAssets
-
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $QueryParameters.withoutAssets -eq $false
-                }
+                $result.assets.id | Should -Be @('asset-1', 'asset-2')
             }
         }
 
         Context 'When filtering by asset ID' {
-            It 'Should convert AssetId parameter to API parameters' {
+            It 'Should pass AssetId to Invoke-ImmichApiGetAllAlbums' {
                 Get-IMAlbum -AssetId '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetAllAlbums -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $AssetId -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
             }
         }
 
@@ -609,16 +627,16 @@ InModuleScope $ProjectName {
             It 'Should accept AlbumId from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Get-IMAlbum
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept AlbumId from pipeline by property name' {
                 [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Get-IMAlbum
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
         }
@@ -637,7 +655,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Get-IMAlbum
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiGetAllAlbums -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -645,30 +663,29 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMAlbumStatistic' -Tag 'Unit', 'Get-IMAlbumStatistic' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetAlbumStatistics -ModuleName PSImmich {
                 return @{
-                    totalAlbums  = 25
-                    sharedAlbums = 8
-                    ownedAlbums  = 17
-                    assetCount   = 1250
+                    notShared = 9
+                    owned     = 17
+                    shared    = 8
                 }
             }
         }
 
         Context 'When retrieving album statistics' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiGetAlbumStatistics' {
                 Get-IMAlbumStatistic
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/albums/statistics'
-                }
+                Should -Invoke Invoke-ImmichApiGetAlbumStatistics -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
 
-            It 'Should return statistics object' {
+            It 'Should return AlbumStatisticsResponseDto' {
                 $result = Get-IMAlbumStatistic
 
-                $result.totalAlbums | Should -Be 25
-                $result.sharedAlbums | Should -Be 8
+                $result.GetType().Name | Should -Be 'AlbumStatisticsResponseDto'
+                $result.owned | Should -Be 17
+                $result.shared | Should -Be 8
+                $result.notShared | Should -Be 9
             }
         }
 
@@ -676,7 +693,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Get-IMAlbumStatistic
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiGetAlbumStatistics -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -684,8 +701,8 @@ InModuleScope $ProjectName {
     }
     Describe 'New-IMAlbum' -Tag 'Unit', 'New-IMAlbum' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @{
+            Mock Invoke-ImmichApiCreateAlbum {
+                return [PSCustomObject]@{
                     id          = '123e4567-e89b-12d3-a456-426614174000'
                     albumName   = 'Test Album'
                     description = 'Test Description'
@@ -693,35 +710,41 @@ InModuleScope $ProjectName {
                     albumUsers  = @()
                     shared      = $false
                 }
-            }
-            Mock ConvertTo-ApiParameters { return @{} }
+            } -ModuleName PSImmich
         }
 
         Context 'When creating an album with minimal parameters' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should send only albumName in the body' {
                 New-IMAlbum -AlbumName 'Test Album'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Post' -and $RelativePath -eq '/albums'
+                Should -Invoke Invoke-ImmichApiCreateAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.albumName -eq 'Test Album' -and
+                    -not $Body.ContainsKey('description') -and
+                    -not $Body.ContainsKey('assetIds') -and
+                    -not $Body.ContainsKey('albumUsers')
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters for body parameters' {
-                New-IMAlbum -AlbumName 'Test Album'
+            It 'Should return an AlbumResponseDto' {
+                $result = New-IMAlbum -AlbumName 'Test Album'
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
+                $result.GetType().Name | Should -Be 'AlbumResponseDto'
+                $result.Id | Should -Be '123e4567-e89b-12d3-a456-426614174000'
             }
         }
 
         Context 'When creating an album with all parameters' {
-            It 'Should handle all optional parameters correctly' {
+            It 'Should send all optional parameters in the body' {
                 $assetIds = @('550e8400-e29b-41d4-a716-446655440000', '6ba7b810-9dad-11d1-80b4-00c04fd430c8')
                 $albumUsers = @(@{userId = 'user1-uuid'; role = 'editor' }, @{userId = 'user2-uuid'; role = 'viewer' })
 
                 New-IMAlbum -AlbumName 'Complete Album' -Description 'Test Description' -AssetIds $assetIds -AlbumUsers $albumUsers
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Post' -and $RelativePath -eq '/albums' -and $null -ne $Body
+                Should -Invoke Invoke-ImmichApiCreateAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.albumName -eq 'Complete Album' -and
+                    $Body.description -eq 'Test Description' -and
+                    $Body.assetIds.Count -eq 2 -and
+                    $Body.albumUsers.Count -eq 2
                 }
             }
         }
@@ -740,7 +763,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 New-IMAlbum -AlbumName 'Test Album'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiCreateAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -748,15 +771,15 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMAlbum' -Tag 'Unit', 'Remove-IMAlbum' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiDeleteAlbum -ModuleName PSImmich { return $null }
         }
 
         Context 'When removing a single album' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiDeleteAlbum with the album ID' {
                 Remove-IMAlbum -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiDeleteAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
         }
@@ -766,7 +789,7 @@ InModuleScope $ProjectName {
                 $albumIds = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
                 Remove-IMAlbum -AlbumId $albumIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteAlbum -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -774,17 +797,17 @@ InModuleScope $ProjectName {
             It 'Should accept AlbumId from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Remove-IMAlbum -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiDeleteAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept AlbumId from pipeline by property name' {
                 [PSCustomObject]@{id = '123e4567-e89b-12d3-a456-426614174000' } | Remove-IMAlbum -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
-                } -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiDeleteAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
             }
         }
 
@@ -802,7 +825,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Remove-IMAlbum -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -810,15 +833,15 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMAlbumUser' -Tag 'Unit', 'Remove-IMAlbumUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiRemoveUserFromAlbum -ModuleName PSImmich { return $null }
         }
 
         Context 'When removing a single user from album' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiRemoveUserFromAlbum with correct parameters' {
                 Remove-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '550e8400-e29b-41d4-a716-446655440000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/user/550e8400-e29b-41d4-a716-446655440000'
+                Should -Invoke Invoke-ImmichApiRemoveUserFromAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $UserId -eq '550e8400-e29b-41d4-a716-446655440000'
                 }
             }
         }
@@ -828,7 +851,7 @@ InModuleScope $ProjectName {
                 $userIds = @('550e8400-e29b-41d4-a716-446655440000', '6ba7b810-9dad-11d1-80b4-00c04fd430c8')
                 Remove-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId $userIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiRemoveUserFromAlbum -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -836,17 +859,17 @@ InModuleScope $ProjectName {
             It 'Should accept UserId from pipeline by value' {
                 '550e8400-e29b-41d4-a716-446655440000' | Remove-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/user/550e8400-e29b-41d4-a716-446655440000'
+                Should -Invoke Invoke-ImmichApiRemoveUserFromAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $UserId -eq '550e8400-e29b-41d4-a716-446655440000'
                 }
             }
 
             It 'Should accept UserId from pipeline by property name' {
                 [PSCustomObject]@{id = '550e8400-e29b-41d4-a716-446655440000' } | Remove-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/user/550e8400-e29b-41d4-a716-446655440000'
-                } -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiRemoveUserFromAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $UserId -eq '550e8400-e29b-41d4-a716-446655440000'
+                }
             }
         }
 
@@ -869,7 +892,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Remove-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '550e8400-e29b-41d4-a716-446655440000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRemoveUserFromAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -877,27 +900,16 @@ InModuleScope $ProjectName {
     }
     Describe 'Rename-IMAlbum' -Tag 'Unit', 'Rename-IMAlbum' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{success = $true } }
-            Mock ConvertTo-ApiParameters {
-                return @{
-                    albumName = $BoundParameters.NewName
-                }
-            }
+            Mock Invoke-ImmichApiUpdateAlbumInfo { return [PSCustomObject]@{ id = '123e4567-e89b-12d3-a456-426614174000' } } -ModuleName PSImmich
         }
 
         Context 'When renaming a single album' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should send albumName to the album update route' {
                 Rename-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -NewName 'Vacation 2024' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PATCH' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $Body.albumName -eq 'Vacation 2024'
                 }
-            }
-
-            It 'Should call ConvertTo-ApiParameters for body parameters' {
-                Rename-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -NewName 'New Album Name' -Confirm:$false
-
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
             }
         }
 
@@ -906,7 +918,7 @@ InModuleScope $ProjectName {
                 $albumIds = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
                 Rename-IMAlbum -Id $albumIds -NewName 'Archived Photos' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -914,17 +926,17 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Rename-IMAlbum -NewName 'Piped Album' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{albumId = '123e4567-e89b-12d3-a456-426614174000' } | Rename-IMAlbum -NewName 'Property Album' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PATCH' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
-                } -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
             }
         }
 
@@ -943,7 +955,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Rename-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -NewName 'Session Test' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -951,80 +963,66 @@ InModuleScope $ProjectName {
     }
     Describe 'Set-IMAlbum' -Tag 'Unit', 'Set-IMAlbum' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{success = $true } }
-            Mock ConvertTo-ApiParameters {
-                $result = @{}
-                if ($BoundParameters.AlbumName)
-                {
-                    $result.albumName = $BoundParameters.AlbumName
-                }
-                if ($BoundParameters.Description)
-                {
-                    $result.description = $BoundParameters.Description
-                }
-                if ($BoundParameters.IsActivityEnabled)
-                {
-                    $result.isActivityEnabled = $BoundParameters.IsActivityEnabled
-                }
-                if ($BoundParameters.Order)
-                {
-                    $result.order = $BoundParameters.Order
-                }
-                if ($BoundParameters.AlbumThumbnailAssetId)
-                {
-                    $result.albumThumbnailAssetId = $BoundParameters.AlbumThumbnailAssetId
-                }
-                return $result
-            }
+            Mock Invoke-ImmichApiUpdateAlbumInfo { return [PSCustomObject]@{ id = '123e4567-e89b-12d3-a456-426614174000' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiAddAssetsToAlbum { return @() } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRemoveAssetFromAlbum { return @() } -ModuleName PSImmich
         }
 
         Context 'When updating album properties' {
-            It 'Should call InvokeImmichRestMethod with PATCH for basic updates' {
+            It 'Should send only the bound properties in the body' {
                 Set-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -AlbumName 'Updated Album' -Description 'New description' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PATCH' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and
+                    $Body.albumName -eq 'Updated Album' -and
+                    $Body.description -eq 'New description' -and
+                    -not $Body.ContainsKey('isActivityEnabled') -and
+                    -not $Body.ContainsKey('order') -and
+                    -not $Body.ContainsKey('albumThumbnailAssetId')
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters for body parameters' {
-                Set-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -IsActivityEnabled:$true -Order 'desc' -Confirm:$false
+            It 'Should send explicit false and order values in the body' {
+                Set-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -IsActivityEnabled:$false -Order 'desc' -Confirm:$false
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.isActivityEnabled -eq $false -and $Body.order -eq 'desc'
+                }
             }
         }
 
         Context 'When adding assets' {
-            It 'Should call PUT endpoint for adding assets' {
+            It 'Should call the add assets route with the asset IDs' {
                 $assetIds = @('550e8400-e29b-41d4-a716-446655440000', '6ba7b810-9dad-11d1-80b4-00c04fd430c8')
                 Set-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -AddAssets $assetIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/assets'
+                Should -Invoke Invoke-ImmichApiAddAssetsToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $Body.ids.Count -eq 2
                 }
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
 
         Context 'When removing assets' {
-            It 'Should call DELETE endpoint for removing assets' {
+            It 'Should call the remove assets route with the asset IDs' {
                 $assetIds = @('550e8400-e29b-41d4-a716-446655440000')
                 Set-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -RemoveAssets $assetIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/assets'
+                Should -Invoke Invoke-ImmichApiRemoveAssetFromAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $Body.ids -contains '550e8400-e29b-41d4-a716-446655440000'
                 }
             }
         }
 
         Context 'When managing assets and updating properties' {
-            It 'Should handle both operations in single call' {
+            It 'Should handle property update, add and remove in one call' {
                 $addAssets = @('550e8400-e29b-41d4-a716-446655440000')
                 $removeAssets = @('6ba7b810-9dad-11d1-80b4-00c04fd430c8')
                 Set-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -AlbumName 'Mixed Operation' -AddAssets $addAssets -RemoveAssets $removeAssets -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 3 -Exactly -Scope It # PATCH + PUT + DELETE
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiAddAssetsToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiRemoveAssetFromAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
 
@@ -1033,7 +1031,7 @@ InModuleScope $ProjectName {
                 $albumIds = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
                 Set-IMAlbum -Id $albumIds -Description 'Bulk update description' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -1041,17 +1039,17 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Set-IMAlbum -Description 'Piped update' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{albumId = '123e4567-e89b-12d3-a456-426614174000' } | Set-IMAlbum -AlbumName 'Property Update' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PATCH' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
-                } -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
             }
         }
 
@@ -1077,7 +1075,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Set-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -Description 'Session test' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -1085,27 +1083,18 @@ InModuleScope $ProjectName {
     }
     Describe 'Set-IMAlbumUser' -Tag 'Unit', 'Set-IMAlbumUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{success = $true } }
-            Mock ConvertTo-ApiParameters {
-                return @{
-                    role = $BoundParameters.Role
-                }
-            }
+            Mock Invoke-ImmichApiUpdateAlbumUser { return $null } -ModuleName PSImmich
         }
 
         Context 'When setting user role for single user' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should send the role to the album user route' {
                 Set-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '550e8400-e29b-41d4-a716-446655440000' -Role 'editor'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/user/550e8400-e29b-41d4-a716-446655440000'
+                Should -Invoke Invoke-ImmichApiUpdateAlbumUser -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and
+                    $UserId -eq '550e8400-e29b-41d4-a716-446655440000' -and
+                    $Body.role -eq 'editor'
                 }
-            }
-
-            It 'Should call ConvertTo-ApiParameters for body parameters' {
-                Set-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '550e8400-e29b-41d4-a716-446655440000' -Role 'viewer'
-
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
             }
         }
 
@@ -1114,7 +1103,7 @@ InModuleScope $ProjectName {
                 $userIds = @('550e8400-e29b-41d4-a716-446655440000', '6ba7b810-9dad-11d1-80b4-00c04fd430c8')
                 Set-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId $userIds -Role 'editor'
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateAlbumUser -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -1122,17 +1111,17 @@ InModuleScope $ProjectName {
             It 'Should accept UserId from pipeline by value' {
                 '550e8400-e29b-41d4-a716-446655440000' | Set-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Role 'viewer'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/user/550e8400-e29b-41d4-a716-446655440000'
+                Should -Invoke Invoke-ImmichApiUpdateAlbumUser -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $UserId -eq '550e8400-e29b-41d4-a716-446655440000' -and $Body.role -eq 'viewer'
                 }
             }
 
             It 'Should accept UserId from pipeline by property name' {
                 [PSCustomObject]@{id = '550e8400-e29b-41d4-a716-446655440000' } | Set-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Role 'editor'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/user/550e8400-e29b-41d4-a716-446655440000'
-                } -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiUpdateAlbumUser -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $UserId -eq '550e8400-e29b-41d4-a716-446655440000'
+                }
             }
         }
 
@@ -1160,7 +1149,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Set-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '550e8400-e29b-41d4-a716-446655440000' -Role 'viewer'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiUpdateAlbumUser -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -1168,62 +1157,58 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMAPIKey' -Tag 'Unit', 'Get-IMAPIKey' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                if ($RelativePath -eq '/api-keys')
-                {
-                    return @(
-                        @{
-                            id          = '123e4567-e89b-12d3-a456-426614174000'
-                            name        = 'Production API Key'
-                            permissions = @('all')
-                            createdAt   = '2024-01-01T12:00:00Z'
-                        },
-                        @{
-                            id          = '223e4567-e89b-12d3-a456-426614174001'
-                            name        = 'Read Only Key'
-                            permissions = @('asset.read', 'album.read')
-                            createdAt   = '2024-01-02T12:00:00Z'
-                        }
-                    )
-                }
-                elseif ($RelativePath -match '/api-keys/[a-f0-9-]+')
-                {
-                    return @{
+            Mock Invoke-ImmichApiGetApiKeys -ModuleName PSImmich {
+                return @(
+                    [PSCustomObject]@{
                         id          = '123e4567-e89b-12d3-a456-426614174000'
                         name        = 'Production API Key'
                         permissions = @('all')
                         createdAt   = '2024-01-01T12:00:00Z'
+                        updatedAt   = '2024-01-01T12:00:00Z'
+                    },
+                    [PSCustomObject]@{
+                        id          = '223e4567-e89b-12d3-a456-426614174001'
+                        name        = 'Read Only Key'
+                        permissions = @('asset.read', 'album.read')
+                        createdAt   = '2024-01-02T12:00:00Z'
+                        updatedAt   = '2024-01-02T12:00:00Z'
                     }
-                }
+                )
             }
-            Mock AddCustomType {
-                param($InputObject)
-                return $InputObject
+            Mock Invoke-ImmichApiGetApiKey -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    id          = $Id
+                    name        = 'Production API Key'
+                    permissions = @('all')
+                    createdAt   = '2024-01-01T12:00:00Z'
+                    updatedAt   = '2024-01-01T12:00:00Z'
+                }
             }
         }
 
         Context 'When retrieving all API keys (list parameter set)' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiGetApiKeys' {
                 Get-IMAPIKey
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/api-keys'
-                }
+                Should -Invoke Invoke-ImmichApiGetApiKeys -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetApiKey -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
 
-            It 'Should add custom type to results' {
-                Get-IMAPIKey
+            It 'Should return ApiKeyResponseDto objects' {
+                $result = @(Get-IMAPIKey)
 
-                Should -Invoke AddCustomType -Times 2 -Exactly -Scope It
+                $result.Count | Should -Be 2
+                $result[0].GetType().Name | Should -Be 'ApiKeyResponseDto'
+                $result[1].name | Should -Be 'Read Only Key'
             }
         }
 
         Context 'When retrieving specific API key by ID (id parameter set)' {
-            It 'Should call InvokeImmichRestMethod with key ID path' {
+            It 'Should call Invoke-ImmichApiGetApiKey with the key ID' {
                 Get-IMAPIKey -Id '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/api-keys/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
@@ -1231,7 +1216,7 @@ InModuleScope $ProjectName {
                 $keyIds = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
                 Get-IMAPIKey -Id $keyIds
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetApiKey -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -1239,17 +1224,17 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Get-IMAPIKey
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/api-keys/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Get-IMAPIKey
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/api-keys/123e4567-e89b-12d3-a456-426614174000'
-                } -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiGetApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
             }
         }
 
@@ -1257,21 +1242,13 @@ InModuleScope $ProjectName {
             It 'Should validate Id GUID format' {
                 { Get-IMAPIKey -Id 'invalid-guid' } | Should -Throw
             }
-
-            It 'Should use list parameter set when no Id provided' {
-                Get-IMAPIKey
-
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/api-keys'
-                }
-            }
         }
 
         Context 'Session parameter' {
-            It 'Should use default session when no session parameter provided' {
+            It 'Should forward the session to the API function' {
                 Get-IMAPIKey
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiGetApiKeys -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -1279,13 +1256,21 @@ InModuleScope $ProjectName {
     }
     Describe 'New-IMAPIKey' -Tag 'Unit', 'New-IMAPIKey' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @{
+            Mock Invoke-ImmichApiCreateApiKey -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    apiKey      = [PSCustomObject]@{
+                        id          = '123e4567-e89b-12d3-a456-426614174000'
+                        name        = 'Test API Key'
+                        permissions = $Body.permissions
+                        createdAt   = '2024-01-01T12:00:00Z'
+                        updatedAt   = '2024-01-01T12:00:00Z'
+                    }
                     id          = '123e4567-e89b-12d3-a456-426614174000'
                     name        = 'Test API Key'
                     permissions = $Body.permissions
                     secret      = 'api_key_secret_12345'
                     createdAt   = '2024-01-01T12:00:00Z'
+                    updatedAt   = '2024-01-01T12:00:00Z'
                 }
             }
             Mock ConvertTo-ApiParameters {
@@ -1303,24 +1288,32 @@ InModuleScope $ProjectName {
         }
 
         Context 'When creating API key with default permissions' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiCreateApiKey' {
                 New-IMAPIKey -Name 'Test Key'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/api-keys'
-                }
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
 
             It 'Should call ConvertTo-ApiParameters for body parameters' {
                 New-IMAPIKey -Name 'Production Key'
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
+                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
 
-            It 'Should use default permission of all when not specified' {
-                $result = New-IMAPIKey -Name 'Default Permissions'
+            It 'Should pass the name in the request body' {
+                New-IMAPIKey -Name 'Default Permissions'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'Default Permissions'
+                }
+            }
+
+            It 'Should send the default all permission when none is specified' {
+                New-IMAPIKey -Name 'Default Permissions'
+
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.permissions -contains 'all'
+                }
             }
         }
 
@@ -1328,23 +1321,25 @@ InModuleScope $ProjectName {
             It 'Should handle single permission' {
                 New-IMAPIKey -Name 'Read Only Key' -Permission 'asset.read'
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    @($Body.permissions) -contains 'asset.read'
+                }
             }
 
             It 'Should handle multiple permissions' {
                 $permissions = @('asset.read', 'album.read', 'library.read')
                 New-IMAPIKey -Name 'Multi Permission Key' -Permission $permissions
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    @($Body.permissions).Count -eq 3
+                }
             }
 
             It 'Should handle admin permissions' {
                 $adminPermissions = @('admin.user.create', 'admin.user.read', 'admin.user.update')
                 New-IMAPIKey -Name 'Admin Key' -Permission $adminPermissions
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
 
@@ -1372,6 +1367,7 @@ InModuleScope $ProjectName {
                 $result.id | Should -Be '123e4567-e89b-12d3-a456-426614174000'
                 $result.name | Should -Be 'Test API Key'
                 $result.secret | Should -Be 'api_key_secret_12345'
+                $result.GetType().Name | Should -Be 'ApiKeyCreateResponseDto'
             }
         }
 
@@ -1379,7 +1375,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 New-IMAPIKey -Name 'Session Test'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -1387,7 +1383,7 @@ InModuleScope $ProjectName {
     }
     Describe 'New-IMFace' -Tag 'Unit', 'New-IMFace' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiCreateFace -ModuleName PSImmich {}
         }
 
         Context 'Parameter Validation' {
@@ -1410,7 +1406,7 @@ InModuleScope $ProjectName {
         }
 
         Context 'API Calls' {
-            It 'Should call correct endpoint' {
+            BeforeAll {
                 $TestParams = @{
                     AssetId     = 'a7c3b52c-1a2b-3c4d-5e6f-7a8b9c0d1e2f'
                     PersonId    = 'b8d4c63d-2b3c-4d5e-6f7a-8b9c0d1e2f3a'
@@ -1421,17 +1417,42 @@ InModuleScope $ProjectName {
                     ImageWidth  = 1920
                     ImageHeight = 1080
                 }
+            }
+
+            It 'Should call Invoke-ImmichApiCreateFace once' {
                 New-IMFace @TestParams
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/faces'
+                Should -Invoke Invoke-ImmichApiCreateFace -ModuleName PSImmich -Exactly 1 -Scope It
+            }
+
+            It 'Should send all face fields in the request body' {
+                New-IMFace @TestParams
+
+                Should -Invoke Invoke-ImmichApiCreateFace -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.assetId -eq 'a7c3b52c-1a2b-3c4d-5e6f-7a8b9c0d1e2f' -and
+                    $Body.personId -eq 'b8d4c63d-2b3c-4d5e-6f7a-8b9c0d1e2f3a' -and
+                    $Body.x -eq 100 -and
+                    $Body.y -eq 150 -and
+                    $Body.width -eq 200 -and
+                    $Body.height -eq 250 -and
+                    $Body.imageWidth -eq 1920 -and
+                    $Body.imageHeight -eq 1080
+                }
+            }
+
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                New-IMFace @TestParams -Session $Session
+
+                Should -Invoke Invoke-ImmichApiCreateFace -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
                 }
             }
         }
     }
     Describe 'Remove-IMAPIKey' -Tag 'Unit', 'Remove-IMAPIKey' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich { return $null }
+            Mock Invoke-ImmichApiDeleteApiKey -ModuleName PSImmich { return $null }
         }
 
         Context 'Parameter Validation' {
@@ -1448,59 +1469,52 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 '12345678-1234-1234-1234-123456789abc' | Remove-IMAPIKey -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq '/api-keys/12345678-1234-1234-1234-123456789abc'
+                Should -Invoke Invoke-ImmichApiDeleteApiKey -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
 
             It 'Should accept pipeline input by property name' {
                 [PSCustomObject]@{Id = '12345678-1234-1234-1234-123456789abc' } | Remove-IMAPIKey -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq '/api-keys/12345678-1234-1234-1234-123456789abc'
+                Should -Invoke Invoke-ImmichApiDeleteApiKey -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
 
             It 'Should process multiple IDs from pipeline' {
                 @('12345678-1234-1234-1234-123456789abc', '87654321-4321-4321-4321-cba987654321') | Remove-IMAPIKey -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 2 -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteApiKey -ModuleName PSImmich -Exactly 2 -Scope It
             }
         }
 
         Context 'API Calls' {
-            It 'Should call correct REST method' {
+            It 'Should call the delete endpoint wrapper with the key ID' {
                 Remove-IMAPIKey -Id '12345678-1234-1234-1234-123456789abc' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq '/api-keys/12345678-1234-1234-1234-123456789abc'
+                Should -Invoke Invoke-ImmichApiDeleteApiKey -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
         }
 
         Context 'ShouldProcess Support' {
-            It 'Should call InvokeImmichRestMethod when confirmed' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { return $null }
+            It 'Should not call the API when -WhatIf is specified' {
+                Remove-IMAPIKey -Id '12345678-1234-1234-1234-123456789abc' -WhatIf
 
-                Remove-IMAPIKey -Id '12345678-1234-1234-1234-123456789abc' -Confirm:$false
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq '/api-keys/12345678-1234-1234-1234-123456789abc'
-                }
+                Should -Invoke Invoke-ImmichApiDeleteApiKey -ModuleName PSImmich -Exactly 0 -Scope It
             }
         }
     }
     Describe 'Rename-IMAPIKey' -Tag 'Unit', 'Rename-IMAPIKey' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                return @{
-                    id        = '12345678-1234-1234-1234-123456789abc'
-                    name      = 'updated-name'
+            Mock Invoke-ImmichApiUpdateApiKey -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    id        = $Id
+                    name      = $Body.name
                     createdAt = '2024-01-01T00:00:00Z'
+                    updatedAt = '2024-01-01T00:00:00Z'
                 }
             }
             Mock ConvertTo-ApiParameters -ModuleName PSImmich { return @{ name = $BoundParameters.Name } }
@@ -1524,25 +1538,23 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 '12345678-1234-1234-1234-123456789abc' | Rename-IMAPIKey -Name 'new-name'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq '/api-keys/12345678-1234-1234-1234-123456789abc'
+                Should -Invoke Invoke-ImmichApiUpdateApiKey -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
 
             It 'Should accept pipeline input by property name' {
                 [PSCustomObject]@{Id = '12345678-1234-1234-1234-123456789abc' } | Rename-IMAPIKey -Name 'new-name'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq '/api-keys/12345678-1234-1234-1234-123456789abc'
+                Should -Invoke Invoke-ImmichApiUpdateApiKey -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
 
             It 'Should process multiple IDs from pipeline' {
                 @('12345678-1234-1234-1234-123456789abc', '87654321-4321-4321-4321-cba987654321') | Rename-IMAPIKey -Name 'batch-name'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 2 -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateApiKey -ModuleName PSImmich -Exactly 2 -Scope It
             }
         }
 
@@ -1555,10 +1567,10 @@ InModuleScope $ProjectName {
                 }
             }
 
-            It 'Should pass converted parameters to REST method' {
+            It 'Should pass converted parameters to the update wrapper' {
                 Rename-IMAPIKey -Id '12345678-1234-1234-1234-123456789abc' -Name 'test-name'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiUpdateApiKey -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.name -eq 'test-name'
                 }
             }
@@ -1570,88 +1582,13 @@ InModuleScope $ProjectName {
 
                 $result.id | Should -Be '12345678-1234-1234-1234-123456789abc'
                 $result.name | Should -Be 'updated-name'
+                $result.GetType().Name | Should -Be 'ApiKeyResponseDto'
             }
         }
     }
     Describe 'Export-IMAssetThumbnail' -Tag 'Unit', 'Export-IMAssetThumbnail' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich { }
-        }
-
-        Context 'Parameter Validation' {
-            It 'Should require Id parameter' {
-                (Get-Command Export-IMAssetThumbnail).Parameters['Id'].Attributes.Mandatory | Should -Be $true
-            }
-
-            It 'Should validate GUID format for Id parameter' {
-                { Export-IMAssetThumbnail -Id 'invalid-guid' -Path $TestDrive } | Should -Throw
-            }
-        }
-
-        Context 'Pipeline Support' {
-            It 'Should accept pipeline input by value' {
-                '12345678-1234-1234-1234-123456789abc' | Export-IMAssetThumbnail -Path $TestDrive
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/assets/12345678-1234-1234-1234-123456789abc/thumbnail' -and
-                    $ContentType -eq 'application/octet-stream'
-                }
-            }
-
-            It 'Should accept pipeline input by property name' {
-                [PSCustomObject]@{Id = '12345678-1234-1234-1234-123456789abc' } | Export-IMAssetThumbnail -Path $TestDrive
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/assets/12345678-1234-1234-1234-123456789abc/thumbnail'
-                }
-            }
-
-            It 'Should process multiple IDs from pipeline' {
-                @('12345678-1234-1234-1234-123456789abc', '87654321-4321-4321-4321-cba987654321') | Export-IMAssetThumbnail -Path $TestDrive
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 2 -Scope It
-            }
-        }
-
-        Context 'File Output' {
-            It 'Should generate correct output file path with JPEG extension' {
-                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $OutFilePath -like '*12345678-1234-1234-1234-123456789abc.jpeg'
-                }
-            }
-
-            It 'Should use provided path directory' {
-                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path (Join-Path $TestDrive 'Thumbnails')
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $OutFilePath -like "$(Join-Path $TestDrive 'Thumbnails')*" -and
-                    $OutFilePath -like '*12345678-1234-1234-1234-123456789abc.jpeg'
-                }
-            }
-        }
-
-        Context 'Progress Preference Handling' {
-            It 'Should call InvokeImmichRestMethod correctly' {
-                # Test basic functionality without modifying read-only PSVersionTable
-                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
-            }
-        }
-
-        Context 'REST Method Parameters' {
-            It 'Should call with correct HTTP method and content type' {
-                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $ContentType -eq 'application/octet-stream'
-                }
-            }
+            Mock Invoke-ImmichApiViewAsset -ModuleName PSImmich { }
         }
 
         Context 'Parameter Validation' {
@@ -1664,91 +1601,68 @@ InModuleScope $ProjectName {
             }
 
             It 'Should accept valid GUID for Id parameter' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
                 { Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive } | Should -Not -Throw
             }
         }
 
         Context 'Pipeline Support' {
             It 'Should accept pipeline input by value' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
-
                 '12345678-1234-1234-1234-123456789abc' | Export-IMAssetThumbnail -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/assets/12345678-1234-1234-1234-123456789abc/thumbnail' -and
-                    $ContentType -eq 'application/octet-stream'
+                Should -Invoke Invoke-ImmichApiViewAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
 
             It 'Should accept pipeline input by property name' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
-
                 [PSCustomObject]@{Id = '12345678-1234-1234-1234-123456789abc' } | Export-IMAssetThumbnail -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/assets/12345678-1234-1234-1234-123456789abc/thumbnail' -and
-                    $ContentType -eq 'application/octet-stream'
+                Should -Invoke Invoke-ImmichApiViewAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
 
             It 'Should process multiple IDs from pipeline' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
-
                 @('12345678-1234-1234-1234-123456789abc', '87654321-4321-4321-4321-cba987654321') | Export-IMAssetThumbnail -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 2 -Scope It
+                Should -Invoke Invoke-ImmichApiViewAsset -ModuleName PSImmich -Exactly 2 -Scope It
             }
         }
 
         Context 'File Output' {
             It 'Should generate correct output file path with JPEG extension' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
-
                 Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $OutFilePath -like '*12345678-1234-1234-1234-123456789abc.jpeg'
+                Should -Invoke Invoke-ImmichApiViewAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    "$OutFilePath" -like '*12345678-1234-1234-1234-123456789abc.jpeg'
                 }
             }
 
             It 'Should use provided path directory' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
+                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path (Join-Path $TestDrive 'Thumbnails')
 
-                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path "$TestDrive\Thumbnails"
+                Should -Invoke Invoke-ImmichApiViewAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    "$OutFilePath" -like "$(Join-Path $TestDrive 'Thumbnails')*" -and
+                    "$OutFilePath" -like '*12345678-1234-1234-1234-123456789abc.jpeg'
+                }
+            }
+        }
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $OutFilePath -like '*Thumbnails*' -and
-                    $OutFilePath -like '*12345678-1234-1234-1234-123456789abc.jpeg'
+        Context 'Session forwarding' {
+            It 'Should call Invoke-ImmichApiViewAsset once with the asset id' {
+                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive
+
+                Should -Invoke Invoke-ImmichApiViewAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
         }
 
         Context 'Progress Preference Handling' {
-            It 'Should call InvokeImmichRestMethod correctly' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
-
-                # Test basic functionality without modifying read-only PSVersionTable
+            It 'Should call Invoke-ImmichApiViewAsset exactly once' {
                 Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
-            }
-        }
-
-        # Session Parameter tests removed due to network call conflicts
-
-        Context 'REST Method Parameters' {
-            It 'Should call with correct HTTP method and content type' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { }
-
-                Export-IMAssetThumbnail -Id '12345678-1234-1234-1234-123456789abc' -Path $TestDrive
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $ContentType -eq 'application/octet-stream'
-                }
+                Should -Invoke Invoke-ImmichApiViewAsset -ModuleName PSImmich -Exactly 1 -Scope It
             }
         }
     }
@@ -1800,7 +1714,7 @@ InModuleScope $ProjectName {
                 }
             } -ModuleName PSImmich
 
-            Mock Find-IMAsset {
+            Mock Search-IMAsset {
                 return @(
                     @{ id = 'person-asset1'; originalFileName = 'person1.jpg' }
                     @{ id = 'person-asset2'; originalFileName = 'person2.jpg' }
@@ -1815,9 +1729,9 @@ InModuleScope $ProjectName {
         }
 
         Context 'Parameter Set: list (default)' {
-            It 'Should call Find-IMAsset when no parameters are provided' {
+            It 'Should call Search-IMAsset when no parameters are provided' {
                 Get-IMAsset
-                Should -Invoke Find-IMAsset -Exactly 1 -Scope It -ModuleName PSImmich
+                Should -Invoke Search-IMAsset -Exactly 1 -Scope It -ModuleName PSImmich
             }
         }
 
@@ -1854,19 +1768,23 @@ InModuleScope $ProjectName {
             }
 
             It 'Should pass Key parameter when provided' {
-                Mock ConvertTo-ApiParameters -MockWith { return @{ key = 'test-key' } } -ModuleName PSImmich
+                Mock Invoke-ImmichApiGetAssetInfo -ModuleName PSImmich { return @{ id = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f' } }
                 $testId = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
 
                 Get-IMAsset -Id $testId -Key 'test-key'
-                Should -Invoke ConvertTo-ApiParameters -Exactly 1 -Scope It -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiGetAssetInfo -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq $testId -and $Key -eq 'test-key'
+                }
             }
 
             It 'Should pass Slug parameter when provided' {
-                Mock ConvertTo-ApiParameters -MockWith { return @{ slug = 'test-slug' } } -ModuleName PSImmich
+                Mock Invoke-ImmichApiGetAssetInfo -ModuleName PSImmich { return @{ id = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f' } }
                 $testId = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
 
                 Get-IMAsset -Id $testId -Slug 'test-slug'
-                Should -Invoke ConvertTo-ApiParameters -Exactly 1 -Scope It -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiGetAssetInfo -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq $testId -and $Slug -eq 'test-slug'
+                }
             }
         }
 
@@ -1876,8 +1794,8 @@ InModuleScope $ProjectName {
                 $result = Get-IMAsset -PersonId $testPersonId
 
                 $result | Should -HaveCount 2
-                Should -Invoke Find-IMAsset -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
-                    $personIds -eq $testPersonId
+                Should -Invoke Search-IMAsset -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $PersonIds -eq $testPersonId
                 }
             }
 
@@ -1892,8 +1810,8 @@ InModuleScope $ProjectName {
                 $result = Get-IMAsset -TagId $testTagId
 
                 $result | Should -HaveCount 2
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/search/metadata' -and $Body.tagIds -contains $testTagId
+                Should -Invoke Search-IMAsset -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $TagIds -contains $testTagId
                 }
             }
 
@@ -1903,26 +1821,66 @@ InModuleScope $ProjectName {
         }
 
         Context 'Parameter Set: random' {
+            BeforeAll {
+                Mock Invoke-ImmichApiSearchRandom -ModuleName PSImmich {
+                    return @(
+                        @{ id = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'; originalFileName = 'a.jpg'; type = 'IMAGE'; checksum = 'abc1'; owner = @{ name = 'TestUser' } }
+                        @{ id = 'c5a6be0d-4d4a-4c9a-8f4a-4d4a5c9a8f4a'; originalFileName = 'b.jpg'; type = 'IMAGE'; checksum = 'abc2'; owner = @{ name = 'TestUser' } }
+                    )
+                }
+            }
+
             It 'Should return random assets with default count' {
                 $result = Get-IMAsset -Random
 
                 $result | Should -HaveCount 2
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/search/random' -and $Body.size -eq 1
+                Should -Invoke Invoke-ImmichApiSearchRandom -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Body.size -eq 1
                 }
             }
 
             It 'Should return specified count of random assets' {
                 $result = Get-IMAsset -Random -Count 5
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/search/random' -and $Body.size -eq 5
+                Should -Invoke Invoke-ImmichApiSearchRandom -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Body.size -eq 5
                 }
             }
 
             It 'Should throw when count is out of valid range' {
                 { Get-IMAsset -Random -Count 0 } | Should -Throw
                 { Get-IMAsset -Random -Count 1001 } | Should -Throw
+            }
+        }
+
+        Context 'Parameter Set: id with OCR' {
+            BeforeAll {
+                Mock Invoke-ImmichApiGetAssetInfo -ModuleName PSImmich {
+                    return @{
+                        id               = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
+                        originalFileName = 'test.jpg'
+                        type             = 'IMAGE'
+                        checksum         = 'abc123'
+                        owner            = @{ name = 'TestUser' }
+                    }
+                }
+                Mock Invoke-ImmichApiGetAssetOcr -ModuleName PSImmich { return @() }
+            }
+
+            It 'Should request OCR data for the asset when IncludeOCR is specified' {
+                $testId = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
+                Get-IMAsset -Id $testId -IncludeOCR | Out-Null
+
+                Should -Invoke Invoke-ImmichApiGetAssetOcr -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq $testId
+                }
+            }
+
+            It 'Should not request OCR data when IncludeOCR is not specified' {
+                $testId = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
+                Get-IMAsset -Id $testId | Out-Null
+
+                Should -Invoke Invoke-ImmichApiGetAssetOcr -Exactly 0 -Scope It -ModuleName PSImmich
             }
         }
 
@@ -1998,15 +1956,19 @@ InModuleScope $ProjectName {
 
         Context 'Parameter Validation' {
             It 'Should accept IsFavorite parameter' {
+                Mock Invoke-ImmichApiGetAssetStatistics -ModuleName PSImmich { return @{ images = 1 } }
                 Get-IMAssetStatistic -IsFavorite:$true
-                Should -Invoke ConvertTo-ApiParameters -Exactly 1 -Scope It -ModuleName PSImmich
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiGetAssetStatistics -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $IsFavorite -eq $true
+                }
             }
 
             It 'Should accept IsTrashed parameter' {
+                Mock Invoke-ImmichApiGetAssetStatistics -ModuleName PSImmich { return @{ images = 1 } }
                 Get-IMAssetStatistic -IsTrashed:$false
-                Should -Invoke ConvertTo-ApiParameters -Exactly 1 -Scope It -ModuleName PSImmich
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiGetAssetStatistics -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $IsTrashed -eq $false
+                }
             }
 
             It 'Should accept valid Visibility values' {
@@ -2023,9 +1985,11 @@ InModuleScope $ProjectName {
             }
 
             It 'Should accept multiple parameters together' {
+                Mock Invoke-ImmichApiGetAssetStatistics -ModuleName PSImmich { return @{ images = 1 } }
                 Get-IMAssetStatistic -IsFavorite:$true -IsTrashed:$false -Visibility 'timeline'
-                Should -Invoke ConvertTo-ApiParameters -Exactly 1 -Scope It -ModuleName PSImmich
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiGetAssetStatistics -Exactly 1 -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $IsFavorite -eq $true -and $IsTrashed -eq $false -and $Visibility -eq 'timeline'
+                }
             }
         }
 
@@ -2319,20 +2283,11 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMAsset' -Tag 'Unit', 'Remove-IMAsset' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
+            Mock Invoke-ImmichApiDeleteAssets -ModuleName PSImmich {
                 # Mock returns nothing for DELETE operations
                 return $null
             }
 
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Force)
-                {
-                    $result.force = $BoundParameters.Force
-                }
-                return $result
-            }
         }
 
         Context 'Parameter Validation' {
@@ -2374,27 +2329,23 @@ InModuleScope $ProjectName {
                     ForEach-Object { $_.SupportsShouldProcess } | Should -Be $true
             }
 
-            It 'Should call InvokeImmichRestMethod when confirmed for single asset' {
+            It 'Should call the delete wrapper when confirmed for single asset' {
                 $TestAssetId = 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 Remove-IMAsset -Ids $TestAssetId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets' -and
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids -contains $TestAssetId
                 }
             }
 
-            It 'Should call InvokeImmichRestMethod when confirmed for multiple assets' {
+            It 'Should call the delete wrapper when confirmed for multiple assets' {
                 $TestAssetIds = @(
                     'a1b2c3d4-e5f6-4789-a012-123456789abc',
                     'b2c3d4e5-f6a7-4890-b123-234567890bcd'
                 )
                 Remove-IMAsset -Ids $TestAssetIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets' -and
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids.Count -eq 2 -and
                     $Body.ids -contains $TestAssetIds[0] -and
                     $Body.ids -contains $TestAssetIds[1]
@@ -2411,9 +2362,7 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 $TestAssetId | Remove-IMAsset -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets' -and
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids -contains $TestAssetId
                 }
             }
@@ -2422,9 +2371,7 @@ InModuleScope $ProjectName {
                 $assetObject = [PSCustomObject]@{ Ids = $TestAssetId }
                 $assetObject | Remove-IMAsset -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets' -and
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids -contains $TestAssetId
                 }
             }
@@ -2433,9 +2380,7 @@ InModuleScope $ProjectName {
                 $assetObject = [PSCustomObject]@{ id = $TestAssetId }
                 $assetObject | Remove-IMAsset -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets' -and
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids -contains $TestAssetId
                 }
             }
@@ -2443,9 +2388,7 @@ InModuleScope $ProjectName {
             It 'Should handle multiple assets from pipeline' {
                 @($TestAssetId, $TestAssetId2) | Remove-IMAsset -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets' -and
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids.Count -eq 2 -and
                     $Body.ids -contains $TestAssetId -and
                     $Body.ids -contains $TestAssetId2
@@ -2459,9 +2402,7 @@ InModuleScope $ProjectName {
                 )
                 $assetObjects | Remove-IMAsset -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets' -and
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids.Count -eq 2
                 }
             }
@@ -2472,22 +2413,10 @@ InModuleScope $ProjectName {
                 $TestAssetId = 'a1b2c3d4-e5f6-4789-a012-123456789abc'
             }
 
-            It 'Should call ConvertTo-ApiParameters with Force parameter' {
-                Remove-IMAsset -Ids $TestAssetId -Force -Confirm:$false
-
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Force -eq $true
-                }
-            }
-
             It 'Should include force in body parameters when Force is specified' {
-                Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                    return @{ force = $true }
-                }
-
                 Remove-IMAsset -Ids $TestAssetId -Force -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.force -eq $true
                 }
             }
@@ -2495,7 +2424,7 @@ InModuleScope $ProjectName {
             It 'Should not include force in body parameters when Force is not specified' {
                 Remove-IMAsset -Ids $TestAssetId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $null -eq $Body.force -or $Body.force -eq $false
                 }
             }
@@ -2513,20 +2442,19 @@ InModuleScope $ProjectName {
                 $TestAssetId = 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 Remove-IMAsset -Ids $TestAssetId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
         }
 
         Context 'API Integration' {
-            It 'Should call correct REST endpoint' {
+            It 'Should call the delete wrapper with the asset ID' {
                 $TestAssetId = 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 Remove-IMAsset -Ids $TestAssetId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/assets'
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.ids -contains $TestAssetId
                 }
             }
 
@@ -2538,7 +2466,7 @@ InModuleScope $ProjectName {
                 )
                 Remove-IMAsset -Ids $TestAssetIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids.Count -eq 3 -and
                     $Body.ids -contains $TestAssetIds[0] -and
                     $Body.ids -contains $TestAssetIds[1] -and
@@ -2549,7 +2477,8 @@ InModuleScope $ProjectName {
     }
     Describe 'Restore-IMAsset' -Tag 'Unit', 'Restore-IMAsset' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRestoreAssets { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRestoreTrash { return @{ Status = 'Success' } } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -2597,25 +2526,17 @@ InModuleScope $ProjectName {
                 $Command.ScriptBlock.Attributes | Where-Object { $_.GetType().Name -eq 'CmdletBindingAttribute' } | ForEach-Object { $_.SupportsShouldProcess } | Should -Be $true
             }
 
-            It 'Should call ShouldProcess for id parameter set' {
-                Mock InvokeImmichRestMethod { return @{ Status = 'Success' } } -ModuleName PSImmich -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/trash/restore/assets'
-                }
-
+            It 'Should call Invoke-ImmichApiRestoreAssets for id parameter set' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Restore-IMAsset -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiRestoreAssets -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
-            It 'Should call ShouldProcess for all parameter set' {
-                Mock InvokeImmichRestMethod { return @{ Status = 'Success' } } -ModuleName PSImmich -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/trash/restore'
-                }
-
+            It 'Should call Invoke-ImmichApiRestoreTrash for all parameter set' {
                 Restore-IMAsset -All -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiRestoreTrash -ModuleName PSImmich -Exactly 1 -Scope It
             }
         }
 
@@ -2624,24 +2545,20 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Restore-IMAsset -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/trash/restore/assets'
-                }
+                Should -Invoke Invoke-ImmichApiRestoreAssets -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
             It 'Should call correct endpoint for all parameter set' {
                 Restore-IMAsset -All -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/trash/restore'
-                }
+                Should -Invoke Invoke-ImmichApiRestoreTrash -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
             It 'Should send correct body parameters for id parameter set' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Restore-IMAsset -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRestoreAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.ids -contains $TestId
                 }
             }
@@ -2649,29 +2566,528 @@ InModuleScope $ProjectName {
 
         Context 'Session Parameter' {
             It 'Should use provided session when specified' {
-                # Test parameter definition and type - avoid runtime type conversion issues
                 $Command = Get-Command Restore-IMAsset -Module PSImmich
                 $Command.Parameters.ContainsKey('Session') | Should -Be $true
                 $Command.Parameters['Session'].ParameterType.Name | Should -Be 'ImmichSession'
-
-                # Verify that InvokeImmichRestMethod is called when session handling occurs
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 0 -Scope It
             }
 
             It 'Should use default session when no session parameter provided' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Restore-IMAsset -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRestoreAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
         }
     }
+    Describe 'Get-IMAssetEdit' -Tag 'Unit', 'Get-IMAssetEdit' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetAssetEdits -ModuleName PSImmich {
+                return [pscustomobject]@{
+                    assetId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+                    edits   = @([pscustomobject]@{ id = 'edit-1'; action = 'rotate'; parameters = [pscustomobject]@{ angle = 90 } })
+                }
+            }
+        }
+
+        It 'Should call Invoke-ImmichApiGetAssetEdits with the asset ID' {
+            Get-IMAssetEdit -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+
+            Should -Invoke Invoke-ImmichApiGetAssetEdits -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+            }
+        }
+
+        It 'Should return AssetEditsResponseDto objects' {
+            $result = Get-IMAssetEdit -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+
+            $result.GetType().Name | Should -Be 'AssetEditsResponseDto'
+            $result.edits[0].action | Should -Be 'rotate'
+        }
+
+        It 'Should accept Id from pipeline by property name' {
+            [pscustomobject]@{ id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' } | Get-IMAssetEdit
+
+            Should -Invoke Invoke-ImmichApiGetAssetEdits -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+            }
+        }
+
+        It 'Should reject an invalid GUID' {
+            { Get-IMAssetEdit -Id 'not-a-guid' } | Should -Throw
+        }
+    }
+
+    Describe 'Set-IMAssetEdit' -Tag 'Unit', 'Set-IMAssetEdit' {
+        BeforeAll {
+            Mock Invoke-ImmichApiEditAsset -ModuleName PSImmich {
+                return [pscustomobject]@{ assetId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'; edits = @() }
+            }
+        }
+
+        It 'Should send the edits in the edits array of the body' {
+            Set-IMAssetEdit -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Edit @{ action = 'rotate'; parameters = @{ angle = 90 } }
+
+            Should -Invoke Invoke-ImmichApiEditAsset -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and
+                @($Body.edits).Count -eq 1 -and
+                $Body.edits[0].action -eq 'rotate' -and
+                $Body.edits[0].parameters.angle -eq 90
+            }
+        }
+
+        It 'Should send multiple edits in order' {
+            $Edits = @(
+                @{ action = 'crop'; parameters = @{ x = 0; y = 0; width = 800; height = 600 } }
+                @{ action = 'mirror'; parameters = @{ axis = 'horizontal' } }
+            )
+            Set-IMAssetEdit -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Edit $Edits
+
+            Should -Invoke Invoke-ImmichApiEditAsset -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                @($Body.edits).Count -eq 2 -and
+                $Body.edits[0].action -eq 'crop' -and
+                $Body.edits[0].parameters.width -eq 800 -and
+                $Body.edits[1].action -eq 'mirror' -and
+                $Body.edits[1].parameters.axis -eq 'horizontal'
+            }
+        }
+
+        It 'Should return AssetEditsResponseDto objects' {
+            $result = Set-IMAssetEdit -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Edit @{ action = 'rotate'; parameters = @{ angle = 90 } }
+
+            $result.GetType().Name | Should -Be 'AssetEditsResponseDto'
+        }
+
+        It 'Should support ShouldProcess' {
+            $function = Get-Command Set-IMAssetEdit
+            $function.ScriptBlock.Attributes | Where-Object { $_.TypeId.Name -eq 'CmdletBindingAttribute' } |
+                ForEach-Object { $_.SupportsShouldProcess } | Should -Be $true
+        }
+
+        It 'Should require Edit' {
+            $function = Get-Command Set-IMAssetEdit
+            $function.Parameters['Edit'].Attributes | Where-Object { $_.TypeId.Name -eq 'ParameterAttribute' } |
+                ForEach-Object { $_.Mandatory } | Should -Contain $true
+        }
+    }
+
+    Describe 'Remove-IMAssetEdit' -Tag 'Unit', 'Remove-IMAssetEdit' {
+        BeforeAll {
+            Mock Invoke-ImmichApiRemoveAssetEdits -ModuleName PSImmich {}
+        }
+
+        It 'Should support ShouldProcess' {
+            $function = Get-Command Remove-IMAssetEdit
+            $function.ScriptBlock.Attributes | Where-Object { $_.TypeId.Name -eq 'CmdletBindingAttribute' } |
+                ForEach-Object { $_.SupportsShouldProcess } | Should -Be $true
+        }
+
+        It 'Should call Invoke-ImmichApiRemoveAssetEdits when confirmed' {
+            Remove-IMAssetEdit -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiRemoveAssetEdits -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+            }
+        }
+
+        It 'Should not call the API with -WhatIf' {
+            Remove-IMAssetEdit -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -WhatIf
+
+            Should -Invoke Invoke-ImmichApiRemoveAssetEdits -ModuleName PSImmich -Times 0 -Exactly -Scope It
+        }
+
+        It 'Should reject an invalid GUID' {
+            { Remove-IMAssetEdit -Id 'not-a-guid' -Confirm:$false } | Should -Throw
+        }
+    }
+
+    Describe 'Get-IMAssetFile' -Tag 'Unit', 'Get-IMAssetFile' {
+        BeforeAll {
+            Mock Invoke-ImmichApiSearchAssetFiles -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'; type = 'preview'; path = '/data/thumbs/a.jpg'; isEdited = $false; isProgressive = $false; isTransparent = $false; createdAt = '2024-01-01T00:00:00Z'; updatedAt = '2024-01-01T00:00:00Z' }
+                )
+            }
+            Mock Invoke-ImmichApiGetAssetFile -ModuleName PSImmich {
+                return [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'; type = 'preview'; path = '/data/thumbs/a.jpg'; isEdited = $false; isProgressive = $false; isTransparent = $false; createdAt = '2024-01-01T00:00:00Z'; updatedAt = '2024-01-01T00:00:00Z' }
+            }
+        }
+
+        It 'Should call Invoke-ImmichApiSearchAssetFiles with the asset ID' {
+            Get-IMAssetFile -AssetId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+
+            Should -Invoke Invoke-ImmichApiSearchAssetFiles -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $AssetId -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and -not $PSBoundParameters.ContainsKey('Type')
+            }
+        }
+
+        It 'Should forward the Type filter when specified' {
+            Get-IMAssetFile -AssetId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Type preview
+
+            Should -Invoke Invoke-ImmichApiSearchAssetFiles -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Type -eq 'preview'
+            }
+        }
+
+        It 'Should forward explicit false boolean filters' {
+            Get-IMAssetFile -AssetId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -IsEdited $false
+
+            Should -Invoke Invoke-ImmichApiSearchAssetFiles -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $IsEdited -eq $false
+            }
+        }
+
+        It 'Should return AssetFileResponseDto objects for a search' {
+            $result = Get-IMAssetFile -AssetId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+
+            $result.GetType().Name | Should -Be 'AssetFileResponseDto'
+            $result.type | Should -Be 'preview'
+        }
+
+        It 'Should call Invoke-ImmichApiGetAssetFile with -Id' {
+            $result = Get-IMAssetFile -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+
+            Should -Invoke Invoke-ImmichApiGetAssetFile -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+            }
+            $result.GetType().Name | Should -Be 'AssetFileResponseDto'
+        }
+
+        It 'Should accept Id from pipeline by property name' {
+            [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' } | Get-IMAssetFile
+
+            Should -Invoke Invoke-ImmichApiGetAssetFile -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+            }
+        }
+
+        It 'Should reject an invalid asset GUID' {
+            { Get-IMAssetFile -AssetId 'not-a-guid' } | Should -Throw
+        }
+    }
+
+    Describe 'Get-IMAssetFolder' -Tag 'Unit', 'Get-IMAssetFolder' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetAssetsByOriginalPath -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'; type = 'IMAGE'; originalPath = '/usr/src/app/upload/library/2024/a.jpg'; originalFileName = 'a.jpg'; isFavorite = $false; isArchived = $false; isTrashed = $false; visibility = 'timeline'; checksum = 'abc'; deviceAssetId = 'd1'; deviceId = 'dev'; fileCreatedAt = '2024-01-01T00:00:00Z'; fileModifiedAt = '2024-01-01T00:00:00Z'; localDateTime = '2024-01-01T00:00:00Z'; updatedAt = '2024-01-01T00:00:00Z'; createdAt = '2024-01-01T00:00:00Z'; ownerId = 'owner'; hasMetadata = $true; duplicateId = $null; isEdited = $false; isOffline = $false; thumbhash = $null }
+                )
+            }
+            Mock Invoke-ImmichApiGetUniqueOriginalPaths -ModuleName PSImmich {
+                return @('/usr/src/app/upload/library/2024', '/usr/src/app/upload/library/2025')
+            }
+        }
+
+        It 'Should call Invoke-ImmichApiGetAssetsByOriginalPath with the folder path' {
+            Get-IMAssetFolder -Path '/usr/src/app/upload/library/2024'
+
+            Should -Invoke Invoke-ImmichApiGetAssetsByOriginalPath -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Path -eq '/usr/src/app/upload/library/2024'
+            }
+            Should -Invoke Invoke-ImmichApiGetUniqueOriginalPaths -ModuleName PSImmich -Times 0 -Exactly -Scope It
+        }
+
+        It 'Should return AssetResponseDto objects for a folder' {
+            $result = Get-IMAssetFolder -Path '/usr/src/app/upload/library/2024'
+
+            $result.GetType().Name | Should -Be 'AssetResponseDto'
+            $result.originalFileName | Should -Be 'a.jpg'
+        }
+
+        It 'Should call Invoke-ImmichApiGetUniqueOriginalPaths when no path is given' {
+            $result = Get-IMAssetFolder
+
+            Should -Invoke Invoke-ImmichApiGetUniqueOriginalPaths -ModuleName PSImmich -Times 1 -Exactly -Scope It
+            Should -Invoke Invoke-ImmichApiGetAssetsByOriginalPath -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            $result | Should -Contain '/usr/src/app/upload/library/2025'
+        }
+
+        It 'Should reject an empty path' {
+            { Get-IMAssetFolder -Path '' } | Should -Throw
+        }
+    }
+
+    Describe 'Get-IMAlbumMapMarker' -Tag 'Unit', 'Get-IMAlbumMapMarker' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetAlbumMapMarkers -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'; lat = 59.33; lon = 18.06; city = 'Stockholm'; state = 'Stockholm County'; country = 'Sweden' }
+                )
+            }
+        }
+
+        It 'Should call Invoke-ImmichApiGetAlbumMapMarkers with the album ID' {
+            Get-IMAlbumMapMarker -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+
+            Should -Invoke Invoke-ImmichApiGetAlbumMapMarkers -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -and -not $PSBoundParameters.ContainsKey('Key') -and -not $PSBoundParameters.ContainsKey('Slug')
+            }
+        }
+
+        It 'Should forward the shared link key and slug when specified' {
+            Get-IMAlbumMapMarker -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -Key 'abc123' -Slug 'holiday'
+
+            Should -Invoke Invoke-ImmichApiGetAlbumMapMarkers -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Key -eq 'abc123' -and $Slug -eq 'holiday'
+            }
+        }
+
+        It 'Should return MapMarkerResponseDto objects' {
+            $result = Get-IMAlbumMapMarker -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+
+            $result.GetType().Name | Should -Be 'MapMarkerResponseDto'
+            $result.city | Should -Be 'Stockholm'
+        }
+
+        It 'Should accept Id from pipeline by property name' {
+            [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' } | Get-IMAlbumMapMarker
+
+            Should -Invoke Invoke-ImmichApiGetAlbumMapMarkers -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+            }
+        }
+
+        It 'Should reject an invalid album GUID' {
+            { Get-IMAlbumMapMarker -Id 'not-a-guid' } | Should -Throw
+        }
+    }
+
+    Describe 'Reset-IMAPIKey' -Tag 'Unit', 'Reset-IMAPIKey' {
+        BeforeAll {
+            Mock Invoke-ImmichApiRotateApiKey -ModuleName PSImmich {
+                return [pscustomobject]@{ apiKey = [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'; name = 'Automation'; permissions = @('all'); createdAt = '2024-01-01T00:00:00Z'; updatedAt = '2024-01-02T00:00:00Z' }; secret = 'new-secret' }
+            }
+        }
+
+        It 'Should call Invoke-ImmichApiRotateApiKey with the API key ID' {
+            Reset-IMAPIKey -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiRotateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+            }
+        }
+
+        It 'Should return the new secret as an ApiKeyCreateResponseDto' {
+            $result = Reset-IMAPIKey -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -Confirm:$false
+
+            $result.GetType().Name | Should -Be 'ApiKeyCreateResponseDto'
+            $result.secret | Should -Be 'new-secret'
+        }
+
+        It 'Should not rotate the key when -WhatIf is specified' {
+            Reset-IMAPIKey -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -WhatIf
+
+            Should -Invoke Invoke-ImmichApiRotateApiKey -ModuleName PSImmich -Times 0 -Exactly -Scope It
+        }
+
+        It 'Should accept Id from pipeline by property name' {
+            [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' } | Reset-IMAPIKey -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiRotateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+            }
+        }
+
+        It 'Should reject an invalid API key GUID' {
+            { Reset-IMAPIKey -Id 'not-a-guid' -Confirm:$false } | Should -Throw
+        }
+    }
+
+    Describe 'New-IMNotification' -Tag 'Unit', 'New-IMNotification' {
+        BeforeAll {
+            Mock Invoke-ImmichApiCreateNotification -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    id          = '6f1d2c3b-4a5e-4f60-8b7c-9d0e1f2a3b4c'
+                    title       = $Body.title
+                    description = $Body.description
+                    level       = $Body.level
+                    type        = $Body.type
+                    data        = $Body.data
+                    readAt      = $null
+                    createdAt   = '2024-01-01T12:00:00Z'
+                }
+            }
+        }
+
+        Context 'When sending a notification with required parameters only' {
+            It 'Should send only userId and title in the body' {
+                New-IMNotification -UserId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Title 'Hello'
+
+                Should -Invoke Invoke-ImmichApiCreateNotification -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.userId -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and
+                    $Body.title -eq 'Hello' -and
+                    -not $Body.ContainsKey('level') -and
+                    -not $Body.ContainsKey('type') -and
+                    -not $Body.ContainsKey('description') -and
+                    -not $Body.ContainsKey('data')
+                }
+            }
+
+            It 'Should return a NotificationDto' {
+                $Result = New-IMNotification -UserId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Title 'Hello'
+
+                $Result.GetType().Name | Should -Be 'NotificationDto'
+                $Result.title | Should -Be 'Hello'
+            }
+        }
+
+        Context 'When sending a notification with optional parameters' {
+            It 'Should include level, type, description and data in the body' {
+                New-IMNotification -UserId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Title 'Backup failed' -Description 'See log' -Level error -Type BackupFailed -Data @{ job = 'backup' }
+
+                Should -Invoke Invoke-ImmichApiCreateNotification -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.title -eq 'Backup failed' -and
+                    $Body.description -eq 'See log' -and
+                    $Body.level -eq 'error' -and
+                    $Body.type -eq 'BackupFailed' -and
+                    $Body.data.job -eq 'backup'
+                }
+            }
+        }
+
+        Context 'When an explicit session is provided' {
+            It 'Should forward the session to the REST call' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+                New-IMNotification -Session $Session -UserId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Title 'Hello'
+
+                Should -Invoke Invoke-ImmichApiCreateNotification -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+        }
+
+        Context 'When parameters are invalid' {
+            It 'Should throw for a malformed user id' {
+                { New-IMNotification -UserId 'not-a-guid' -Title 'Hello' } | Should -Throw
+            }
+
+            It 'Should throw for an unsupported level' {
+                { New-IMNotification -UserId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Title 'Hello' -Level critical } | Should -Throw
+            }
+
+            It 'Should throw for an unsupported type' {
+                { New-IMNotification -UserId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Title 'Hello' -Type Unknown } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Save-IMAssetFile' -Tag 'Unit', 'Save-IMAssetFile' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetAssetFile -ModuleName PSImmich {
+                return [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'; path = '/data/encoded-video/clip.mp4' }
+            }
+            Mock Invoke-ImmichApiDownloadAssetFile -ModuleName PSImmich {}
+        }
+
+        It 'Should download the file to the target directory using the stored file name' {
+            Save-IMAssetFile -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -Path $TestDrive
+
+            Should -Invoke Invoke-ImmichApiDownloadAssetFile -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -and
+                $OutFilePath.FullName -eq (Join-Path -Path $TestDrive -ChildPath 'clip.mp4')
+            }
+        }
+
+        It 'Should accept Id from pipeline by property name' {
+            [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' } | Save-IMAssetFile -Path $TestDrive
+
+            Should -Invoke Invoke-ImmichApiDownloadAssetFile -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+            }
+        }
+
+        It 'Should reject an invalid GUID' {
+            { Save-IMAssetFile -Id 'not-a-guid' -Path $TestDrive } | Should -Throw
+        }
+    }
+
+    Describe 'Set-IMAssetMetadata' -Tag 'Unit', 'Set-IMAssetMetadata' {
+        BeforeAll {
+            Mock Invoke-ImmichApiUpdateBulkAssetMetadata -ModuleName PSImmich {}
+        }
+
+        It 'Should send one item per asset in the items array' {
+            Set-IMAssetMetadata -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db', '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -Key 'reviewed' -Value $true -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiUpdateBulkAssetMetadata -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                @($Body.items).Count -eq 2 -and
+                $Body.items[0].assetId -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and
+                $Body.items[0].key -eq 'reviewed' -and
+                $Body.items[0].value -eq $true -and
+                $Body.items[1].assetId -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+            }
+        }
+
+        It 'Should send object values unchanged' {
+            Set-IMAssetMetadata -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Key 'mobile-app' -Value @{ note = 'imported' } -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiUpdateBulkAssetMetadata -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Body.items[0].value.note -eq 'imported'
+            }
+        }
+
+        It 'Should batch pipeline input into a single request' {
+            [pscustomobject]@{ id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }, [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' } |
+                Set-IMAssetMetadata -Key 'reviewed' -Value $true -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiUpdateBulkAssetMetadata -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                @($Body.items).Count -eq 2
+            }
+        }
+
+        It 'Should not call the API with -WhatIf' {
+            Set-IMAssetMetadata -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Key 'reviewed' -Value $true -WhatIf
+
+            Should -Invoke Invoke-ImmichApiUpdateBulkAssetMetadata -ModuleName PSImmich -Times 0 -Exactly -Scope It
+        }
+
+        It 'Should reject an invalid GUID' {
+            { Set-IMAssetMetadata -Id 'not-a-guid' -Key 'reviewed' -Value $true -Confirm:$false } | Should -Throw
+        }
+    }
+
+    Describe 'Remove-IMAssetMetadata' -Tag 'Unit', 'Remove-IMAssetMetadata' {
+        BeforeAll {
+            Mock Invoke-ImmichApiDeleteBulkAssetMetadata -ModuleName PSImmich {}
+        }
+
+        It 'Should send one item per asset and key combination' {
+            Remove-IMAssetMetadata -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db', '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -Key 'reviewed', 'mobile-app' -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiDeleteBulkAssetMetadata -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                @($Body.items).Count -eq 4 -and
+                $Body.items[0].assetId -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and
+                $Body.items[0].key -eq 'reviewed' -and
+                $Body.items[1].key -eq 'mobile-app' -and
+                -not $Body.items[0].ContainsKey('value')
+            }
+        }
+
+        It 'Should batch pipeline input into a single request' {
+            [pscustomobject]@{ id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }, [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' } |
+                Remove-IMAssetMetadata -Key 'reviewed' -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiDeleteBulkAssetMetadata -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                @($Body.items).Count -eq 2
+            }
+        }
+
+        It 'Should not call the API with -WhatIf' {
+            Remove-IMAssetMetadata -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Key 'reviewed' -WhatIf
+
+            Should -Invoke Invoke-ImmichApiDeleteBulkAssetMetadata -ModuleName PSImmich -Times 0 -Exactly -Scope It
+        }
+
+        It 'Should reject an invalid GUID' {
+            { Remove-IMAssetMetadata -Id 'not-a-guid' -Key 'reviewed' -Confirm:$false } | Should -Throw
+        }
+    }
+
     Describe 'Save-IMAsset' -Tag 'Unit', 'Save-IMAsset' {
         BeforeAll {
-            Mock ConvertTo-ApiParameters { return @{} } -ModuleName PSImmich
-            Mock InvokeImmichRestMethod { } -ModuleName PSImmich
+            Mock Invoke-ImmichApiDownloadAsset { } -ModuleName PSImmich
             Mock Get-IMAsset {
                 return [PSCustomObject]@{
                     id               = $Id
@@ -2736,12 +3152,12 @@ InModuleScope $ProjectName {
                 }
             }
 
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiDownloadAsset with the asset id' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Save-IMAsset -Id $TestId -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq "/assets/$TestId/original" -and $ContentType -eq 'application/octet-stream'
+                Should -Invoke Invoke-ImmichApiDownloadAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestId
                 }
             }
 
@@ -2750,39 +3166,19 @@ InModuleScope $ProjectName {
                 $TestPath = $TestDrive
                 Save-IMAsset -Id $TestId -Path $TestPath
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $OutFilePath -like (Join-Path $TestPath 'test-image.jpg')
+                Should -Invoke Invoke-ImmichApiDownloadAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    "$OutFilePath" -like (Join-Path $TestPath 'test-image.jpg')
                 }
             }
         }
 
         Context 'API Parameters' {
-            It 'Should call ConvertTo-ApiParameters' {
-                $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
-                Save-IMAsset -Id $TestId -Path $TestDrive
-
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Exactly 1 -Scope It
-            }
-
-            It 'Should handle Key parameter' {
-                Mock ConvertTo-ApiParameters { return @{ key = 'test-key' } } -ModuleName PSImmich
-
+            It 'Should forward Key parameter to the download function' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Save-IMAsset -Id $TestId -Path $TestDrive -Key 'test-key'
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $BoundParameters.Key -eq 'test-key'
-                }
-            }
-
-            It 'Should pass QueryParameters to REST method' {
-                Mock ConvertTo-ApiParameters { return @{ key = 'test-key' } } -ModuleName PSImmich
-
-                $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
-                Save-IMAsset -Id $TestId -Path $TestDrive -Key 'test-key'
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $QueryParameters.key -eq 'test-key'
+                Should -Invoke Invoke-ImmichApiDownloadAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestId -and $Key -eq 'test-key'
                 }
             }
         }
@@ -2793,16 +3189,13 @@ InModuleScope $ProjectName {
                 $Command = Get-Command Save-IMAsset -Module PSImmich
                 $Command.Parameters.ContainsKey('Session') | Should -Be $true
                 $Command.Parameters['Session'].ParameterType.Name | Should -Be 'ImmichSession'
-
-                # Verify that InvokeImmichRestMethod is called when session handling occurs
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 0 -Scope It
             }
 
             It 'Should use default session when no session parameter provided' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Save-IMAsset -Id $TestId -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDownloadAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -2812,6 +3205,14 @@ InModuleScope $ProjectName {
         BeforeAll {
             Mock ConvertTo-ApiParameters { return @{} } -ModuleName PSImmich
             Mock InvokeImmichRestMethod { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiUpdateAsset { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiUpdateAssets { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiAddAssetsToAlbum { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRemoveAssetFromAlbum { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiTagAssets { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiUntagAssets { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiAddMemoryAssets { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRemoveMemoryAssets { return @{ Status = 'Success' } } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -2876,7 +3277,7 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Set-IMAsset -Id $TestId -IsFavorite $true -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateAssets -ModuleName PSImmich -Exactly 1 -Scope It
             }
         }
 
@@ -2940,8 +3341,8 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestId -AddToAlbum $AlbumId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq "/albums/$AlbumId/assets"
+                Should -Invoke Invoke-ImmichApiAddAssetsToAlbum -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $AlbumId
                 }
             }
 
@@ -2951,8 +3352,8 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestId -RemoveFromAlbum $AlbumId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq "/albums/$AlbumId/assets"
+                Should -Invoke Invoke-ImmichApiRemoveAssetFromAlbum -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $AlbumId
                 }
             }
         }
@@ -2964,8 +3365,8 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestId -AddTag $TagId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq "/tags/$TagId/assets"
+                Should -Invoke Invoke-ImmichApiTagAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TagId
                 }
             }
 
@@ -2975,8 +3376,8 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestId -RemoveTag $TagId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq "/tags/$TagId/assets"
+                Should -Invoke Invoke-ImmichApiUntagAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TagId
                 }
             }
         }
@@ -2988,8 +3389,8 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestId -AddToMemory $MemoryId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq "/memories/$MemoryId/assets"
+                Should -Invoke Invoke-ImmichApiAddMemoryAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $MemoryId
                 }
             }
 
@@ -2999,8 +3400,8 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestId -RemoveFromMemory $MemoryId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq "/memories/$MemoryId/assets"
+                Should -Invoke Invoke-ImmichApiRemoveMemoryAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $MemoryId
                 }
             }
         }
@@ -3014,9 +3415,7 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestIds -IsFavorite $true -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/assets'
-                }
+                Should -Invoke Invoke-ImmichApiUpdateAssets -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
             It 'Should use individual endpoint for id parameter set' {
@@ -3024,8 +3423,8 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestId -Description 'Test description' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq "/assets/$TestId"
+                Should -Invoke Invoke-ImmichApiUpdateAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestId
                 }
             }
         }
@@ -3045,7 +3444,7 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Set-IMAsset -Id $TestId -IsFavorite $true -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiUpdateAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -3053,7 +3452,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Start-IMVideoTranscode' -Tag 'Unit', 'Start-IMVideoTranscode' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRunAssetJobs { return @{ Status = 'Success' } } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -3101,7 +3500,7 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Start-IMVideoTranscode -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It
             }
         }
 
@@ -3110,16 +3509,14 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Start-IMVideoTranscode -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/assets/jobs'
-                }
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
             It 'Should send correct body parameters' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Start-IMVideoTranscode -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.assetIds -contains $TestId -and $Body.name -eq 'transcode-video'
                 }
             }
@@ -3132,7 +3529,7 @@ InModuleScope $ProjectName {
 
                 Start-IMVideoTranscode -Id $TestIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.assetIds.Count -eq 2 -and $Body.assetIds -contains $TestIds[0] -and $Body.assetIds -contains $TestIds[1]
                 }
             }
@@ -3145,15 +3542,15 @@ InModuleScope $ProjectName {
                 $Command.Parameters.ContainsKey('Session') | Should -Be $true
                 $Command.Parameters['Session'].ParameterType.Name | Should -Be 'ImmichSession'
 
-                # Verify that InvokeImmichRestMethod is called when session handling occurs
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 0 -Scope It
+                # Verify the wrapper is not called when only parameter definitions are checked
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 0 -Scope It
             }
 
             It 'Should use default session when no session parameter provided' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Start-IMVideoTranscode -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -3161,7 +3558,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Update-IMAssetMetadata' -Tag 'Unit', 'Update-IMAssetMetadata' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRunAssetJobs { return @{ Status = 'Success' } } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -3209,7 +3606,7 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetMetadata -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It
             }
         }
 
@@ -3218,16 +3615,14 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetMetadata -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/assets/jobs'
-                }
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
             It 'Should send correct body parameters for metadata refresh' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetMetadata -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.assetIds -contains $TestId -and $Body.name -eq 'refresh-metadata'
                 }
             }
@@ -3240,7 +3635,7 @@ InModuleScope $ProjectName {
 
                 Update-IMAssetMetadata -Id $TestIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.assetIds.Count -eq 2 -and $Body.assetIds -contains $TestIds[0] -and $Body.assetIds -contains $TestIds[1]
                 }
             }
@@ -3253,15 +3648,15 @@ InModuleScope $ProjectName {
                 $Command.Parameters.ContainsKey('Session') | Should -Be $true
                 $Command.Parameters['Session'].ParameterType.Name | Should -Be 'ImmichSession'
 
-                # Verify that InvokeImmichRestMethod is called when session handling occurs
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 0 -Scope It
+                # Verify the wrapper is not called when only parameter definitions are checked
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 0 -Scope It
             }
 
             It 'Should use default session when no session parameter provided' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetMetadata -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -3269,7 +3664,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Update-IMAssetThumbnail' -Tag 'Unit', 'Update-IMAssetThumbnail' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRunAssetJobs { return @{ Status = 'Success' } } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -3317,7 +3712,7 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetThumbnail -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It
             }
         }
 
@@ -3326,16 +3721,14 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetThumbnail -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/assets/jobs'
-                }
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
             It 'Should send correct body parameters for thumbnail regeneration' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetThumbnail -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.assetIds -contains $TestId -and $Body.name -eq 'regenerate-thumbnail'
                 }
             }
@@ -3348,7 +3741,7 @@ InModuleScope $ProjectName {
 
                 Update-IMAssetThumbnail -Id $TestIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.assetIds.Count -eq 2 -and $Body.assetIds -contains $TestIds[0] -and $Body.assetIds -contains $TestIds[1]
                 }
             }
@@ -3361,15 +3754,15 @@ InModuleScope $ProjectName {
                 $Command.Parameters.ContainsKey('Session') | Should -Be $true
                 $Command.Parameters['Session'].ParameterType.Name | Should -Be 'ImmichSession'
 
-                # Verify that InvokeImmichRestMethod is called when session handling occurs
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 0 -Scope It
+                # Verify the wrapper is not called when only parameter definitions are checked
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 0 -Scope It
             }
 
             It 'Should use default session when no session parameter provided' {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Update-IMAssetThumbnail -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunAssetJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -3377,31 +3770,18 @@ InModuleScope $ProjectName {
     }
     Describe 'Test-IMAccessToken' -Tag 'Unit', 'Test-IMAccessToken' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                switch ($RelativePath)
-                {
-                    '/auth/validateToken'
-                    {
-                        return [PSCustomObject]@{
-                            AuthStatus = $true
-                        }
-                    }
-                    default
-                    {
-                        throw "Unmocked path: $RelativePath"
-                    }
+            Mock Invoke-ImmichApiValidateAccessToken -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    AuthStatus = $true
                 }
             }
         }
 
         Context 'Token Validation' {
-            It 'Should validate access token using POST method' {
+            It 'Should validate access token via the generated wrapper' {
                 Test-IMAccessToken
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/auth/validateToken'
-                }
+                Should -Invoke Invoke-ImmichApiValidateAccessToken -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
 
             It 'Should pass Session parameter when provided' {
@@ -3418,7 +3798,7 @@ InModuleScope $ProjectName {
             }
 
             It 'Should handle false authentication status' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich {
+                Mock Invoke-ImmichApiValidateAccessToken -ModuleName PSImmich {
                     return [PSCustomObject]@{
                         AuthStatus = $false
                     }
@@ -3429,7 +3809,7 @@ InModuleScope $ProjectName {
             }
 
             It 'Should handle null result' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich {
+                Mock Invoke-ImmichApiValidateAccessToken -ModuleName PSImmich {
                     return $null
                 }
 
@@ -3440,62 +3820,54 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMAuthSession' -Tag 'Unit', 'Get-IMAuthSession' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                switch ($RelativePath)
-                {
-                    '/sessions'
-                    {
-                        return @(
-                            [PSCustomObject]@{
-                                id         = 'session1-guid-here-1234567890abcdef'
-                                deviceType = 'web'
-                                deviceOS   = 'Windows'
-                                createdAt  = '2024-01-01T10:00:00Z'
-                                updatedAt  = '2024-01-01T12:00:00Z'
-                                current    = $true
-                                ipAddress  = '192.168.1.100'
-                                userAgent  = 'Mozilla/5.0'
-                            },
-                            [PSCustomObject]@{
-                                id         = 'session2-guid-here-1234567890abcdef'
-                                deviceType = 'mobile'
-                                deviceOS   = 'iOS'
-                                createdAt  = '2024-01-01T08:00:00Z'
-                                updatedAt  = '2024-01-01T11:30:00Z'
-                                current    = $false
-                                ipAddress  = '192.168.1.101'
-                                userAgent  = 'Immich/1.0 iOS'
-                            }
-                        )
+            Mock Invoke-ImmichApiGetSessions -ModuleName PSImmich {
+                @(
+                    [PSCustomObject]@{
+                        id                 = 'session1-guid-here-1234567890abcdef'
+                        appVersion         = '2.3.1'
+                        createdAt          = '2024-01-01T10:00:00Z'
+                        current            = $true
+                        deviceOS           = 'Windows'
+                        deviceType         = 'web'
+                        expiresAt          = $null
+                        isPendingSyncReset = $false
+                        updatedAt          = '2024-01-01T12:00:00Z'
+                    },
+                    [PSCustomObject]@{
+                        id                 = 'session2-guid-here-1234567890abcdef'
+                        appVersion         = '2.3.1'
+                        createdAt          = '2024-01-01T08:00:00Z'
+                        current            = $false
+                        deviceOS           = 'iOS'
+                        deviceType         = 'mobile'
+                        expiresAt          = $null
+                        isPendingSyncReset = $false
+                        updatedAt          = '2024-01-01T11:30:00Z'
                     }
-                    default
-                    {
-                        throw "Unmocked path: $RelativePath"
-                    }
-                }
+                )
             }
         }
 
         Context 'Session Retrieval' {
-            It 'Should retrieve active sessions using GET method' {
+            It 'Should call Invoke-ImmichApiGetSessions once' {
                 Get-IMAuthSession
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'GET' -and
-                    $RelativePath -eq '/sessions'
+                Should -Invoke Invoke-ImmichApiGetSessions -ModuleName PSImmich -Times 1
+            }
+
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMAuthSession -Session $Session
+
+                Should -Invoke Invoke-ImmichApiGetSessions -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $ImmichSession -eq $Session
                 }
             }
 
-            It 'Should pass Session parameter when provided' {
-                # Verify Session parameter is accepted by checking parameter definition
-                $function = Get-Command Get-IMAuthSession
-                $sessionParam = $function.Parameters['Session']
-                $sessionParam.ParameterType.Name | Should -Be 'ImmichSession'
-            }
-
-            It 'Should return array of session objects' {
+            It 'Should return SessionResponseDto objects' {
                 $result = Get-IMAuthSession
                 $result | Should -HaveCount 2
+                $result[0].GetType().Name | Should -Be 'SessionResponseDto'
                 $result[0].id | Should -Be 'session1-guid-here-1234567890abcdef'
                 $result[0].deviceType | Should -Be 'web'
                 $result[0].current | Should -Be $true
@@ -3505,7 +3877,7 @@ InModuleScope $ProjectName {
             }
 
             It 'Should handle empty session list' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich {
+                Mock Invoke-ImmichApiGetSessions -ModuleName PSImmich {
                     return @()
                 }
 
@@ -3516,10 +3888,8 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMAuthSession' -Tag 'Unit', 'Remove-IMAuthSession' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                # Mock returns nothing for DELETE operations
-                return $null
-            }
+            Mock Invoke-ImmichApiDeleteAllSessions -ModuleName PSImmich {}
+            Mock Invoke-ImmichApiDeleteSession -ModuleName PSImmich {}
         }
 
         Context 'Parameter Set: list (remove all sessions)' {
@@ -3529,20 +3899,26 @@ InModuleScope $ProjectName {
                     ForEach-Object { $_.SupportsShouldProcess } | Should -Be $true
             }
 
-            It 'Should remove all sessions except current using DELETE method' {
+            It 'Should call Invoke-ImmichApiDeleteAllSessions when no Id is given' {
                 Remove-IMAuthSession -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq '/sessions'
-                }
+                Should -Invoke Invoke-ImmichApiDeleteAllSessions -ModuleName PSImmich -Times 1 -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteSession -ModuleName PSImmich -Times 0 -Scope It
             }
 
-            It 'Should pass Session parameter when provided' {
-                # Verify Session parameter is accepted by checking parameter definition
-                $function = Get-Command Remove-IMAuthSession
-                $sessionParam = $function.Parameters['Session']
-                $sessionParam.ParameterType.Name | Should -Be 'ImmichSession'
+            It 'Should not call the API when -WhatIf is specified' {
+                Remove-IMAuthSession -WhatIf
+
+                Should -Invoke Invoke-ImmichApiDeleteAllSessions -ModuleName PSImmich -Times 0 -Scope It
+            }
+
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Remove-IMAuthSession -Session $Session -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteAllSessions -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
             }
         }
 
@@ -3559,30 +3935,28 @@ InModuleScope $ProjectName {
                 $validationAttribute.RegexPattern | Should -Be '^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$'
             }
 
-            It 'Should remove specific session by ID using DELETE method' {
+            It 'Should call Invoke-ImmichApiDeleteSession for a specific session ID' {
                 Remove-IMAuthSession -id $TestSessionId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq "/sessions/$TestSessionId"
+                Should -Invoke Invoke-ImmichApiDeleteSession -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq $TestSessionId
                 }
+                Should -Invoke Invoke-ImmichApiDeleteAllSessions -ModuleName PSImmich -Times 0 -Scope It
             }
 
             It 'Should handle multiple session IDs' {
                 Remove-IMAuthSession -id @($TestSessionId, $TestSessionId2) -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    ($RelativePath -eq "/sessions/$TestSessionId" -or $RelativePath -eq "/sessions/$TestSessionId2")
+                Should -Invoke Invoke-ImmichApiDeleteSession -ModuleName PSImmich -Times 2 -ParameterFilter {
+                    $Id -eq $TestSessionId -or $Id -eq $TestSessionId2
                 }
             }
 
             It 'Should accept pipeline input by value' {
                 $TestSessionId | Remove-IMAuthSession -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq "/sessions/$TestSessionId"
+                Should -Invoke Invoke-ImmichApiDeleteSession -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq $TestSessionId
                 }
             }
 
@@ -3590,9 +3964,8 @@ InModuleScope $ProjectName {
                 $sessionObject = [PSCustomObject]@{ id = $TestSessionId }
                 $sessionObject | Remove-IMAuthSession -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq "/sessions/$TestSessionId"
+                Should -Invoke Invoke-ImmichApiDeleteSession -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq $TestSessionId
                 }
             }
 
@@ -3612,12 +3985,8 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMDuplicate' -Tag 'Unit', 'Get-IMDuplicate' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                switch ($RelativePath)
-                {
-                    '/duplicates'
-                    {
-                        return @(
+            Mock Invoke-ImmichApiGetAssetDuplicates -ModuleName PSImmich {
+                return @(
                             [PSCustomObject]@{
                                 duplicateId = 'duplicate1-guid-here-1234567890abcdef'
                                 assets      = @(
@@ -3661,28 +4030,15 @@ InModuleScope $ProjectName {
                                 )
                             }
                         )
-                    }
-                    default
-                    {
-                        throw "Unmocked path: $RelativePath"
-                    }
-                }
-            }
-
-            Mock AddCustomType -ModuleName PSImmich {
-                param($InputObject, $Type)
-                return $InputObject
             }
         }
 
         Context 'Duplicate Retrieval' {
-            It 'Should retrieve duplicates using GET method' {
+
+            It 'Should retrieve duplicates via the generated wrapper' {
                 Get-IMDuplicate
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/duplicates'
-                }
+                Should -Invoke Invoke-ImmichApiGetAssetDuplicates -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
 
             It 'Should pass Session parameter when provided' {
@@ -3703,19 +4059,17 @@ InModuleScope $ProjectName {
                 $result[1].assets[0].type | Should -Be 'VIDEO'
             }
 
-            It 'Should call AddCustomType with IMAssetDuplicate type' {
-                Get-IMDuplicate
+            It 'Should return DuplicateResponseDto objects' {
+                $result = Get-IMDuplicate
 
-                Should -Invoke AddCustomType -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Type -eq 'IMAssetDuplicate'
-                }
+                $result[0].GetType().Name | Should -Be 'DuplicateResponseDto'
+                $result[0].assets[0].GetType().Name | Should -Be 'AssetResponseDto'
             }
 
             It 'Should handle empty duplicate results' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich {
+                Mock Invoke-ImmichApiGetAssetDuplicates -ModuleName PSImmich {
                     return @()
                 }
-
                 $result = Get-IMDuplicate
                 $result | Should -HaveCount 0
             }
@@ -3723,41 +4077,36 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMFace' -Tag 'Unit', 'Get-IMFace' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                switch ($RelativePath)
-                {
-                    '/faces'
-                    {
-                        return @(
-                            [PSCustomObject]@{
-                                id            = 'face1-guid-here-1234567890abcdef'
-                                assetId       = $QueryParameters.id
-                                boundingBoxX1 = 100
-                                boundingBoxY1 = 150
-                                boundingBoxX2 = 250
-                                boundingBoxY2 = 300
-                                person        = [PSCustomObject]@{
-                                    id            = 'person1-guid-here-1234567890abcdef'
-                                    name          = 'John Doe'
-                                    thumbnailPath = '/thumbnails/person1.jpg'
-                                }
-                            },
-                            [PSCustomObject]@{
-                                id            = 'face2-guid-here-1234567890abcdef'
-                                assetId       = $QueryParameters.id
-                                boundingBoxX1 = 350
-                                boundingBoxY1 = 200
-                                boundingBoxX2 = 500
-                                boundingBoxY2 = 400
-                                person        = $null
-                            }
-                        )
+            Mock Invoke-ImmichApiGetFaces -ModuleName PSImmich {
+                return @(
+                    [PSCustomObject]@{
+                        id            = 'face1-guid-here-1234567890abcdef'
+                        assetId       = $Id
+                        boundingBoxX1 = 100
+                        boundingBoxY1 = 150
+                        boundingBoxX2 = 250
+                        boundingBoxY2 = 300
+                        imageWidth    = 1920
+                        imageHeight   = 1080
+                        person        = [PSCustomObject]@{
+                            id            = 'person1-guid-here-1234567890abcdef'
+                            name          = 'John Doe'
+                            thumbnailPath = '/thumbnails/person1.jpg'
+                        }
                     }
-                    default
-                    {
-                        throw "Unmocked path: $RelativePath"
-                    }
-                }
+                )
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should validate GUID format for Id parameter' {
+                { Get-IMFace -Id 'invalid-guid' } | Should -Throw
+            }
+
+            It 'Should pass Session parameter when provided' {
+                $function = Get-Command Get-IMFace
+                $sessionParam = $function.Parameters['Session']
+                $sessionParam.ParameterType.Name | Should -Be 'ImmichSession'
             }
         }
 
@@ -3767,57 +4116,32 @@ InModuleScope $ProjectName {
                 $TestAssetId2 = 'b2c3d4e5-f6a7-4890-b123-234567890bcd'
             }
 
-            It 'Should validate GUID format for Id parameter' {
-                $function = Get-Command Get-IMFace
-                $idParam = $function.Parameters['Id']
-                $validationAttribute = $idParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ValidatePatternAttribute' }
-                $validationAttribute.RegexPattern | Should -Be '^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$'
-            }
-
-            It 'Should retrieve faces for asset using GET method' {
+            It 'Should call Invoke-ImmichApiGetFaces with the asset ID' {
                 Get-IMFace -Id $TestAssetId
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'GET' -and
-                    $RelativePath -eq '/faces' -and
-                    $QueryParameters.id -eq $TestAssetId
+                Should -Invoke Invoke-ImmichApiGetFaces -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestAssetId
                 }
             }
 
-            It 'Should pass Session parameter when provided' {
-                # Verify Session parameter is accepted by checking parameter definition
-                $function = Get-Command Get-IMFace
-                $sessionParam = $function.Parameters['Session']
-                $sessionParam.ParameterType.Name | Should -Be 'ImmichSession'
-            }
-
-            It 'Should return array of face objects' {
+            It 'Should return AssetFaceResponseDto objects' {
                 $result = Get-IMFace -Id $TestAssetId
-                $result | Should -HaveCount 2
-                $result[0].id | Should -Be 'face1-guid-here-1234567890abcdef'
-                $result[0].assetId | Should -Be $TestAssetId
-                $result[0].person.name | Should -Be 'John Doe'
-                $result[1].id | Should -Be 'face2-guid-here-1234567890abcdef'
-                $result[1].person | Should -BeNullOrEmpty
+                $result.GetType().Name | Should -Be 'AssetFaceResponseDto'
+                $result.id | Should -Be 'face1-guid-here-1234567890abcdef'
+                $result.person.name | Should -Be 'John Doe'
             }
 
-            It 'Should handle multiple asset IDs' {
+            It 'Should call the endpoint once per asset ID' {
                 Get-IMFace -Id @($TestAssetId, $TestAssetId2)
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'GET' -and
-                    $RelativePath -eq '/faces' -and
-                    ($QueryParameters.id -eq $TestAssetId -or $QueryParameters.id -eq $TestAssetId2)
-                }
+                Should -Invoke Invoke-ImmichApiGetFaces -ModuleName PSImmich -Exactly 2 -Scope It
             }
 
             It 'Should accept pipeline input by value' {
                 $TestAssetId | Get-IMFace
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'GET' -and
-                    $RelativePath -eq '/faces' -and
-                    $QueryParameters.id -eq $TestAssetId
+                Should -Invoke Invoke-ImmichApiGetFaces -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestAssetId
                 }
             }
 
@@ -3825,10 +4149,8 @@ InModuleScope $ProjectName {
                 $assetObject = [PSCustomObject]@{ assetId = $TestAssetId }
                 $assetObject | Get-IMFace
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'GET' -and
-                    $RelativePath -eq '/faces' -and
-                    $QueryParameters.id -eq $TestAssetId
+                Should -Invoke Invoke-ImmichApiGetFaces -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestAssetId
                 }
             }
 
@@ -3836,21 +4158,22 @@ InModuleScope $ProjectName {
                 $assetObject = [PSCustomObject]@{ id = $TestAssetId }
                 $assetObject | Get-IMFace
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'GET' -and
-                    $RelativePath -eq '/faces' -and
-                    $QueryParameters.id -eq $TestAssetId
+                Should -Invoke Invoke-ImmichApiGetFaces -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestAssetId
                 }
             }
 
-            It 'Should reject invalid GUID format' {
-                { Get-IMFace -Id 'invalid-guid' } | Should -Throw
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMFace -Id $TestAssetId -Session $Session
+
+                Should -Invoke Invoke-ImmichApiGetFaces -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
             }
 
             It 'Should handle empty face results' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                    return @()
-                }
+                Mock Invoke-ImmichApiGetFaces -ModuleName PSImmich { return @() }
 
                 $result = Get-IMFace -Id $TestAssetId
                 $result | Should -HaveCount 0
@@ -3859,19 +4182,11 @@ InModuleScope $ProjectName {
     }
     Describe 'Clear-IMJob' -Tag 'Unit', 'Clear-IMJob' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                # Mock returns nothing for PUT operations
+            Mock Invoke-ImmichApiEmptyQueue -ModuleName PSImmich {
                 return $null
             }
-
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Force)
-                {
-                    $result.force = $BoundParameters.Force
-                }
-                return $result
+            Mock Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich {
+                return $null
             }
         }
 
@@ -3917,19 +4232,17 @@ InModuleScope $ProjectName {
             It 'Should clear all jobs by default' {
                 Clear-IMJob -Job $TestJob
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq "/jobs/$TestJob" -and
-                    $Body.command -eq 'empty'
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq $TestJob -and
+                    $Body.failed -eq $false
                 }
             }
 
             It 'Should clear only failed jobs when FailedOnly is specified' {
                 Clear-IMJob -Job $TestJob -FailedOnly
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq "/jobs/$TestJob" -and
+                Should -Invoke Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq $TestJob -and
                     $Body.command -eq 'clear-failed'
                 }
             }
@@ -3937,33 +4250,21 @@ InModuleScope $ProjectName {
             It 'Should handle multiple job types' {
                 Clear-IMJob -Job @($TestJob, $TestJob2)
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    ($RelativePath -eq "/jobs/$TestJob" -or $RelativePath -eq "/jobs/$TestJob2") -and
-                    $Body.command -eq 'empty'
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 2 -Scope It -ParameterFilter {
+                    $Name -eq $TestJob -or $Name -eq $TestJob2
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters with Force parameter' {
-                Clear-IMJob -Job $TestJob -Force
+            It 'Should warn and not send force when Force is specified' {
+                Clear-IMJob -Job $TestJob -Force -WarningVariable warnings -WarningAction SilentlyContinue
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Force -eq $true
-                }
-            }
-
-            It 'Should include force in body when Force is specified' {
-                Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                    return @{ force = $true }
-                }
-
-                Clear-IMJob -Job $TestJob -Force
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Body.force -eq $true
+                $warnings | Should -Not -BeNullOrEmpty
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    -not $Body.ContainsKey('force')
                 }
             }
         }
+
 
         Context 'Session Parameter' {
             It 'Should pass Session parameter when provided' {
@@ -3976,7 +4277,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Clear-IMJob -Job 'thumbnailGeneration'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -3987,12 +4288,13 @@ InModuleScope $ProjectName {
             Mock InvokeImmichRestMethod -ModuleName PSImmich {
                 switch ($RelativePath)
                 {
-                    '/jobs'
+                    '/queues'
                     {
                         return @(
                             [PSCustomObject]@{
-                                name        = 'thumbnailGeneration'
-                                jobCounts   = [PSCustomObject]@{
+                                name       = 'thumbnailGeneration'
+                                isPaused   = $false
+                                statistics = [PSCustomObject]@{
                                     active    = 2
                                     completed = 1547
                                     failed    = 3
@@ -4000,14 +4302,11 @@ InModuleScope $ProjectName {
                                     waiting   = 15
                                     paused    = 0
                                 }
-                                queueStatus = [PSCustomObject]@{
-                                    isActive = $true
-                                    isPaused = $false
-                                }
                             },
                             [PSCustomObject]@{
-                                name        = 'metadataExtraction'
-                                jobCounts   = [PSCustomObject]@{
+                                name       = 'metadataExtraction'
+                                isPaused   = $false
+                                statistics = [PSCustomObject]@{
                                     active    = 1
                                     completed = 892
                                     failed    = 0
@@ -4015,24 +4314,17 @@ InModuleScope $ProjectName {
                                     waiting   = 8
                                     paused    = 0
                                 }
-                                queueStatus = [PSCustomObject]@{
-                                    isActive = $true
-                                    isPaused = $false
-                                }
                             },
                             [PSCustomObject]@{
-                                name        = 'faceDetection'
-                                jobCounts   = [PSCustomObject]@{
+                                name       = 'faceDetection'
+                                isPaused   = $true
+                                statistics = [PSCustomObject]@{
                                     active    = 0
                                     completed = 234
                                     failed    = 1
                                     delayed   = 0
                                     waiting   = 0
                                     paused    = 50
-                                }
-                                queueStatus = [PSCustomObject]@{
-                                    isActive = $false
-                                    isPaused = $true
                                 }
                             }
                         )
@@ -4051,7 +4343,7 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Method -eq 'GET' -and
-                    $RelativePath -eq '/jobs'
+                    $RelativePath -eq '/queues'
                 }
             }
 
@@ -4068,31 +4360,29 @@ InModuleScope $ProjectName {
 
                 # Test thumbnailGeneration job
                 $thumbJob = $result | Where-Object { $_.name -eq 'thumbnailGeneration' }
-                $thumbJob.jobCounts.active | Should -Be 2
-                $thumbJob.jobCounts.completed | Should -Be 1547
-                $thumbJob.jobCounts.failed | Should -Be 3
-                $thumbJob.jobCounts.waiting | Should -Be 15
-                $thumbJob.queueStatus.isActive | Should -Be $true
-                $thumbJob.queueStatus.isPaused | Should -Be $false
+                $thumbJob.statistics.active | Should -Be 2
+                $thumbJob.statistics.completed | Should -Be 1547
+                $thumbJob.statistics.failed | Should -Be 3
+                $thumbJob.statistics.waiting | Should -Be 15
+                $thumbJob.isPaused | Should -Be $false
 
                 # Test metadataExtraction job
                 $metaJob = $result | Where-Object { $_.name -eq 'metadataExtraction' }
-                $metaJob.jobCounts.active | Should -Be 1
-                $metaJob.jobCounts.completed | Should -Be 892
-                $metaJob.jobCounts.failed | Should -Be 0
-                $metaJob.queueStatus.isActive | Should -Be $true
+                $metaJob.statistics.active | Should -Be 1
+                $metaJob.statistics.completed | Should -Be 892
+                $metaJob.statistics.failed | Should -Be 0
+                $metaJob.isPaused | Should -Be $false
 
                 # Test faceDetection job (paused)
                 $faceJob = $result | Where-Object { $_.name -eq 'faceDetection' }
-                $faceJob.jobCounts.paused | Should -Be 50
-                $faceJob.queueStatus.isActive | Should -Be $false
-                $faceJob.queueStatus.isPaused | Should -Be $true
+                $faceJob.statistics.paused | Should -Be 50
+                $faceJob.isPaused | Should -Be $true
             }
 
-            It 'Should handle different job statuses' {
+            It 'Should handle different queue states' {
                 $result = Get-IMJob
-                $activeJobs = $result | Where-Object { $_.queueStatus.isActive -eq $true }
-                $pausedJobs = $result | Where-Object { $_.queueStatus.isPaused -eq $true }
+                $activeJobs = $result | Where-Object { $_.statistics.active -gt 0 }
+                $pausedJobs = $result | Where-Object { $_.isPaused -eq $true }
 
                 $activeJobs | Should -HaveCount 2
                 $pausedJobs | Should -HaveCount 1
@@ -4113,16 +4403,6 @@ InModuleScope $ProjectName {
             Mock InvokeImmichRestMethod -ModuleName PSImmich {
                 # Mock returns nothing for PUT operations
                 return $null
-            }
-
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Force)
-                {
-                    $result.force = $BoundParameters.Force
-                }
-                return $result
             }
         }
 
@@ -4164,8 +4444,8 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Method -eq 'PUT' -and
-                    $RelativePath -eq "/jobs/$TestJob" -and
-                    $Body.command -eq 'resume'
+                    $RelativePath -eq "/queues/$TestJob" -and
+                    $Body.isPaused -eq $false
                 }
             }
 
@@ -4174,29 +4454,17 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
                     $Method -eq 'PUT' -and
-                    ($RelativePath -eq "/jobs/$TestJob" -or $RelativePath -eq "/jobs/$TestJob2") -and
-                    $Body.command -eq 'resume'
+                    ($RelativePath -eq "/queues/$TestJob" -or $RelativePath -eq "/queues/$TestJob2") -and
+                    $Body.isPaused -eq $false
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters with Force parameter' {
-                Resume-IMJob -Job $TestJob -Force
+            It 'Should warn and not send force when Force is specified' {
+                Resume-IMJob -Job $TestJob -Force -WarningVariable warnings -WarningAction SilentlyContinue
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Force -eq $true
-                }
-            }
-
-            It 'Should include force in body when Force is specified' {
-                Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                    return @{ force = $true }
-                }
-
-                Resume-IMJob -Job $TestJob -Force
-
+                $warnings | Should -Not -BeNullOrEmpty
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Body.force -eq $true -and
-                    $Body.command -eq 'resume'
+                    -not $Body.ContainsKey('force')
                 }
             }
 
@@ -4206,7 +4474,7 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 3 -ParameterFilter {
                     $Method -eq 'PUT' -and
-                    $Body.command -eq 'resume'
+                    $Body.isPaused -eq $false
                 }
             }
         }
@@ -4230,8 +4498,15 @@ InModuleScope $ProjectName {
     }
     Describe 'Start-IMJob' -Tag 'Unit', 'Start-IMJob' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                # Mock returns nothing for PUT/POST operations
+            Mock Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich {
+                return $null
+            }
+
+            Mock Invoke-ImmichApiEmptyTrash -ModuleName PSImmich {
+                return $null
+            }
+
+            Mock Invoke-ImmichApiCreateJob -ModuleName PSImmich {
                 return $null
             }
 
@@ -4270,6 +4545,13 @@ InModuleScope $ProjectName {
                 $validateSetAttribute.ValidValues | Should -Contain 'user-cleanup'
             }
 
+            It 'Should not contain duplicate or misspelled job names' {
+                $function = Get-Command Start-IMJob
+                $validateSetAttribute = $function.Parameters['Job'].Attributes | Where-Object { $_.TypeId.Name -eq 'ValidateSetAttribute' }
+                $validateSetAttribute.ValidValues | Should -Not -Contain 'backup-databaseperson-cleanup'
+                ($validateSetAttribute.ValidValues | Group-Object | Where-Object Count -gt 1) | Should -BeNullOrEmpty
+            }
+
             It 'Should have Force parameter as switch' {
                 $function = Get-Command Start-IMJob
                 $forceParam = $function.Parameters['Force']
@@ -4290,9 +4572,8 @@ InModuleScope $ProjectName {
             It 'Should start standard job with correct API call' {
                 Start-IMJob -Job $TestJob -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq "/jobs/$TestJob" -and
+                Should -Invoke Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq $TestJob -and
                     $Body.command -eq 'start'
                 }
             }
@@ -4300,29 +4581,16 @@ InModuleScope $ProjectName {
             It 'Should handle multiple standard job types' {
                 Start-IMJob -Job @($TestJob, $TestJob2) -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    ($RelativePath -eq "/jobs/$TestJob" -or $RelativePath -eq "/jobs/$TestJob2") -and
-                    ($Body.command -eq 'start')
-                }
-            }
-
-            It 'Should call ConvertTo-ApiParameters with Force parameter' {
-                Start-IMJob -Job $TestJob -Force -Confirm:$false
-
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Force -eq $true
+                Should -Invoke Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich -Exactly 2 -Scope It -ParameterFilter {
+                    ($Name -eq $TestJob -or $Name -eq $TestJob2) -and
+                    $Body.command -eq 'start'
                 }
             }
 
             It 'Should include force in body when Force is specified' {
-                Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                    return @{ force = $true }
-                }
-
                 Start-IMJob -Job $TestJob -Force -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.force -eq $true -and
                     $Body.command -eq 'start'
                 }
@@ -4333,19 +4601,14 @@ InModuleScope $ProjectName {
             It 'Should handle emptyTrash job with special endpoint' {
                 Start-IMJob -Job 'emptyTrash' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/trash/empty'
-                }
+                Should -Invoke Invoke-ImmichApiEmptyTrash -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
-            It 'Should handle cleanup jobs with /jobs endpoint' {
+            It 'Should handle cleanup jobs with the create job endpoint' {
                 $cleanupJobs = @('person-cleanup', 'tag-cleanup', 'user-cleanup')
                 Start-IMJob -Job $cleanupJobs -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 3 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/jobs' -and
+                Should -Invoke Invoke-ImmichApiCreateJob -ModuleName PSImmich -Exactly 3 -Scope It -ParameterFilter {
                     $Body.ContainsKey('name')
                 }
             }
@@ -4353,9 +4616,7 @@ InModuleScope $ProjectName {
             It 'Should set correct job name for cleanup jobs' {
                 Start-IMJob -Job 'person-cleanup' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/jobs' -and
+                Should -Invoke Invoke-ImmichApiCreateJob -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.name -eq 'person-cleanup'
                 }
             }
@@ -4363,16 +4624,12 @@ InModuleScope $ProjectName {
             It 'Should handle mixed job types correctly' {
                 Start-IMJob -Job @('thumbnailGeneration', 'emptyTrash', 'person-cleanup') -Confirm:$false
 
-                # Should make 3 different API calls with different patterns
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 3
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq '/jobs/thumbnailGeneration'
+                Should -Invoke Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq 'thumbnailGeneration'
                 }
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/trash/empty'
-                }
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/jobs' -and $Body.name -eq 'person-cleanup'
+                Should -Invoke Invoke-ImmichApiEmptyTrash -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiCreateJob -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.name -eq 'person-cleanup'
                 }
             }
         }
@@ -4388,16 +4645,299 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Start-IMJob -Job 'thumbnailGeneration' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $null -eq $ImmichSession
+                Should -Invoke Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $null -eq $ImmichSession -and
+                    $Name -eq 'thumbnailGeneration' -and
+                    $Body.command -eq 'start'
                 }
             }
         }
     }
     # Skipped until we can exit maintenance mode via API
+    Describe 'Get-IMIntegrityReport' -Tag 'Unit', 'Get-IMIntegrityReport' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetIntegrityReport -ModuleName PSImmich {
+                [PSCustomObject]@{
+                    items      = @(
+                        [PSCustomObject]@{ id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'; type = 'untracked_file'; path = '/data/a.jpg'; createdAt = '2026-01-01T00:00:00Z'; assetId = $null; fileAssetId = $null }
+                    )
+                    nextCursor = 'next-page'
+                }
+            }
+            Mock Invoke-ImmichApiGetIntegrityReportSummary -ModuleName PSImmich {
+                [PSCustomObject]@{ untrackedFile = 3; missingFile = 1; checksumMismatch = 0 }
+            }
+        }
+
+        Context 'When listing a report type' {
+            It 'Should call the report endpoint with the type' {
+                $null = Get-IMIntegrityReport -Type 'untracked_file'
+
+                Should -Invoke Invoke-ImmichApiGetIntegrityReport -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Type -eq 'untracked_file' -and $null -eq $Cursor -and $null -eq $Limit
+                }
+            }
+
+            It 'Should forward cursor and limit when supplied' {
+                $null = Get-IMIntegrityReport -Type 'missing_file' -Cursor 'page-2' -Limit 25
+
+                Should -Invoke Invoke-ImmichApiGetIntegrityReport -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Type -eq 'missing_file' -and $Cursor -eq 'page-2' -and $Limit -eq 25
+                }
+            }
+
+            It 'Should return the report response with the next cursor' {
+                $Result = Get-IMIntegrityReport -Type 'untracked_file'
+
+                $Result.GetType().Name | Should -Be 'IntegrityReportResponseDto'
+                $Result.NextCursor | Should -Be 'next-page'
+                $Result.Items.Count | Should -Be 1
+            }
+
+            It 'Should reject an unknown report type' {
+                { Get-IMIntegrityReport -Type 'unknown' } | Should -Throw
+            }
+        }
+
+        Context 'When requesting the summary' {
+            It 'Should call the summary endpoint' {
+                $Result = Get-IMIntegrityReport -Summary
+
+                Should -Invoke Invoke-ImmichApiGetIntegrityReportSummary -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetIntegrityReport -ModuleName PSImmich -Times 0 -Exactly -Scope It
+                $Result.GetType().Name | Should -Be 'IntegrityReportSummaryResponseDto'
+            }
+        }
+
+        Context 'When parameters conflict' {
+            It 'Should reject Summary combined with Type' {
+                { Get-IMIntegrityReport -Summary -Type 'untracked_file' } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Remove-IMIntegrityReport' -Tag 'Unit', 'Remove-IMIntegrityReport' {
+        BeforeAll {
+            Mock Invoke-ImmichApiDeleteIntegrityReport -ModuleName PSImmich {}
+        }
+
+        Context 'When removing an item' {
+            It 'Should call the delete endpoint with the id' {
+                Remove-IMIntegrityReport -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteIntegrityReport -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+                }
+            }
+        }
+
+        Context 'When removing items from the pipeline' {
+            It 'Should send one request per item bound by property name' {
+                $Items = @(
+                    [PSCustomObject]@{ id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' }
+                    [PSCustomObject]@{ id = '6c1c0c9e-4b4f-4b57-b2bc-1f8b3e5a0d22' }
+                )
+
+                $Items | Remove-IMIntegrityReport -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteIntegrityReport -ModuleName PSImmich -Times 2 -Exactly -Scope It
+            }
+        }
+
+        Context 'When WhatIf is specified' {
+            It 'Should not call the endpoint' {
+                Remove-IMIntegrityReport -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiDeleteIntegrityReport -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+        }
+
+        Context 'When the id is invalid' {
+            It 'Should throw for a malformed id' {
+                { Remove-IMIntegrityReport -Id 'not-a-guid' -Confirm:$false } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Save-IMIntegrityReport' -Tag 'Unit', 'Save-IMIntegrityReport' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetIntegrityReportFile -ModuleName PSImmich {}
+            Mock Invoke-ImmichApiGetIntegrityReportCsv -ModuleName PSImmich {}
+        }
+
+        Context 'When saving an item file' {
+            It 'Should download the file for the id to the path' {
+                $Path = Join-Path $TestDrive 'item.bin'
+
+                Save-IMIntegrityReport -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Path $Path
+
+                Should -Invoke Invoke-ImmichApiGetIntegrityReportFile -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and $OutFilePath.FullName -eq $Path
+                }
+                Should -Invoke Invoke-ImmichApiGetIntegrityReportCsv -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+        }
+
+        Context 'When saving a CSV export' {
+            It 'Should download the CSV for the type to the path' {
+                $Path = Join-Path $TestDrive 'checksum.csv'
+
+                Save-IMIntegrityReport -Type 'checksum_mismatch' -Path $Path
+
+                Should -Invoke Invoke-ImmichApiGetIntegrityReportCsv -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Type -eq 'checksum_mismatch' -and $OutFilePath.FullName -eq $Path
+                }
+                Should -Invoke Invoke-ImmichApiGetIntegrityReportFile -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+        }
+
+        Context 'When parameters are invalid' {
+            It 'Should reject an unknown CSV report type' {
+                { Save-IMIntegrityReport -Type 'bogus' -Path (Join-Path $TestDrive 'x.csv') } | Should -Throw
+            }
+
+            It 'Should require a path' {
+                { Save-IMIntegrityReport -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Get-IMDatabaseBackup' -Tag 'Unit', 'Get-IMDatabaseBackup' {
+        BeforeAll {
+            Mock Invoke-ImmichApiListDatabaseBackups -ModuleName PSImmich {
+                [PSCustomObject]@{
+                    backups = @(
+                        [PSCustomObject]@{ filename = 'immich-db-backup-1.sql.gz'; filesize = 1024; timezone = 'UTC' }
+                        [PSCustomObject]@{ filename = 'immich-db-backup-2.sql.gz'; filesize = 2048; timezone = 'UTC' }
+                    )
+                }
+            }
+        }
+
+        It 'Should return one DatabaseBackupDto per backup' {
+            $Result = Get-IMDatabaseBackup
+
+            Should -Invoke Invoke-ImmichApiListDatabaseBackups -ModuleName PSImmich -Times 1 -Exactly -Scope It
+            $Result.Count | Should -Be 2
+            $Result[0].GetType().Name | Should -Be 'DatabaseBackupDto'
+            $Result[1].filename | Should -Be 'immich-db-backup-2.sql.gz'
+        }
+
+        It 'Should forward the session' {
+            $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+            $null = Get-IMDatabaseBackup -Session $Session
+
+            Should -Invoke Invoke-ImmichApiListDatabaseBackups -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $null -ne $ImmichSession
+            }
+        }
+    }
+
+    Describe 'Remove-IMDatabaseBackup' -Tag 'Unit', 'Remove-IMDatabaseBackup' {
+        BeforeAll {
+            Mock Invoke-ImmichApiDeleteDatabaseBackup -ModuleName PSImmich {}
+        }
+
+        Context 'When removing a backup' {
+            It 'Should send the file name in the backups array' {
+                Remove-IMDatabaseBackup -Filename 'immich-db-backup-1.sql.gz' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteDatabaseBackup -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.backups.Count -eq 1 -and $Body.backups[0] -eq 'immich-db-backup-1.sql.gz'
+                }
+            }
+
+            It 'Should send several file names in one request' {
+                Remove-IMDatabaseBackup -Filename 'immich-db-backup-1.sql.gz', 'immich-db-backup-2.sql.gz' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteDatabaseBackup -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.backups.Count -eq 2
+                }
+            }
+        }
+
+        Context 'When removing backups from the pipeline' {
+            It 'Should send one request per backup bound by property name' {
+                $Backups = @(
+                    [PSCustomObject]@{ filename = 'immich-db-backup-1.sql.gz' }
+                    [PSCustomObject]@{ filename = 'immich-db-backup-2.sql.gz' }
+                )
+
+                $Backups | Remove-IMDatabaseBackup -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteDatabaseBackup -ModuleName PSImmich -Times 2 -Exactly -Scope It
+            }
+        }
+
+        Context 'When WhatIf is specified' {
+            It 'Should not call the endpoint' {
+                Remove-IMDatabaseBackup -Filename 'immich-db-backup-1.sql.gz' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiDeleteDatabaseBackup -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+        }
+    }
+
+    Describe 'Save-IMDatabaseBackup' -Tag 'Unit', 'Save-IMDatabaseBackup' {
+        BeforeAll {
+            Mock Invoke-ImmichApiDownloadDatabaseBackup -ModuleName PSImmich {}
+        }
+
+        It 'Should download the backup into the directory keeping its file name' {
+            $Directory = Get-Item -Path $TestDrive
+
+            Save-IMDatabaseBackup -Filename 'immich-db-backup-1.sql.gz' -Path $Directory
+
+            Should -Invoke Invoke-ImmichApiDownloadDatabaseBackup -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Filename -eq 'immich-db-backup-1.sql.gz' -and
+                $OutFilePath.FullName -eq (Join-Path $TestDrive 'immich-db-backup-1.sql.gz')
+            }
+        }
+
+        It 'Should accept file names from the pipeline' {
+            $Backups = @([PSCustomObject]@{ filename = 'immich-db-backup-1.sql.gz' })
+
+            $Backups | Save-IMDatabaseBackup -Path (Get-Item -Path $TestDrive)
+
+            Should -Invoke Invoke-ImmichApiDownloadDatabaseBackup -ModuleName PSImmich -Times 1 -Exactly -Scope It
+        }
+
+        It 'Should require a directory path' {
+            { Save-IMDatabaseBackup -Filename 'immich-db-backup-1.sql.gz' } | Should -Throw
+        }
+    }
+
+    Describe 'Get-IMMaintenanceStatus' -Tag 'Unit', 'Get-IMMaintenanceStatus' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetMaintenanceStatus -ModuleName PSImmich {
+                [PSCustomObject]@{ action = 'start'; active = $true; error = $null; progress = 42; task = 'Restoring' }
+            }
+        }
+
+        It 'Should return a MaintenanceStatusResponseDto' {
+            $Result = Get-IMMaintenanceStatus
+
+            Should -Invoke Invoke-ImmichApiGetMaintenanceStatus -ModuleName PSImmich -Times 1 -Exactly -Scope It
+            $Result.GetType().Name | Should -Be 'MaintenanceStatusResponseDto'
+            $Result.active | Should -BeTrue
+            $Result.progress | Should -Be 42
+        }
+
+        It 'Should forward the session' {
+            $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+            $null = Get-IMMaintenanceStatus -Session $Session
+
+            Should -Invoke Invoke-ImmichApiGetMaintenanceStatus -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $null -ne $ImmichSession
+            }
+        }
+    }
+
     Describe 'Start-IMMaintenanceMode' -Tag 'Unit', 'Start-IMMaintenanceMode' -Skip:$true {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiSetMaintenanceMode {} -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -4423,7 +4963,7 @@ InModuleScope $ProjectName {
             It 'Should not call API when ShouldProcess returns false' {
                 Start-IMMaintenanceMode -WhatIf
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 0 -Scope It
+                Should -Invoke Invoke-ImmichApiSetMaintenanceMode -ModuleName PSImmich -Exactly 0 -Scope It
             }
         }
 
@@ -4431,9 +4971,7 @@ InModuleScope $ProjectName {
             It 'Should call correct endpoint with start action' {
                 Start-IMMaintenanceMode -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/admin/maintenance' -and
+                Should -Invoke Invoke-ImmichApiSetMaintenanceMode -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.action -eq 'start'
                 }
             }
@@ -4442,7 +4980,7 @@ InModuleScope $ProjectName {
     # Skipped until we can exit maintenance mode via API
     Describe 'Stop-IMMaintenanceMode' -Tag 'Unit', 'Stop-IMMaintenanceMode' -Skip:$true {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiSetMaintenanceMode {} -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -4462,7 +5000,7 @@ InModuleScope $ProjectName {
             It 'Should not call API when ShouldProcess returns false' {
                 Stop-IMMaintenanceMode -WhatIf
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 0 -Scope It
+                Should -Invoke Invoke-ImmichApiSetMaintenanceMode -ModuleName PSImmich -Exactly 0 -Scope It
             }
         }
 
@@ -4470,9 +5008,7 @@ InModuleScope $ProjectName {
             It 'Should call correct endpoint with end action' {
                 Stop-IMMaintenanceMode -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/admin/maintenance' -and
+                Should -Invoke Invoke-ImmichApiSetMaintenanceMode -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.action -eq 'end'
                 }
             }
@@ -4483,16 +5019,6 @@ InModuleScope $ProjectName {
             Mock InvokeImmichRestMethod -ModuleName PSImmich {
                 # Mock returns nothing for PUT operations
                 return $null
-            }
-
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Force)
-                {
-                    $result.force = $BoundParameters.Force
-                }
-                return $result
             }
         }
 
@@ -4535,8 +5061,8 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Method -eq 'PUT' -and
-                    $RelativePath -eq "/jobs/$TestJob" -and
-                    $Body.command -eq 'pause'
+                    $RelativePath -eq "/queues/$TestJob" -and
+                    $Body.isPaused -eq $true
                 }
             }
 
@@ -4545,29 +5071,17 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
                     $Method -eq 'PUT' -and
-                    ($RelativePath -eq "/jobs/$TestJob" -or $RelativePath -eq "/jobs/$TestJob2") -and
-                    $Body.command -eq 'pause'
+                    ($RelativePath -eq "/queues/$TestJob" -or $RelativePath -eq "/queues/$TestJob2") -and
+                    $Body.isPaused -eq $true
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters with Force parameter' {
-                Suspend-IMJob -Job $TestJob -Force
+            It 'Should warn and not send force when Force is specified' {
+                Suspend-IMJob -Job $TestJob -Force -WarningVariable warnings -WarningAction SilentlyContinue
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Force -eq $true
-                }
-            }
-
-            It 'Should include force in body when Force is specified' {
-                Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                    return @{ force = $true }
-                }
-
-                Suspend-IMJob -Job $TestJob -Force
-
+                $warnings | Should -Not -BeNullOrEmpty
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Body.force -eq $true -and
-                    $Body.command -eq 'pause'
+                    -not $Body.ContainsKey('force')
                 }
             }
 
@@ -4577,7 +5091,7 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 4 -ParameterFilter {
                     $Method -eq 'PUT' -and
-                    $Body.command -eq 'pause'
+                    $Body.isPaused -eq $true
                 }
             }
         }
@@ -4601,61 +5115,51 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMLibrary' -Tag 'Unit', 'Get-IMLibrary' {
         BeforeAll {
-            # Mock the InvokeImmichRestMethod function
-            Mock InvokeImmichRestMethod {
-                param($Method, $RelativePath, $ImmichSession)
+            # Mock the generated API wrappers used by Get-IMLibrary
+            Mock Invoke-ImmichApiGetAllLibraries -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{
+                        id      = '11111111-1111-1111-1111-111111111111'
+                        name    = 'Library 1'
+                        ownerId = '22222222-2222-2222-2222-222222222222'
+                        type    = 'UPLOAD'
+                    },
+                    [pscustomobject]@{
+                        id      = '33333333-3333-3333-3333-333333333333'
+                        name    = 'Library 2'
+                        ownerId = '44444444-4444-4444-4444-444444444444'
+                        type    = 'EXTERNAL'
+                    }
+                )
+            }
 
-                # Mock responses based on RelativePath
-                switch -Regex ($RelativePath)
+            Mock Invoke-ImmichApiGetLibrary -ModuleName PSImmich {
+                if ($Id -eq '11111111-1111-1111-1111-111111111111')
                 {
-                    '^/libraries$'
-                    {
-                        # Mock response for listing all libraries
-                        return @(
-                            @{
-                                id      = '11111111-1111-1111-1111-111111111111'
-                                name    = 'Library 1'
-                                ownerId = '22222222-2222-2222-2222-222222222222'
-                                type    = 'UPLOAD'
-                            },
-                            @{
-                                id      = '33333333-3333-3333-3333-333333333333'
-                                name    = 'Library 2'
-                                ownerId = '44444444-4444-4444-4444-444444444444'
-                                type    = 'EXTERNAL'
-                            }
-                        )
+                    return [pscustomobject]@{
+                        id      = '11111111-1111-1111-1111-111111111111'
+                        name    = 'Library 1'
+                        ownerId = '22222222-2222-2222-2222-222222222222'
+                        type    = 'UPLOAD'
                     }
-                    '^/libraries/11111111-1111-1111-1111-111111111111$'
-                    {
-                        # Mock response for specific library
-                        return @{
-                            id      = '11111111-1111-1111-1111-111111111111'
-                            name    = 'Library 1'
-                            ownerId = '22222222-2222-2222-2222-222222222222'
-                            type    = 'UPLOAD'
-                        }
+                }
+                if ($Id -eq '33333333-3333-3333-3333-333333333333')
+                {
+                    return [pscustomobject]@{
+                        id      = '33333333-3333-3333-3333-333333333333'
+                        name    = 'Library 2'
+                        ownerId = '44444444-4444-4444-4444-444444444444'
+                        type    = 'EXTERNAL'
                     }
-                    '^/libraries/33333333-3333-3333-3333-333333333333$'
-                    {
-                        # Mock response for specific library
-                        return @{
-                            id      = '33333333-3333-3333-3333-333333333333'
-                            name    = 'Library 2'
-                            ownerId = '44444444-4444-4444-4444-444444444444'
-                            type    = 'EXTERNAL'
-                        }
-                    }
-                    '^/libraries/.*/statistics$'
-                    {
-                        # Mock response for library statistics
-                        return @{
-                            assetCount = 150
-                            videoCount = 25
-                            imageCount = 125
-                            totalSize  = 1073741824
-                        }
-                    }
+                }
+            }
+
+            Mock Invoke-ImmichApiGetLibraryStatistics -ModuleName PSImmich {
+                return [pscustomobject]@{
+                    total  = 150
+                    videos = 25
+                    photos = 125
+                    usage  = 1073741824
                 }
             }
         }
@@ -4669,10 +5173,8 @@ InModuleScope $ProjectName {
                 $result[1].id | Should -Be '33333333-3333-3333-3333-333333333333'
 
                 # Verify the REST method was called correctly
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/libraries' -and
-                    $ImmichSession -eq $null
+                Should -Invoke Invoke-ImmichApiGetAllLibraries -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $null -eq $ImmichSession
                 }
             }
 
@@ -4682,22 +5184,22 @@ InModuleScope $ProjectName {
                 $result | Should -HaveCount 1
                 $result.ownerId | Should -Be '22222222-2222-2222-2222-222222222222'
 
-                # Should still call the main endpoint, filtering happens in PowerShell
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/libraries'
-                }
+                # Filtering happens in PowerShell after the list wrapper returns
+                Should -Invoke Invoke-ImmichApiGetAllLibraries -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
 
-            It 'Should pass session parameter to InvokeImmichRestMethod when provided' {
-                # Test that session parameter is passed through (mock will verify this)
-                # We'll use $null since we're just testing parameter passing
-                $result = Get-IMLibrary -Session $null
+            It 'Should not call the single library or statistics wrappers in list mode' {
+                $null = Get-IMLibrary
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/libraries'
-                    # ImmichSession parameter will be $null in this test
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 0 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetLibraryStatistics -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+
+            It 'Should pass session parameter to the list wrapper when provided' {
+                $null = Get-IMLibrary -Session $null
+
+                Should -Invoke Invoke-ImmichApiGetAllLibraries -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $null -eq $ImmichSession
                 }
             }
         }
@@ -4709,13 +5211,9 @@ InModuleScope $ProjectName {
                 $result.id | Should -Be '11111111-1111-1111-1111-111111111111'
                 $result.name | Should -Be 'Library 1'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/libraries/11111111-1111-1111-1111-111111111111'
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '11111111-1111-1111-1111-111111111111'
                 }
-            }
-
-            It 'Should retrieve multiple libraries when multiple ids are provided' {
                 $ids = @('11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333')
                 $result = Get-IMLibrary -id $ids
 
@@ -4723,10 +5221,10 @@ InModuleScope $ProjectName {
                 $result[0].id | Should -Be '11111111-1111-1111-1111-111111111111'
                 $result[1].id | Should -Be '33333333-3333-3333-3333-333333333333'
 
-                # Should be called once per ID
-                Should -Invoke InvokeImmichRestMethod -Times 2 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -match '^/libraries/(11111111-1111-1111-1111-111111111111|33333333-3333-3333-3333-333333333333)$'
+                # Called once per ID (3 in total: the single-id call above plus two for the array)
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 3 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '33333333-3333-3333-3333-333333333333'
                 }
             }
 
@@ -4735,16 +5233,15 @@ InModuleScope $ProjectName {
 
                 $result.id | Should -Be '11111111-1111-1111-1111-111111111111'
                 $result.Statistics | Should -Not -BeNullOrEmpty
-                $result.Statistics.assetCount | Should -Be 150
-                $result.Statistics.totalSize | Should -Be 1073741824
+                $result.Statistics.total | Should -Be 150
+                $result.Statistics.usage | Should -Be 1073741824
 
-                # Should call both library and statistics endpoints
-                Should -Invoke InvokeImmichRestMethod -Times 2
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/libraries/11111111-1111-1111-1111-111111111111'
+                # Should call both library and statistics wrappers
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '11111111-1111-1111-1111-111111111111'
                 }
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/libraries/11111111-1111-1111-1111-111111111111/statistics'
+                Should -Invoke Invoke-ImmichApiGetLibraryStatistics -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '11111111-1111-1111-1111-111111111111'
                 }
             }
 
@@ -4754,8 +5251,8 @@ InModuleScope $ProjectName {
 
                 $result.id | Should -Be '11111111-1111-1111-1111-111111111111'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/libraries/11111111-1111-1111-1111-111111111111'
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '11111111-1111-1111-1111-111111111111'
                 }
             }
 
@@ -4764,19 +5261,17 @@ InModuleScope $ProjectName {
 
                 $result.id | Should -Be '11111111-1111-1111-1111-111111111111'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/libraries/11111111-1111-1111-1111-111111111111'
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '11111111-1111-1111-1111-111111111111'
                 }
             }
 
-            It 'Should pass session parameter to InvokeImmichRestMethod when provided with id parameter' {
-                # Test that session parameter is passed through with id parameter
-                $result = Get-IMLibrary -id '11111111-1111-1111-1111-111111111111' -Session $null
+            It 'Should pass session parameter to the id wrapper when provided' {
+                $null = Get-IMLibrary -id '11111111-1111-1111-1111-111111111111' -Session $null
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/libraries/11111111-1111-1111-1111-111111111111'
-                    # ImmichSession parameter will be $null in this test
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '11111111-1111-1111-1111-111111111111' -and
+                    $null -eq $ImmichSession
                 }
             }
         }
@@ -4799,28 +5294,25 @@ InModuleScope $ProjectName {
 
         Context 'Parameter Set Behavior' {
             It 'Should use list parameter set when no id is provided' {
-                $result = Get-IMLibrary
+                $null = Get-IMLibrary
 
-                # Should call the list endpoint
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/libraries'
-                }
+                Should -Invoke Invoke-ImmichApiGetAllLibraries -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
 
             It 'Should use id parameter set when id is provided' {
-                $result = Get-IMLibrary -id '11111111-1111-1111-1111-111111111111'
+                $null = Get-IMLibrary -id '11111111-1111-1111-1111-111111111111'
 
-                # Should call the specific library endpoint
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/libraries/11111111-1111-1111-1111-111111111111'
+                Should -Invoke Invoke-ImmichApiGetLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '11111111-1111-1111-1111-111111111111'
                 }
+                Should -Invoke Invoke-ImmichApiGetAllLibraries -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
 
-            It 'Should not allow IncludeStatistics with list parameter set' {
-                # This should be invalid because IncludeStatistics is only for id parameter set
-                $result = Get-IMLibrary
-                # The function should work normally for list without trying to include statistics
-                $result | Should -HaveCount 2
+            It 'Should not call the statistics wrapper without IncludeStatistics' {
+                $null = Get-IMLibrary -id '11111111-1111-1111-1111-111111111111'
+
+                Should -Invoke Invoke-ImmichApiGetLibraryStatistics -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
         }
 
@@ -4831,7 +5323,7 @@ InModuleScope $ProjectName {
     }
     Describe 'New-IMLibrary' -Tag 'Unit', 'New-IMLibrary' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
+            Mock Invoke-ImmichApiCreateLibrary -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     id                = 'new-library-guid-1234567890abcdef'
                     name              = 'Test Library'
@@ -4844,28 +5336,6 @@ InModuleScope $ProjectName {
                     refreshedAt       = $null
                     assetCount        = 0
                 }
-            }
-
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Name)
-                {
-                    $result.name = $BoundParameters.Name
-                }
-                if ($BoundParameters.ExclusionPatterns)
-                {
-                    $result.exclusionPatterns = $BoundParameters.ExclusionPatterns
-                }
-                if ($BoundParameters.ImportPaths)
-                {
-                    $result.importPaths = $BoundParameters.ImportPaths
-                }
-                if ($BoundParameters.OwnerId)
-                {
-                    $result.ownerId = $BoundParameters.OwnerId
-                }
-                return $result
             }
         }
 
@@ -4910,11 +5380,12 @@ InModuleScope $ProjectName {
             It 'Should create library with minimal parameters' {
                 $result = New-IMLibrary -Name 'Test Library'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and
-                    $RelativePath -eq '/libraries'
+                Should -Invoke Invoke-ImmichApiCreateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'Test Library' -and
+                    -not $Body.ContainsKey('importPaths') -and
+                    -not $Body.ContainsKey('exclusionPatterns') -and
+                    -not $Body.ContainsKey('ownerId')
                 }
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1
                 $result.name | Should -Be 'Test Library'
             }
 
@@ -4927,11 +5398,11 @@ InModuleScope $ProjectName {
                 }
                 New-IMLibrary @params
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Name -eq 'Full Library' -and
-                    $BoundParameters.ImportPaths.Count -eq 2 -and
-                    $BoundParameters.ExclusionPatterns.Count -eq 2 -and
-                    $BoundParameters.OwnerId -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc'
+                Should -Invoke Invoke-ImmichApiCreateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'Full Library' -and
+                    $Body.importPaths.Count -eq 2 -and
+                    $Body.exclusionPatterns.Count -eq 2 -and
+                    $Body.ownerId -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 }
             }
 
@@ -4939,9 +5410,9 @@ InModuleScope $ProjectName {
                 $importPaths = @('/photos', '/videos', '/documents')
                 New-IMLibrary -Name 'Multi-Path Library' -ImportPaths $importPaths
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ImportPaths.Count -eq 3 -and
-                    $BoundParameters.ImportPaths -contains '/photos'
+                Should -Invoke Invoke-ImmichApiCreateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.importPaths.Count -eq 3 -and
+                    $Body.importPaths -contains '/photos'
                 }
             }
 
@@ -4949,9 +5420,9 @@ InModuleScope $ProjectName {
                 $exclusions = @('*.tmp', '*.log', '.DS_Store', 'Thumbs.db')
                 New-IMLibrary -Name 'Filtered Library' -ExclusionPatterns $exclusions
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ExclusionPatterns.Count -eq 4 -and
-                    $BoundParameters.ExclusionPatterns -contains '*.tmp'
+                Should -Invoke Invoke-ImmichApiCreateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.exclusionPatterns.Count -eq 4 -and
+                    $Body.exclusionPatterns -contains '*.tmp'
                 }
             }
 
@@ -4961,7 +5432,7 @@ InModuleScope $ProjectName {
                 $result | Should -Not -BeNullOrEmpty
                 $result.id | Should -Be 'new-library-guid-1234567890abcdef'
                 $result.name | Should -Be 'Test Library'
-                $result.type | Should -Be 'EXTERNAL'
+                $result.assetCount | Should -Be 0
             }
         }
 
@@ -4976,7 +5447,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 New-IMLibrary -Name 'Session Test'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiCreateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -4984,7 +5455,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMLibrary' -Tag 'Unit', 'Remove-IMLibrary' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
+            Mock Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich {
                 # Mock returns nothing for DELETE operations
                 return $null
             }
@@ -5031,26 +5502,27 @@ InModuleScope $ProjectName {
             It 'Should remove single library with correct API call' {
                 Remove-IMLibrary -id $TestLibraryId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId"
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
             It 'Should handle multiple library IDs' {
                 Remove-IMLibrary -id @($TestLibraryId, $TestLibraryId2) -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    ($RelativePath -eq "/libraries/$TestLibraryId" -or $RelativePath -eq "/libraries/$TestLibraryId2")
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
+                }
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId2
                 }
             }
 
-            It 'Should call ShouldProcess for confirmation' {
-                # This test verifies that ShouldProcess is called by checking the method is invoked when confirmed
-                Remove-IMLibrary -id $TestLibraryId -Confirm:$false
+            It 'Should not delete when ShouldProcess declines' {
+                Remove-IMLibrary -id $TestLibraryId -WhatIf
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
         }
 
@@ -5063,9 +5535,8 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 $TestLibraryId | Remove-IMLibrary -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId"
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
@@ -5073,9 +5544,8 @@ InModuleScope $ProjectName {
                 $libraryObject = [PSCustomObject]@{ id = $TestLibraryId }
                 $libraryObject | Remove-IMLibrary -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId"
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
@@ -5083,19 +5553,15 @@ InModuleScope $ProjectName {
                 $libraryObject = [PSCustomObject]@{ libraryId = $TestLibraryId }
                 $libraryObject | Remove-IMLibrary -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId"
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
             It 'Should handle multiple libraries from pipeline' {
                 @($TestLibraryId, $TestLibraryId2) | Remove-IMLibrary -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    ($RelativePath -eq "/libraries/$TestLibraryId" -or $RelativePath -eq "/libraries/$TestLibraryId2")
-                }
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
 
             It 'Should process multiple pipeline objects' {
@@ -5105,9 +5571,7 @@ InModuleScope $ProjectName {
                 )
                 $libraryObjects | Remove-IMLibrary -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'Delete'
-                }
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -5122,7 +5586,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Remove-IMLibrary -id 'a1b2c3d4-e5f6-4789-a012-123456789abc' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -5130,7 +5594,12 @@ InModuleScope $ProjectName {
     }
     Describe 'Set-IMFace' -Tag 'Unit', 'Set-IMFace' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiReassignFacesById -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    id   = 'person-guid-1234567890abcdef'
+                    name = 'Jane Doe'
+                }
+            }
         }
 
         Context 'Parameter Validation' {
@@ -5151,11 +5620,6 @@ InModuleScope $ProjectName {
             It 'Should validate GUID format for FaceId parameter' {
                 { Set-IMFace -PersonId '123e4567-e89b-12d3-a456-426614174000' -FaceId 'invalid-guid' -Confirm:$false } | Should -Throw
             }
-
-            It 'Should accept pipeline input for FaceId parameter' {
-                $TestFaceId = '123e4567-e89b-12d3-a456-426614174000'
-                { $TestFaceId | Set-IMFace -PersonId '987fcdeb-51a2-43d5-b789-123456789abc' -Confirm:$false } | Should -Not -Throw
-            }
         }
 
         Context 'ShouldProcess Support' {
@@ -5164,26 +5628,46 @@ InModuleScope $ProjectName {
                 $CmdletBinding = $Command.ScriptBlock.Attributes | Where-Object { $_ -is [System.Management.Automation.CmdletBindingAttribute] }
                 $CmdletBinding.SupportsShouldProcess | Should -Be $true
             }
+
+            It 'Should not call the API when -WhatIf is specified' {
+                Set-IMFace -PersonId '987fcdeb-51a2-43d5-b789-123456789abc' -FaceId '123e4567-e89b-12d3-a456-426614174000' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiReassignFacesById -ModuleName PSImmich -Exactly 0 -Scope It
+            }
         }
 
         Context 'API Calls' {
-            It 'Should call correct endpoint' {
+            It 'Should call the reassign endpoint with the PersonId as the path ID' {
                 $TestPersonId = '987fcdeb-51a2-43d5-b789-123456789abc'
                 $TestFaceId = '123e4567-e89b-12d3-a456-426614174000'
                 Set-IMFace -PersonId $TestPersonId -FaceId $TestFaceId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq "/faces/$TestPersonId"
+                Should -Invoke Invoke-ImmichApiReassignFacesById -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestPersonId
                 }
             }
 
             It 'Should include FaceId in request body' {
-                $TestPersonId = '987fcdeb-51a2-43d5-b789-123456789abc'
                 $TestFaceId = '123e4567-e89b-12d3-a456-426614174000'
-                Set-IMFace -PersonId $TestPersonId -FaceId $TestFaceId -Confirm:$false
+                Set-IMFace -PersonId '987fcdeb-51a2-43d5-b789-123456789abc' -FaceId $TestFaceId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiReassignFacesById -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.id -eq $TestFaceId
+                }
+            }
+
+            It 'Should return a PersonResponseDto' {
+                $result = Set-IMFace -PersonId '987fcdeb-51a2-43d5-b789-123456789abc' -FaceId '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
+                $result.GetType().Name | Should -Be 'PersonResponseDto'
+                $result.name | Should -Be 'Jane Doe'
+            }
+
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Set-IMFace -PersonId '987fcdeb-51a2-43d5-b789-123456789abc' -FaceId '123e4567-e89b-12d3-a456-426614174000' -Session $Session -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiReassignFacesById -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
                 }
             }
         }
@@ -5194,7 +5678,7 @@ InModuleScope $ProjectName {
                 $TestFaceIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
                 $TestFaceIds | Set-IMFace -PersonId $TestPersonId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 2 -Scope It
+                Should -Invoke Invoke-ImmichApiReassignFacesById -ModuleName PSImmich -Exactly 2 -Scope It
             }
 
             It 'Should process multiple face objects from pipeline' {
@@ -5205,14 +5689,14 @@ InModuleScope $ProjectName {
                 )
                 $FaceObjects | Set-IMFace -PersonId $TestPersonId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 2 -Scope It
+                Should -Invoke Invoke-ImmichApiReassignFacesById -ModuleName PSImmich -Exactly 2 -Scope It
             }
         }
 
     }
     Describe 'Set-IMLibrary' -Tag 'Unit', 'Set-IMLibrary' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
+            Mock Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     id                = 'updated-library-guid-1234567890abcdef'
                     name              = 'Updated Library'
@@ -5225,24 +5709,6 @@ InModuleScope $ProjectName {
                     refreshedAt       = $null
                     assetCount        = 100
                 }
-            }
-
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Name)
-                {
-                    $result.name = $BoundParameters.Name
-                }
-                if ($BoundParameters.ExclusionPatterns)
-                {
-                    $result.exclusionPatterns = $BoundParameters.ExclusionPatterns
-                }
-                if ($BoundParameters.ImportPaths)
-                {
-                    $result.importPaths = $BoundParameters.ImportPaths
-                }
-                return $result
             }
         }
 
@@ -5295,12 +5761,9 @@ InModuleScope $ProjectName {
             It 'Should update library name with correct API call' {
                 Set-IMLibrary -Id $TestLibraryId -Name 'New Library Name' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId"
-                }
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Name -eq 'New Library Name'
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId -and
+                    $Body.name -eq 'New Library Name'
                 }
             }
 
@@ -5313,18 +5776,21 @@ InModuleScope $ProjectName {
                 }
                 Set-IMLibrary @params
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ImportPaths.Count -eq 2 -and
-                    $BoundParameters.ExclusionPatterns.Count -eq 2
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.importPaths.Count -eq 2 -and
+                    $Body.exclusionPatterns.Count -eq 2
                 }
             }
 
             It 'Should handle multiple library IDs' {
                 Set-IMLibrary -Id @($TestLibraryId, $TestLibraryId2) -Name 'Batch Update' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    ($RelativePath -eq "/libraries/$TestLibraryId" -or $RelativePath -eq "/libraries/$TestLibraryId2")
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId -and $Body.name -eq 'Batch Update'
+                }
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId2 -and $Body.name -eq 'Batch Update'
                 }
             }
 
@@ -5338,17 +5804,17 @@ InModuleScope $ProjectName {
                 }
                 Set-IMLibrary @params
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Name -eq 'Complete Library' -and
-                    $BoundParameters.ImportPaths.Count -eq 3 -and
-                    $BoundParameters.ExclusionPatterns.Count -eq 3
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'Complete Library' -and
+                    $Body.importPaths.Count -eq 3 -and
+                    $Body.exclusionPatterns.Count -eq 3
                 }
             }
 
-            It 'Should call ShouldProcess for confirmation' {
-                Set-IMLibrary -Id $TestLibraryId -Name 'Confirmed Update' -Confirm:$false
+            It 'Should not update when ShouldProcess declines' {
+                Set-IMLibrary -Id $TestLibraryId -Name 'Declined Update' -WhatIf
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
         }
 
@@ -5361,9 +5827,8 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 $TestLibraryId | Set-IMLibrary -Name 'Pipeline Update' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId"
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
@@ -5371,17 +5836,16 @@ InModuleScope $ProjectName {
                 $libraryObject = [PSCustomObject]@{ Id = $TestLibraryId }
                 $libraryObject | Set-IMLibrary -Name 'Property Update' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId"
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
             It 'Should handle multiple libraries from pipeline' {
                 @($TestLibraryId, $TestLibraryId2) | Set-IMLibrary -Name 'Multi Pipeline' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'PUT'
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'Multi Pipeline'
                 }
             }
         }
@@ -5396,7 +5860,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Set-IMLibrary -Id 'a1b2c3d4-e5f6-4789-a012-123456789abc' -Name 'Session Test' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiUpdateLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -5404,8 +5868,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Sync-IMLibrary' -Tag 'Unit', 'Sync-IMLibrary' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                # Mock returns nothing for POST scan operations
+            Mock Invoke-ImmichApiScanLibrary -ModuleName PSImmich {
                 return $null
             }
         }
@@ -5444,27 +5907,20 @@ InModuleScope $ProjectName {
             It 'Should start library scan with correct API call' {
                 Sync-IMLibrary -Id $TestLibraryId
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId/scan"
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
             It 'Should handle multiple library IDs' {
                 Sync-IMLibrary -Id @($TestLibraryId, $TestLibraryId2)
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    ($RelativePath -eq "/libraries/$TestLibraryId/scan" -or $RelativePath -eq "/libraries/$TestLibraryId2/scan")
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
-            }
-
-            It 'Should make API call without body parameters' {
-                Sync-IMLibrary -Id $TestLibraryId
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $null -eq $Body
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId2
                 }
             }
 
@@ -5476,10 +5932,7 @@ InModuleScope $ProjectName {
                 )
                 Sync-IMLibrary -Id $multipleIds
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 3 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -match '/libraries/.+/scan'
-                }
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 3 -Exactly -Scope It
             }
         }
 
@@ -5492,9 +5945,8 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 $TestLibraryId | Sync-IMLibrary
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId/scan"
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
@@ -5502,19 +5954,15 @@ InModuleScope $ProjectName {
                 $libraryObject = [PSCustomObject]@{ Id = $TestLibraryId }
                 $libraryObject | Sync-IMLibrary
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId/scan"
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
             It 'Should handle multiple libraries from pipeline' {
                 @($TestLibraryId, $TestLibraryId2) | Sync-IMLibrary
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -match '/libraries/.+/scan'
-                }
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
 
             It 'Should process multiple pipeline objects' {
@@ -5524,9 +5972,7 @@ InModuleScope $ProjectName {
                 )
                 $libraryObjects | Sync-IMLibrary
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'POST'
-                }
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -5540,7 +5986,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Sync-IMLibrary -Id 'a1b2c3d4-e5f6-4789-a012-123456789abc'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiScanLibrary -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -5548,7 +5994,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Test-IMLibrary' -Tag 'Unit', 'Test-IMLibrary' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
+            Mock Invoke-ImmichApiValidate -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     importPaths       = @(
                         @{
@@ -5572,19 +6018,6 @@ InModuleScope $ProjectName {
                 }
             }
 
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.ExclusionPatterns)
-                {
-                    $result.exclusionPatterns = $BoundParameters.ExclusionPatterns
-                }
-                if ($BoundParameters.ImportPaths)
-                {
-                    $result.importPaths = $BoundParameters.ImportPaths
-                }
-                return $result
-            }
         }
 
         Context 'Parameter Validation' {
@@ -5627,9 +6060,8 @@ InModuleScope $ProjectName {
             It 'Should validate library with minimal parameters' {
                 $result = Test-IMLibrary -Id $TestLibraryId
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId/validate"
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
                 $result | Should -Not -BeNullOrEmpty
             }
@@ -5637,18 +6069,20 @@ InModuleScope $ProjectName {
             It 'Should validate library with import paths' {
                 Test-IMLibrary -Id $TestLibraryId -ImportPaths @('/photos', '/videos')
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ImportPaths.Count -eq 2 -and
-                    $BoundParameters.ImportPaths -contains '/photos'
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId -and
+                    $Body.importPaths.Count -eq 2 -and
+                    $Body.importPaths -contains '/photos'
                 }
             }
 
             It 'Should validate library with exclusion patterns' {
                 Test-IMLibrary -Id $TestLibraryId -ExclusionPatterns @('*.tmp', '*.log')
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ExclusionPatterns.Count -eq 2 -and
-                    $BoundParameters.ExclusionPatterns -contains '*.tmp'
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId -and
+                    $Body.exclusionPatterns.Count -eq 2 -and
+                    $Body.exclusionPatterns -contains '*.tmp'
                 }
             }
 
@@ -5660,18 +6094,21 @@ InModuleScope $ProjectName {
                 }
                 Test-IMLibrary @params
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ImportPaths.Count -eq 3 -and
-                    $BoundParameters.ExclusionPatterns.Count -eq 3
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.importPaths.Count -eq 3 -and
+                    $Body.exclusionPatterns.Count -eq 3
                 }
             }
 
             It 'Should handle multiple library IDs' {
                 Test-IMLibrary -Id @($TestLibraryId, $TestLibraryId2) -ImportPaths @('/shared')
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    ($RelativePath -eq "/libraries/$TestLibraryId/validate" -or $RelativePath -eq "/libraries/$TestLibraryId2/validate")
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId -and $Body.importPaths -contains '/shared'
+                }
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId2 -and $Body.importPaths -contains '/shared'
                 }
             }
 
@@ -5694,9 +6131,8 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 $TestLibraryId | Test-IMLibrary
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId/validate"
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
@@ -5704,18 +6140,16 @@ InModuleScope $ProjectName {
                 $libraryObject = [PSCustomObject]@{ Id = $TestLibraryId }
                 $libraryObject | Test-IMLibrary
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq "/libraries/$TestLibraryId/validate"
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq $TestLibraryId
                 }
             }
 
             It 'Should handle multiple libraries from pipeline' {
                 @($TestLibraryId, $TestLibraryId2) | Test-IMLibrary -ImportPaths @('/test')
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -match '/libraries/.+/validate'
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 2 -Exactly -Scope It -ParameterFilter {
+                    $Body.importPaths -contains '/test'
                 }
             }
 
@@ -5726,8 +6160,8 @@ InModuleScope $ProjectName {
                 )
                 $libraryObjects | Test-IMLibrary -ExclusionPatterns @('*.test')
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'POST'
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 2 -Exactly -Scope It -ParameterFilter {
+                    $Body.exclusionPatterns -contains '*.test'
                 }
             }
         }
@@ -5742,7 +6176,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Test-IMLibrary -Id 'a1b2c3d4-e5f6-4789-a012-123456789abc'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiValidate -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -5750,27 +6184,14 @@ InModuleScope $ProjectName {
     }
     Describe 'Convert-IMCoordinatesToLocation' -Tag 'Unit', 'Convert-IMCoordinatesToLocation' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                return [PSCustomObject]@{
-                    name    = 'Big Ben, Westminster, London SW1A 0AA, UK'
-                    city    = 'London'
-                    state   = 'England'
-                    country = 'United Kingdom'
-                }
-            }
-
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Latitude)
-                {
-                    $result.lat = $BoundParameters.Latitude
-                }
-                if ($BoundParameters.Longitude)
-                {
-                    $result.lon = $BoundParameters.Longitude
-                }
-                return $result
+            Mock Invoke-ImmichApiReverseGeocode -ModuleName PSImmich {
+                return @(
+                    [PSCustomObject]@{
+                        city    = 'London'
+                        state   = 'England'
+                        country = 'United Kingdom'
+                    }
+                )
             }
         }
 
@@ -5787,18 +6208,6 @@ InModuleScope $ProjectName {
                 $lonParam.ParameterSets.Values.IsMandatory | Should -Contain $true
             }
 
-            It 'Should have ApiParameter attributes for coordinate parameters' {
-                $function = Get-Command Convert-IMCoordinatesToLocation
-                $latParam = $function.Parameters['Latitude']
-                $lonParam = $function.Parameters['Longitude']
-
-                $latApiAttr = $latParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-                $lonApiAttr = $lonParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-
-                $latApiAttr.Name | Should -Be 'lat'
-                $lonApiAttr.Name | Should -Be 'lon'
-            }
-
             It 'Should accept double values for coordinates' {
                 $function = Get-Command Convert-IMCoordinatesToLocation
                 $latParam = $function.Parameters['Latitude']
@@ -5810,59 +6219,49 @@ InModuleScope $ProjectName {
         }
 
         Context 'Coordinate Conversion Operations' {
-            It 'Should convert coordinates with correct API call' {
+            It 'Should call the reverse geocode API with the coordinates' {
                 Convert-IMCoordinatesToLocation -Latitude 51.496637 -Longitude -0.176370
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/map/reverse-geocode' -and
-                    $QueryParameters.lat -eq 51.496637 -and
-                    $QueryParameters.lon -eq -0.176370
-                }
-            }
-
-            It 'Should call ConvertTo-ApiParameters with coordinate parameters' {
-                Convert-IMCoordinatesToLocation -Latitude 40.7128 -Longitude -74.0060
-
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Latitude -eq 40.7128 -and
-                    $BoundParameters.Longitude -eq -74.0060
+                Should -Invoke Invoke-ImmichApiReverseGeocode -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Lat -eq 51.496637 -and
+                    $Lon -eq -0.176370
                 }
             }
 
             It 'Should handle positive coordinates' {
                 Convert-IMCoordinatesToLocation -Latitude 37.7749 -Longitude 122.4194
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $QueryParameters.lat -eq 37.7749 -and
-                    $QueryParameters.lon -eq 122.4194
+                Should -Invoke Invoke-ImmichApiReverseGeocode -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Lat -eq 37.7749 -and
+                    $Lon -eq 122.4194
                 }
             }
 
             It 'Should handle negative coordinates' {
                 Convert-IMCoordinatesToLocation -Latitude -33.8688 -Longitude -151.2093
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $QueryParameters.lat -eq -33.8688 -and
-                    $QueryParameters.lon -eq -151.2093
+                Should -Invoke Invoke-ImmichApiReverseGeocode -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Lat -eq -33.8688 -and
+                    $Lon -eq -151.2093
                 }
             }
 
             It 'Should handle coordinate edge values' {
                 Convert-IMCoordinatesToLocation -Latitude -90.0 -Longitude -180.0
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $QueryParameters.lat -eq -90.0 -and
-                    $QueryParameters.lon -eq -180.0
+                Should -Invoke Invoke-ImmichApiReverseGeocode -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Lat -eq -90.0 -and
+                    $Lon -eq -180.0
                 }
             }
 
-            It 'Should return location information' {
+            It 'Should return location information as MapReverseGeocodeResponseDto' {
                 $result = Convert-IMCoordinatesToLocation -Latitude 51.496637 -Longitude -0.176370
 
-                $result | Should -Not -BeNullOrEmpty
-                $result.name | Should -Be 'Big Ben, Westminster, London SW1A 0AA, UK'
+                $result | Should -HaveCount 1
+                $result.GetType().Name | Should -Be 'MapReverseGeocodeResponseDto'
                 $result.city | Should -Be 'London'
+                $result.state | Should -Be 'England'
                 $result.country | Should -Be 'United Kingdom'
             }
         }
@@ -5878,7 +6277,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Convert-IMCoordinatesToLocation -Latitude 51.496637 -Longitude -0.176370
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiReverseGeocode -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -5886,57 +6285,25 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMMapMarker' -Tag 'Unit', 'Get-IMMapMarker' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
+            Mock Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich {
                 return @(
                     [PSCustomObject]@{
-                        id         = 'marker1-guid-here-1234567890abcdef'
-                        lat        = 51.496637
-                        lon        = -0.176370
-                        city       = 'London'
-                        state      = 'England'
-                        country    = 'United Kingdom'
-                        assetCount = 25
+                        id      = 'marker1-guid-here-1234567890abcdef'
+                        lat     = 51.496637
+                        lon     = -0.176370
+                        city    = 'London'
+                        state   = 'England'
+                        country = 'United Kingdom'
                     },
                     [PSCustomObject]@{
-                        id         = 'marker2-guid-here-2345678901bcdefg'
-                        lat        = 40.7128
-                        lon        = -74.0060
-                        city       = 'New York'
-                        state      = 'New York'
-                        country    = 'United States'
-                        assetCount = 12
+                        id      = 'marker2-guid-here-2345678901bcdefg'
+                        lat     = 40.7128
+                        lon     = -74.0060
+                        city    = 'New York'
+                        state   = 'New York'
+                        country = 'United States'
                     }
                 )
-            }
-
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.CreatedAfter)
-                {
-                    $result.fileCreatedAfter = $BoundParameters.CreatedAfter
-                }
-                if ($BoundParameters.CreatedBefore)
-                {
-                    $result.fileCreatedBefore = $BoundParameters.CreatedBefore
-                }
-                if ($BoundParameters.IsArchived -ne $null)
-                {
-                    $result.isArchived = $BoundParameters.IsArchived
-                }
-                if ($BoundParameters.IsFavorite -ne $null)
-                {
-                    $result.isFavorite = $BoundParameters.IsFavorite
-                }
-                if ($BoundParameters.WithPartners -ne $null)
-                {
-                    $result.withPartners = $BoundParameters.WithPartners
-                }
-                if ($BoundParameters.WithSharedAlbums -ne $null)
-                {
-                    $result.withSharedAlbums = $BoundParameters.WithSharedAlbums
-                }
-                return $result
             }
         }
 
@@ -5951,30 +6318,6 @@ InModuleScope $ProjectName {
                 $function.Parameters.Keys | Should -Contain 'WithSharedAlbums'
             }
 
-            It 'Should have ApiParameter attributes for filter parameters' {
-                $function = Get-Command Get-IMMapMarker
-                $createdAfterParam = $function.Parameters['CreatedAfter']
-                $createdBeforeParam = $function.Parameters['CreatedBefore']
-                $isArchivedParam = $function.Parameters['IsArchived']
-                $isFavoriteParam = $function.Parameters['IsFavorite']
-                $withPartnersParam = $function.Parameters['WithPartners']
-                $withSharedAlbumsParam = $function.Parameters['WithSharedAlbums']
-
-                $createdAfterApiAttr = $createdAfterParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-                $createdBeforeApiAttr = $createdBeforeParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-                $isArchivedApiAttr = $isArchivedParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-                $isFavoriteApiAttr = $isFavoriteParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-                $withPartnersApiAttr = $withPartnersParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-                $withSharedAlbumsApiAttr = $withSharedAlbumsParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-
-                $createdAfterApiAttr.Name | Should -Be 'fileCreatedAfter'
-                $createdBeforeApiAttr.Name | Should -Be 'fileCreatedBefore'
-                $isArchivedApiAttr.Name | Should -Be 'isArchived'
-                $isFavoriteApiAttr.Name | Should -Be 'isFavorite'
-                $withPartnersApiAttr.Name | Should -Be 'withPartners'
-                $withSharedAlbumsApiAttr.Name | Should -Be 'withSharedAlbums'
-            }
-
             It 'Should have boolean type for flag parameters' {
                 $function = Get-Command Get-IMMapMarker
                 $function.Parameters['IsArchived'].ParameterType.Name | Should -Be 'Boolean'
@@ -5985,14 +6328,18 @@ InModuleScope $ProjectName {
         }
 
         Context 'Map Marker Retrieval Operations' {
-            It 'Should get all map markers with no parameters' {
+            It 'Should get all map markers with no filters' {
                 $result = Get-IMMapMarker
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/map/markers'
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $null -eq $FileCreatedAfter -and
+                    $null -eq $FileCreatedBefore -and
+                    $null -eq $IsArchived -and
+                    $null -eq $IsFavorite -and
+                    $null -eq $WithPartners -and
+                    $null -eq $WithSharedAlbums -and
+                    $null -eq $ImmichSession
                 }
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1
                 $result | Should -HaveCount 2
             }
 
@@ -6001,67 +6348,66 @@ InModuleScope $ProjectName {
                 $createdBefore = (Get-Date).AddDays(-1)
                 Get-IMMapMarker -CreatedAfter $createdAfter -CreatedBefore $createdBefore
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.CreatedAfter -eq $createdAfter -and
-                    $BoundParameters.CreatedBefore -eq $createdBefore
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $FileCreatedAfter -eq $createdAfter -and
+                    $FileCreatedBefore -eq $createdBefore
                 }
             }
 
             It 'Should filter by archive status' {
                 Get-IMMapMarker -IsArchived $false
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.IsArchived -eq $false
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $IsArchived -eq $false
                 }
             }
 
             It 'Should filter by favorite status' {
                 Get-IMMapMarker -IsFavorite $true
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.IsFavorite -eq $true
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $IsFavorite -eq $true
                 }
             }
 
             It 'Should include partner assets when specified' {
                 Get-IMMapMarker -WithPartners $true
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.WithPartners -eq $true
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $WithPartners -eq $true
                 }
             }
 
             It 'Should include shared album assets when specified' {
                 Get-IMMapMarker -WithSharedAlbums $true
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.WithSharedAlbums -eq $true
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $WithSharedAlbums -eq $true
                 }
             }
 
             It 'Should handle multiple filter parameters' {
                 Get-IMMapMarker -IsFavorite $true -IsArchived $false -WithPartners $false -WithSharedAlbums $true
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.IsFavorite -eq $true -and
-                    $BoundParameters.IsArchived -eq $false -and
-                    $BoundParameters.WithPartners -eq $false -and
-                    $BoundParameters.WithSharedAlbums -eq $true
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $IsFavorite -eq $true -and
+                    $IsArchived -eq $false -and
+                    $WithPartners -eq $false -and
+                    $WithSharedAlbums -eq $true
                 }
             }
 
-            It 'Should return marker objects with location data' {
+            It 'Should return marker objects as MapMarkerResponseDto' {
                 $result = Get-IMMapMarker
 
+                $result[0].GetType().Name | Should -Be 'MapMarkerResponseDto'
                 $result[0].id | Should -Be 'marker1-guid-here-1234567890abcdef'
                 $result[0].lat | Should -Be 51.496637
                 $result[0].lon | Should -Be -0.17637
                 $result[0].city | Should -Be 'London'
-                $result[0].assetCount | Should -Be 25
 
                 $result[1].id | Should -Be 'marker2-guid-here-2345678901bcdefg'
                 $result[1].city | Should -Be 'New York'
-                $result[1].assetCount | Should -Be 12
             }
         }
 
@@ -6076,7 +6422,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Get-IMMapMarker
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -6085,49 +6431,42 @@ InModuleScope $ProjectName {
 
     Describe 'Get-IMMemory' -Tag 'Unit', 'Get-IMMemory' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                param($Method, $RelativePath, $ImmichSession)
-
-                switch -Regex ($RelativePath)
-                {
-                    '^/memories/statistics$'
-                    {
-                        # Mock response for memory statistics
-                        return [PSCustomObject]@{
-                            totalMemories     = 42
-                            savedMemories     = 15
-                            featuredMemories  = 8
-                            onThisDayMemories = 12
-                        }
-                    }
-                    '^/memories$'
-                    {
-                        # List all memories
-                        return @(
-                            [PSCustomObject]@{
-                                id        = 'a1b2c3d4-e5f6-4789-a012-123456789abc'
-                                title     = 'Summer Vacation 2024'
-                                type      = 'onThisDay'
-                                createdAt = '2024-01-15T10:00:00Z'
-                                assets    = @(
-                                    [PSCustomObject]@{ id = 'asset1'; type = 'IMAGE' },
-                                    [PSCustomObject]@{ id = 'asset2'; type = 'VIDEO' }
-                                )
-                            },
-                            [PSCustomObject]@{
-                                id        = 'b2c3d4e5-f6a7-4890-b123-234567890bcd'
-                                title     = 'Holiday Memories'
-                                type      = 'featured'
-                                createdAt = '2024-02-20T15:30:00Z'
-                                assets    = @(
-                                    [PSCustomObject]@{ id = 'asset3'; type = 'IMAGE' }
-                                )
-                            }
+            Mock Invoke-ImmichApiSearchMemories -ModuleName PSImmich {
+                return @(
+                    [PSCustomObject]@{
+                        id        = 'a1b2c3d4-e5f6-4789-a012-123456789abc'
+                        title     = 'Summer Vacation 2024'
+                        type      = 'onThisDay'
+                        createdAt = '2024-01-15T10:00:00Z'
+                        assets    = @(
+                            [PSCustomObject]@{ id = 'asset1'; type = 'IMAGE' },
+                            [PSCustomObject]@{ id = 'asset2'; type = 'VIDEO' }
+                        )
+                    },
+                    [PSCustomObject]@{
+                        id        = 'b2c3d4e5-f6a7-4890-b123-234567890bcd'
+                        title     = 'Holiday Memories'
+                        type      = 'featured'
+                        createdAt = '2024-02-20T15:30:00Z'
+                        assets    = @(
+                            [PSCustomObject]@{ id = 'asset3'; type = 'IMAGE' }
                         )
                     }
-                    '^/memories/a1b2c3d4-e5f6-4789-a012-123456789abc$'
+                )
+            }
+
+            Mock Invoke-ImmichApiMemoriesStatistics -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    total = 42
+                }
+            }
+
+            Mock Invoke-ImmichApiGetMemory -ModuleName PSImmich {
+                param($Id)
+                switch ($Id)
+                {
+                    'a1b2c3d4-e5f6-4789-a012-123456789abc'
                     {
-                        # Specific memory
                         return [PSCustomObject]@{
                             id        = 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                             title     = 'Summer Vacation 2024'
@@ -6137,29 +6476,22 @@ InModuleScope $ProjectName {
                                 [PSCustomObject]@{ id = 'asset1'; type = 'IMAGE' },
                                 [PSCustomObject]@{ id = 'asset2'; type = 'VIDEO' }
                             )
-                            data      = @{
-                                year  = 2024
-                                day   = 15
-                                month = 1
-                            }
+                            data      = @{ year = 2024; day = 15; month = 1 }
                         }
                     }
-                    '^/memories/b2c3d4e5-f6a7-4890-b123-234567890bcd$'
+                    'b2c3d4e5-f6a7-4890-b123-234567890bcd'
                     {
-                        # Another specific memory
                         return [PSCustomObject]@{
                             id        = 'b2c3d4e5-f6a7-4890-b123-234567890bcd'
                             title     = 'Holiday Memories'
                             type      = 'featured'
                             createdAt = '2024-02-20T15:30:00Z'
-                            assets    = @(
-                                [PSCustomObject]@{ id = 'asset3'; type = 'IMAGE' }
-                            )
+                            assets    = @([PSCustomObject]@{ id = 'asset3'; type = 'IMAGE' })
                         }
                     }
                     default
                     {
-                        throw "Unexpected path: $RelativePath"
+                        throw "Unexpected memory id: $Id"
                     }
                 }
             }
@@ -6210,10 +6542,7 @@ InModuleScope $ProjectName {
             It 'Should get all memories when no parameters provided' {
                 $result = Get-IMMemory
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/memories'
-                }
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1
                 $result | Should -HaveCount 2
                 $result[0].id | Should -Be 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 $result[1].id | Should -Be 'b2c3d4e5-f6a7-4890-b123-234567890bcd'
@@ -6222,10 +6551,10 @@ InModuleScope $ProjectName {
             It 'Should return memories with assets' {
                 $result = Get-IMMemory
 
-                $result[0].title | Should -Be 'Summer Vacation 2024'
+                $result[0].id | Should -Be 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 $result[0].type | Should -Be 'onThisDay'
                 $result[0].assets | Should -HaveCount 2
-                $result[1].title | Should -Be 'Holiday Memories'
+                $result[1].type | Should -Be 'featured'
                 $result[1].assets | Should -HaveCount 1
             }
         }
@@ -6239,20 +6568,18 @@ InModuleScope $ProjectName {
             It 'Should get specific memory by id' {
                 $result = Get-IMMemory -id $TestMemoryId
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq "/memories/$TestMemoryId"
+                Should -Invoke Invoke-ImmichApiGetMemory -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq $TestMemoryId
                 }
                 $result.id | Should -Be $TestMemoryId
-                $result.title | Should -Be 'Summer Vacation 2024'
+                $result.type | Should -Be 'onThisDay'
             }
 
             It 'Should handle multiple memory IDs' {
                 $result = Get-IMMemory -id @($TestMemoryId, $TestMemoryId2)
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    ($RelativePath -eq "/memories/$TestMemoryId" -or $RelativePath -eq "/memories/$TestMemoryId2")
+                Should -Invoke Invoke-ImmichApiGetMemory -ModuleName PSImmich -Times 2 -ParameterFilter {
+                    $Id -eq $TestMemoryId -or $Id -eq $TestMemoryId2
                 }
                 $result | Should -HaveCount 2
             }
@@ -6261,7 +6588,6 @@ InModuleScope $ProjectName {
                 $result = Get-IMMemory -id $TestMemoryId
 
                 $result.id | Should -Be $TestMemoryId
-                $result.title | Should -Be 'Summer Vacation 2024'
                 $result.type | Should -Be 'onThisDay'
                 $result.assets | Should -HaveCount 2
                 $result.data.year | Should -Be 2024
@@ -6277,9 +6603,8 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 $TestMemoryId | Get-IMMemory
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq "/memories/$TestMemoryId"
+                Should -Invoke Invoke-ImmichApiGetMemory -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq $TestMemoryId
                 }
             }
 
@@ -6287,18 +6612,16 @@ InModuleScope $ProjectName {
                 $memoryObject = [PSCustomObject]@{ id = $TestMemoryId }
                 $memoryObject | Get-IMMemory
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq "/memories/$TestMemoryId"
+                Should -Invoke Invoke-ImmichApiGetMemory -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq $TestMemoryId
                 }
             }
 
             It 'Should handle multiple memories from pipeline' {
                 @($TestMemoryId, $TestMemoryId2) | Get-IMMemory
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    ($RelativePath -eq "/memories/$TestMemoryId" -or $RelativePath -eq "/memories/$TestMemoryId2")
+                Should -Invoke Invoke-ImmichApiGetMemory -ModuleName PSImmich -Times 2 -ParameterFilter {
+                    $Id -eq $TestMemoryId -or $Id -eq $TestMemoryId2
                 }
             }
 
@@ -6309,9 +6632,7 @@ InModuleScope $ProjectName {
                 )
                 $memoryObjects | Get-IMMemory
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'Get'
-                }
+                Should -Invoke Invoke-ImmichApiGetMemory -ModuleName PSImmich -Times 2
             }
         }
 
@@ -6319,19 +6640,15 @@ InModuleScope $ProjectName {
             It 'Should get memory statistics when Statistics switch is used' {
                 $result = Get-IMMemory -Statistics
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/memories/statistics'
-                }
-                $result.totalMemories | Should -Be 42
-                $result.savedMemories | Should -Be 15
+                Should -Invoke Invoke-ImmichApiMemoriesStatistics -ModuleName PSImmich -Times 1
+                $result.total | Should -Be 42
             }
 
             It 'Should support Statistics with other parameters' {
                 Get-IMMemory -Statistics -Order 'desc'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/memories/statistics'
+                Should -Invoke Invoke-ImmichApiMemoriesStatistics -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Order -eq 'desc'
                 }
             }
         }
@@ -6340,45 +6657,40 @@ InModuleScope $ProjectName {
             It 'Should support Order parameter' {
                 Get-IMMemory -Order 'desc'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/memories' -and
-                    $QueryParameters.order -eq 'desc'
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Order -eq 'desc'
                 }
             }
 
             It 'Should support NumberOfMemories parameter' {
                 Get-IMMemory -NumberOfMemories 5
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/memories' -and
-                    $QueryParameters.size -eq 5
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Size -eq 5
                 }
             }
 
             It 'Should support IsSaved parameter' {
                 Get-IMMemory -IsSaved:$true
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/memories' -and
-                    $QueryParameters.isSaved -eq $true
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $IsSaved -eq $true
                 }
             }
 
             It 'Should support IsTrashed parameter' {
                 Get-IMMemory -IsTrashed:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/memories' -and
-                    $QueryParameters.isTrashed -eq $false
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $IsTrashed -eq $false
                 }
             }
 
             It 'Should support Type parameter' {
                 Get-IMMemory -Type 'on_this_day'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/memories' -and
-                    $QueryParameters.type -eq 'on_this_day'
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Type -eq 'on_this_day'
                 }
             }
 
@@ -6386,9 +6698,16 @@ InModuleScope $ProjectName {
                 $TestDate = '2024-01-15'
                 Get-IMMemory -For $TestDate
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $RelativePath -eq '/memories' -and
-                    $QueryParameters.for -eq $TestDate
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $For -eq $TestDate
+                }
+            }
+
+            It 'Should send For as a date-only value when given a datetime' {
+                Get-IMMemory -For ([datetime]'2024-01-15T13:45:00')
+
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $For -eq '2024-01-15'
                 }
             }
         }
@@ -6404,7 +6723,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Get-IMMemory
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiSearchMemories -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -6412,7 +6731,7 @@ InModuleScope $ProjectName {
     }
     Describe 'New-IMMemory' -Tag 'Unit', 'New-IMMemory' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiCreateMemory -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     id       = 'new-memory-guid-1234567890abcdef'
                     memoryAt = '2024-01-01T10:00:00Z'
@@ -6437,6 +6756,10 @@ InModuleScope $ProjectName {
                 if ($BoundParameters.Type)
                 {
                     $result.type = $BoundParameters.Type
+                }
+                if ($BoundParameters.AssetIds)
+                {
+                    $result.assetIds = $BoundParameters.AssetIds
                 }
                 return $result
             }
@@ -6483,10 +6806,7 @@ InModuleScope $ProjectName {
             It 'Should create memory with minimal parameters' {
                 $result = New-IMMemory -MemoryAt '2024-01-01T10:00:00Z'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and
-                    $RelativePath -eq '/memories'
-                }
+                Should -Invoke Invoke-ImmichApiCreateMemory -ModuleName PSImmich -Times 1
                 $result.id | Should -Be 'new-memory-guid-1234567890abcdef'
             }
 
@@ -6494,7 +6814,7 @@ InModuleScope $ProjectName {
                 $assetIds = @('a1b2c3d4-e5f6-4789-a012-123456789abc', 'b2c3d4e5-f6a7-4890-b123-234567890bcd')
                 New-IMMemory -MemoryAt '2024-01-01T10:00:00Z' -AssetIds $assetIds
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiCreateMemory -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.assetIds.Count -eq 2 -and
                     $Body.assetIds -contains 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 }
@@ -6503,7 +6823,7 @@ InModuleScope $ProjectName {
             It 'Should include year in data object' {
                 New-IMMemory -MemoryAt '2024-01-01T10:00:00Z' -Year 2024
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiCreateMemory -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.data.year -eq 2024
                 }
             }
@@ -6519,7 +6839,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMMemory' -Tag 'Unit', 'Remove-IMMemory' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiDeleteMemory -ModuleName PSImmich {
                 return $null
             }
         }
@@ -6550,9 +6870,8 @@ InModuleScope $ProjectName {
             It 'Should remove memory with correct API call' {
                 Remove-IMMemory -id 'a1b2c3d4-e5f6-4789-a012-123456789abc'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/memories/a1b2c3d4-e5f6-4789-a012-123456789abc'
+                Should -Invoke Invoke-ImmichApiDeleteMemory -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 }
             }
 
@@ -6560,15 +6879,13 @@ InModuleScope $ProjectName {
                 $memoryIds = @('a1b2c3d4-e5f6-4789-a012-123456789abc', 'b2c3d4e5-f6a7-4890-b123-234567890bcd')
                 Remove-IMMemory -id $memoryIds
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -ParameterFilter {
-                    $Method -eq 'Delete'
-                }
+                Should -Invoke Invoke-ImmichApiDeleteMemory -ModuleName PSImmich -Times 2
             }
         }
     }
     Describe 'Set-IMMemory' -Tag 'Unit', 'Set-IMMemory' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiUpdateMemory -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     id       = 'updated-memory-guid-1234567890abcdef'
                     memoryAt = '2024-01-01T10:00:00Z'
@@ -6597,42 +6914,19 @@ InModuleScope $ProjectName {
             It 'Should update memory with correct API call' {
                 Set-IMMemory -Id 'a1b2c3d4-e5f6-4789-a012-123456789abc' -IsSaved:$true
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and
-                    $RelativePath -eq '/memories/a1b2c3d4-e5f6-4789-a012-123456789abc'
+                Should -Invoke Invoke-ImmichApiUpdateMemory -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Id -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 }
             }
         }
     }
     Describe 'Send-IMTestMessage' -Tag 'Unit', 'Send-IMTestMessage' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiSendTestEmailAdmin {
                 return [PSCustomObject]@{
-                    success = $true
-                    message = 'Test notification sent successfully'
+                    messageId = '<test-message-id@example.com>'
                 }
-            }
-
-            Mock ConvertTo-ApiParameters {
-                param($BoundParameters, $CmdletName)
-                $result = @{
-                    enabled   = $BoundParameters.enabled
-                    from      = $BoundParameters.from
-                    replyTo   = $BoundParameters.replyto
-                    transport = @{
-                        host       = $BoundParameters.hostname
-                        port       = $BoundParameters.port
-                        username   = $BoundParameters.username
-                        password   = 'converted-password'
-                        ignoreCert = $BoundParameters.ignoreCert
-                    }
-                }
-                return $result
-            }
-
-            Mock ConvertFromSecureString {
-                return 'converted-secure-password'
-            }
+            } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -6666,42 +6960,59 @@ InModuleScope $ProjectName {
         }
 
         Context 'Message Sending' {
-            It 'Should send test message with correct API call' {
+            It 'Should send the full SMTP body through the generated sendTestEmailAdmin function' {
                 $securePassword = ConvertTo-SecureString 'testpassword' -AsPlainText -Force
                 Send-IMTestMessage -from 'test@example.com' -replyto 'reply@example.com' -hostname 'smtp.example.com' -Password $securePassword
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and
-                    $RelativePath -eq '/admin/notifications/test-email'
+                Should -Invoke Invoke-ImmichApiSendTestEmailAdmin -Times 1 -ModuleName PSImmich -ParameterFilter {
+                    $Body.from -eq 'test@example.com' -and
+                    $Body.replyTo -eq 'reply@example.com' -and
+                    $Body.enabled -eq $true -and
+                    $Body.transport.host -eq 'smtp.example.com' -and
+                    $Body.transport.port -eq 25 -and
+                    $Body.transport.secure -eq $false -and
+                    $Body.transport.ignoreCert -eq $false -and
+                    $Body.transport.username -eq ''
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters with SMTP configuration' {
-                $securePassword = ConvertTo-SecureString 'testpassword' -AsPlainText -Force
-                Send-IMTestMessage -from 'test@example.com' -replyto 'reply@example.com' -hostname 'smtp.example.com' -Password $securePassword -port 587 -username 'user@example.com'
-
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -ParameterFilter {
-                    $BoundParameters.from -eq 'test@example.com' -and
-                    $BoundParameters.hostname -eq 'smtp.example.com' -and
-                    $BoundParameters.port -eq 587
-                }
-            }
-
-            It 'Should convert SecureString password' {
+            It 'Should send the SecureString password as plain text' {
                 $securePassword = ConvertTo-SecureString 'testpassword' -AsPlainText -Force
                 Send-IMTestMessage -from 'test@example.com' -replyto 'reply@example.com' -hostname 'smtp.example.com' -Password $securePassword
 
-                Should -Invoke ConvertFromSecureString -Times 1
+                Should -Invoke Invoke-ImmichApiSendTestEmailAdmin -Times 1 -ModuleName PSImmich -ParameterFilter {
+                    $Body.transport.password -eq 'testpassword'
+                }
             }
 
-            It 'Should handle optional parameters with defaults' {
+            It 'Should forward explicit transport settings' {
                 $securePassword = ConvertTo-SecureString 'testpassword' -AsPlainText -Force
-                Send-IMTestMessage -from 'test@example.com' -replyto 'reply@example.com' -hostname 'smtp.example.com' -Password $securePassword -ignoreCert:$true
+                Send-IMTestMessage -enabled $false -from 'test@example.com' -replyto 'reply@example.com' -hostname 'smtp.example.com' -Password $securePassword -port 587 -username 'user@example.com' -ignoreCert $true -Secure $true
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/admin/notifications/test-email'
+                Should -Invoke Invoke-ImmichApiSendTestEmailAdmin -Times 1 -ModuleName PSImmich -ParameterFilter {
+                    $Body.enabled -eq $false -and
+                    $Body.transport.port -eq 587 -and
+                    $Body.transport.username -eq 'user@example.com' -and
+                    $Body.transport.ignoreCert -eq $true -and
+                    $Body.transport.secure -eq $true
                 }
+            }
+
+            It 'Should forward the Session parameter' {
+                $securePassword = ConvertTo-SecureString 'testpassword' -AsPlainText -Force
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Send-IMTestMessage -from 'test@example.com' -replyto 'reply@example.com' -hostname 'smtp.example.com' -Password $securePassword -Session $Session
+
+                Should -Invoke Invoke-ImmichApiSendTestEmailAdmin -Times 1 -ModuleName PSImmich -ParameterFilter {
+                    $ImmichSession.GetType().Name -eq 'ImmichSession'
+                }
+            }
+
+            It 'Should return a TestEmailResponseDto' {
+                $securePassword = ConvertTo-SecureString 'testpassword' -AsPlainText -Force
+                $result = Send-IMTestMessage -from 'test@example.com' -replyto 'reply@example.com' -hostname 'smtp.example.com' -Password $securePassword
+                $result.GetType().Name | Should -Be 'TestEmailResponseDto'
+                $result.messageId | Should -Be '<test-message-id@example.com>'
             }
         }
 
@@ -6715,7 +7026,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Add-IMPartner' -Tag 'Unit', 'Add-IMPartner' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiCreatePartner {
                 return [PSCustomObject]@{
                     id               = 'partner-user-guid-1234567890abcdef'
                     email            = 'partner@example.com'
@@ -6723,7 +7034,7 @@ InModuleScope $ProjectName {
                     profileImagePath = '/profile/partner.jpg'
                     createdAt        = '2024-01-01T10:00:00Z'
                 }
-            }
+            } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -6742,20 +7053,23 @@ InModuleScope $ProjectName {
         }
 
         Context 'Partner Addition' {
-            It 'Should add partner with correct API call' {
+            It 'Should add partner through the generated createPartner function' {
                 Add-IMPartner -SharedWithId 'a1b2c3d4-e5f6-4789-a012-123456789abc'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and
-                    $RelativePath -eq '/partners' -and
+                Should -Invoke Invoke-ImmichApiCreatePartner -Times 1 -ModuleName PSImmich -ParameterFilter {
                     $Body.sharedWithId -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 }
+            }
+
+            It 'Should return a PartnerResponseDto' {
+                $result = Add-IMPartner -SharedWithId 'a1b2c3d4-e5f6-4789-a012-123456789abc'
+                $result.GetType().Name | Should -Be 'PartnerResponseDto'
             }
         }
     }
     Describe 'Get-IMPartner' -Tag 'Unit', 'Get-IMPartner' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetPartners {
                 return @(
                     [PSCustomObject]@{
                         id               = 'partner1-guid-here-1234567890abcdef'
@@ -6770,17 +7084,7 @@ InModuleScope $ProjectName {
                         profileImagePath = '/profile/partner2.jpg'
                     }
                 )
-            }
-
-            Mock ConvertTo-ApiParameters {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Direction)
-                {
-                    $result.direction = $BoundParameters.Direction
-                }
-                return $result
-            }
+            } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -6800,29 +7104,24 @@ InModuleScope $ProjectName {
         }
 
         Context 'Partner Retrieval' {
-            It 'Should get partners with correct API call' {
+            It 'Should get partners through the generated getPartners function' {
                 Get-IMPartner -Direction 'shared-with'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'GET' -and
-                    $RelativePath -eq '/partners'
+                Should -Invoke Invoke-ImmichApiGetPartners -Times 1 -ModuleName PSImmich -ParameterFilter {
+                    $Direction -eq 'shared-with'
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters with direction' {
-                Get-IMPartner -Direction 'shared-by'
-
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -ParameterFilter {
-                    $BoundParameters.Direction -eq 'shared-by'
-                }
+            It 'Should return PartnerResponseDto objects' {
+                $result = Get-IMPartner -Direction 'shared-by'
+                $result.Count | Should -Be 2
+                $result[0].GetType().Name | Should -Be 'PartnerResponseDto'
             }
         }
     }
     Describe 'Remove-IMPartner' -Tag 'Unit', 'Remove-IMPartner' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return $null
-            }
+            Mock Invoke-ImmichApiRemovePartner {} -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -6841,19 +7140,18 @@ InModuleScope $ProjectName {
         }
 
         Context 'Partner Removal' {
-            It 'Should remove partner with correct API call' {
+            It 'Should remove partner through the generated removePartner function' {
                 Remove-IMPartner -id 'a1b2c3d4-e5f6-4789-a012-123456789abc'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/partners/a1b2c3d4-e5f6-4789-a012-123456789abc'
+                Should -Invoke Invoke-ImmichApiRemovePartner -Times 1 -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 }
             }
         }
     }
     Describe 'Remove-IMPerson' -Tag 'Unit', 'Remove-IMPerson' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiDeletePeople -ModuleName PSImmich {}
         }
 
         Context 'Parameter Validation' {
@@ -6890,11 +7188,11 @@ InModuleScope $ProjectName {
         }
 
         Context 'API Calls' {
-            It 'Should call correct endpoint for bulk delete' {
+            It 'Should call the bulk delete wrapper' {
                 Remove-IMPerson -Ids '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/people'
+                Should -Invoke Invoke-ImmichApiDeletePeople -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
@@ -6902,7 +7200,7 @@ InModuleScope $ProjectName {
                 $personIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc', 'abcdef01-2345-6789-abcd-ef0123456789')
                 Remove-IMPerson -Ids $personIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeletePeople -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.ids.Count -eq 3 -and
                     ($personIds | ForEach-Object { $Body.ids -contains $_ }) -notcontains $false
                 }
@@ -6912,7 +7210,7 @@ InModuleScope $ProjectName {
                 $personIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
                 $personIds | Remove-IMPerson -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeletePeople -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.ids.Count -eq 2 -and
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000' -and
                     $Body.ids -contains '987fcdeb-51a2-43d5-b789-123456789abc'
@@ -6926,7 +7224,7 @@ InModuleScope $ProjectName {
                 )
                 $personObjects | Remove-IMPerson -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeletePeople -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.ids.Count -eq 2 -and
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000' -and
                     $Body.ids -contains '987fcdeb-51a2-43d5-b789-123456789abc'
@@ -6939,8 +7237,8 @@ InModuleScope $ProjectName {
                 $personIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc', 'abcdef01-2345-6789-abcd-ef0123456789')
                 Remove-IMPerson -Ids $personIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/people'
+                Should -Invoke Invoke-ImmichApiDeletePeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.ids.Count -eq 3
                 }
             }
 
@@ -6948,7 +7246,7 @@ InModuleScope $ProjectName {
                 $pipelineIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
                 $pipelineIds | Remove-IMPerson -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeletePeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $Body.ids.Count -eq 2
                 }
             }
@@ -6956,14 +7254,14 @@ InModuleScope $ProjectName {
     }
     Describe 'Set-IMPartner' -Tag 'Unit', 'Set-IMPartner' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiUpdatePartner {
                 return [PSCustomObject]@{
                     id         = 'updated-partner-guid-1234567890abcdef'
                     email      = 'partner@example.com'
                     name       = 'Updated Partner'
                     inTimeline = $true
                 }
-            }
+            } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -6982,21 +7280,19 @@ InModuleScope $ProjectName {
         }
 
         Context 'Partner Updates' {
-            It 'Should update partner with correct API call' {
+            It 'Should update partner through the generated updatePartner function' {
                 Set-IMPartner -id 'a1b2c3d4-e5f6-4789-a012-123456789abc' -EnableTimeline:$true
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and
-                    $RelativePath -eq '/partners/a1b2c3d4-e5f6-4789-a012-123456789abc'
+                Should -Invoke Invoke-ImmichApiUpdatePartner -Times 1 -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc' -and
+                    $Body.inTimeline -eq $true
                 }
             }
         }
     }
     Describe 'Export-IMPersonThumbnail' -Tag 'Unit', 'Export-IMPersonThumbnail' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @(1, 2, 3, 4, 5)  # Mock byte array
-            }
+            Mock Invoke-ImmichApiGetPersonThumbnail -ModuleName PSImmich {}
         }
 
         Context 'Parameter Validation' {
@@ -7018,70 +7314,224 @@ InModuleScope $ProjectName {
             It 'Should export thumbnail with correct API call' {
                 Export-IMPersonThumbnail -id 'a1b2c3d4-e5f6-4789-a012-123456789abc' -Path $TestDrive
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/people/a1b2c3d4-e5f6-4789-a012-123456789abc/thumbnail'
+                Should -Invoke Invoke-ImmichApiGetPersonThumbnail -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc' -and
+                    $OutFilePath -like '*a1b2c3d4-e5f6-4789-a012-123456789abc.jpeg'
                 }
             }
         }
     }
+    Describe 'Get-IMPersonAccess' -Tag 'Unit', 'Get-IMPersonAccess' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetUsersForPeople -ModuleName PSImmich {
+                @(
+                    [PSCustomObject]@{ personId = 'bf973405-3f2a-48d2-a687-2ed4167164be'; sharedById = '1a2b3c4d-0000-4000-8000-000000000001'; sharedWithId = '9c4e0006-3a2b-4967-94b6-7e8bb8490a12'; role = 'read' }
+                )
+            }
+        }
+
+        Context 'When listing without filters' {
+            It 'Should call the endpoint without query parameters' {
+                $Result = Get-IMPersonAccess
+
+                Should -Invoke Invoke-ImmichApiGetUsersForPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Direction -eq $null -and $PersonId -eq $null -and $Role -eq $null -and $SharedById -eq $null -and $SharedWithId -eq $null
+                }
+                $Result.role | Should -Be 'read'
+            }
+        }
+
+        Context 'When filtering' {
+            It 'Should forward only the supplied filters' {
+                Get-IMPersonAccess -Direction shared-by -Role admin
+
+                Should -Invoke Invoke-ImmichApiGetUsersForPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Direction -eq 'shared-by' -and $Role -eq 'admin' -and $PersonId -eq $null -and $SharedWithId -eq $null
+                }
+            }
+
+            It 'Should forward person and user identifiers' {
+                Get-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedById '1a2b3c4d-0000-4000-8000-000000000001' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12'
+
+                Should -Invoke Invoke-ImmichApiGetUsersForPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $PersonId -eq 'bf973405-3f2a-48d2-a687-2ed4167164be' -and
+                    $SharedById -eq '1a2b3c4d-0000-4000-8000-000000000001' -and
+                    $SharedWithId -eq '9c4e0006-3a2b-4967-94b6-7e8bb8490a12'
+                }
+            }
+        }
+
+        Context 'When an explicit session is provided' {
+            It 'Should forward the session to the REST call' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+                Get-IMPersonAccess -Session $Session
+
+                Should -Invoke Invoke-ImmichApiGetUsersForPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+        }
+
+        Context 'When parameters are invalid' {
+            It 'Should throw for an unknown direction' {
+                { Get-IMPersonAccess -Direction sideways } | Should -Throw
+            }
+
+            It 'Should throw for an unknown role' {
+                { Get-IMPersonAccess -Role owner } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Add-IMPersonAccess' -Tag 'Unit', 'Add-IMPersonAccess' {
+        BeforeAll {
+            Mock Invoke-ImmichApiUpsertPeopleUsers -ModuleName PSImmich {}
+        }
+
+        Context 'When sharing specific people' {
+            It 'Should send the person ids, users and role' {
+                Add-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -Role read -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpsertPeopleUsers -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.personIds -contains 'bf973405-3f2a-48d2-a687-2ed4167164be' -and
+                    $Body.sharedWithIds -contains '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -and
+                    $Body.role -eq 'read' -and
+                    -not $Body.ContainsKey('type')
+                }
+            }
+
+            It 'Should send multiple people and users in one request' {
+                Add-IMPersonAccess -PersonId @('bf973405-3f2a-48d2-a687-2ed4167164be', '6c1c0c9e-4b4f-4b57-b2bc-1f8b3e5a0d22') -SharedWithId @('9c4e0006-3a2b-4967-94b6-7e8bb8490a12', 'c3a2e8b4-3f65-4e3d-9f9f-4d2c8e5a0f32') -Role admin -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpsertPeopleUsers -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.personIds.Count -eq 2 -and $Body.sharedWithIds.Count -eq 2 -and $Body.role -eq 'admin'
+                }
+            }
+        }
+
+        Context 'When sharing everyone' {
+            It 'Should send the everyone type instead of person ids' {
+                Add-IMPersonAccess -Everyone -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -Role write -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpsertPeopleUsers -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.type -eq 'everyone' -and $Body.role -eq 'write' -and -not $Body.ContainsKey('personIds')
+                }
+            }
+        }
+
+        Context 'When WhatIf is specified' {
+            It 'Should not call the endpoint' {
+                Add-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -Role read -WhatIf
+
+                Should -Invoke Invoke-ImmichApiUpsertPeopleUsers -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+        }
+
+        Context 'When parameters are invalid' {
+            It 'Should throw when Everyone and PersonId are combined' {
+                { Add-IMPersonAccess -Everyone -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -Role read -Confirm:$false } | Should -Throw
+            }
+
+            It 'Should throw for an unknown role' {
+                { Add-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -Role owner -Confirm:$false } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Remove-IMPersonAccess' -Tag 'Unit', 'Remove-IMPersonAccess' {
+        BeforeAll {
+            Mock Invoke-ImmichApiRemoveUsersFromPeople -ModuleName PSImmich {}
+        }
+
+        Context 'When removing a single grant' {
+            It 'Should send a JSON array containing the grant' {
+                Remove-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiRemoveUsersFromPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $RawBody.TrimStart().StartsWith('[') -and
+                    (ConvertFrom-Json -InputObject $RawBody).personId -eq 'bf973405-3f2a-48d2-a687-2ed4167164be' -and
+                    (ConvertFrom-Json -InputObject $RawBody).sharedWithId -eq '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -and
+                    $null -eq (ConvertFrom-Json -InputObject $RawBody).sharedById
+                }
+            }
+
+            It 'Should include the sharedById when supplied' {
+                Remove-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -SharedById '1a2b3c4d-0000-4000-8000-000000000001' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiRemoveUsersFromPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    (ConvertFrom-Json -InputObject $RawBody)[0].sharedById -eq '1a2b3c4d-0000-4000-8000-000000000001'
+                }
+            }
+        }
+
+        Context 'When removing grants from the pipeline' {
+            It 'Should send one request per grant bound by property name' {
+                $Grants = @(
+                    [PSCustomObject]@{ personId = 'bf973405-3f2a-48d2-a687-2ed4167164be'; sharedById = '1a2b3c4d-0000-4000-8000-000000000001'; sharedWithId = '9c4e0006-3a2b-4967-94b6-7e8bb8490a12'; role = 'read' }
+                    [PSCustomObject]@{ personId = '6c1c0c9e-4b4f-4b57-b2bc-1f8b3e5a0d22'; sharedById = '1a2b3c4d-0000-4000-8000-000000000001'; sharedWithId = 'c3a2e8b4-3f65-4e3d-9f9f-4d2c8e5a0f32'; role = 'write' }
+                )
+
+                $Grants | Remove-IMPersonAccess -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiRemoveUsersFromPeople -ModuleName PSImmich -Times 2 -Exactly -Scope It
+            }
+        }
+
+        Context 'When WhatIf is specified' {
+            It 'Should not call the endpoint' {
+                Remove-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiRemoveUsersFromPeople -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+        }
+
+        Context 'When parameters are invalid' {
+            It 'Should throw for a malformed person id' {
+                { Remove-IMPersonAccess -PersonId 'not-a-guid' -SharedWithId '9c4e0006-3a2b-4967-94b6-7e8bb8490a12' -Confirm:$false } | Should -Throw
+            }
+
+            It 'Should throw when SharedWithId is omitted' {
+                { Remove-IMPersonAccess -PersonId 'bf973405-3f2a-48d2-a687-2ed4167164be' -Confirm:$false } | Should -Throw
+            }
+        }
+    }
+
     Describe 'Get-IMPerson' -Tag 'Unit', 'Get-IMPerson' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                param($Method, $RelativePath, $ImmichSession)
-
-                switch -Regex ($RelativePath)
-                {
-                    '^/people$'
-                    {
-                        return @(
-                            [PSCustomObject]@{
-                                id            = 'person1-guid-here-1234567890abcdef'
-                                name          = 'John Doe'
-                                birthDate     = '1990-01-01'
-                                thumbnailPath = '/thumbs/person1.jpg'
-                                isHidden      = $false
-                            },
-                            [PSCustomObject]@{
-                                id            = 'person2-guid-here-2345678901bcdefg'
-                                name          = 'Jane Smith'
-                                birthDate     = '1985-05-15'
-                                thumbnailPath = '/thumbs/person2.jpg'
-                                isHidden      = $false
-                            }
-                        )
-                    }
-                    '^/people/[a-fA-F0-9-]+$'
-                    {
-                        return [PSCustomObject]@{
+            Mock Invoke-ImmichApiGetAllPeople -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    people = @(
+                        [PSCustomObject]@{
                             id            = 'person1-guid-here-1234567890abcdef'
                             name          = 'John Doe'
                             birthDate     = '1990-01-01'
                             thumbnailPath = '/thumbs/person1.jpg'
                             isHidden      = $false
+                        },
+                        [PSCustomObject]@{
+                            id            = 'person2-guid-here-2345678901bcdefg'
+                            name          = 'Jane Smith'
+                            birthDate     = '1985-05-15'
+                            thumbnailPath = '/thumbs/person2.jpg'
+                            isHidden      = $false
                         }
-                    }
-                    '^/people/[a-fA-F0-9-]+/statistics$'
-                    {
-                        return [PSCustomObject]@{
-                            assets = 42
-                        }
-                    }
-                    default
-                    {
-                        throw "Unexpected RelativePath: $RelativePath"
-                    }
+                    )
+                    total  = 2
+                    hidden = 0
                 }
             }
-
-            Mock ConvertTo-ApiParameters {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.WithHidden -ne $null)
-                {
-                    $result.withHidden = $BoundParameters.WithHidden
+            Mock Invoke-ImmichApiGetPerson -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    id            = 'person1-guid-here-1234567890abcdef'
+                    name          = 'John Doe'
+                    birthDate     = '1990-01-01'
+                    thumbnailPath = '/thumbs/person1.jpg'
+                    isHidden      = $false
                 }
-                return $result
+            }
+            Mock Invoke-ImmichApiGetPersonStatistics -ModuleName PSImmich {
+                return [PSCustomObject]@{ assets = 42 }
             }
         }
 
@@ -7118,19 +7568,24 @@ InModuleScope $ProjectName {
             It 'Should get all people when no parameters provided' {
                 $result = Get-IMPerson
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/people'
-                }
+                Should -Invoke Invoke-ImmichApiGetAllPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It
                 $result | Should -HaveCount 2
                 $result[0].name | Should -Be 'John Doe'
             }
 
-            It 'Should handle WithHidden parameter' {
-                Get-IMPerson -WithHidden
+            It 'Should send WithHidden when WithHidden is specified' {
+                Get-IMPerson -WithHidden | Out-Null
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -ParameterFilter {
-                    $BoundParameters.WithHidden -eq $true
+                Should -Invoke Invoke-ImmichApiGetAllPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $WithHidden -eq $true
+                }
+            }
+
+            It 'Should not send WithHidden when WithHidden is omitted' {
+                Get-IMPerson | Out-Null
+
+                Should -Invoke Invoke-ImmichApiGetAllPeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $null -eq $WithHidden
                 }
             }
         }
@@ -7139,9 +7594,8 @@ InModuleScope $ProjectName {
             It 'Should get specific person by id' {
                 $result = Get-IMPerson -id '12345678-1234-5678-9012-123456789abc'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/people/12345678-1234-5678-9012-123456789abc'
+                Should -Invoke Invoke-ImmichApiGetPerson -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
                 }
                 $result.name | Should -Be 'John Doe'
             }
@@ -7149,14 +7603,17 @@ InModuleScope $ProjectName {
             It 'Should include statistics when IncludeStatistics is specified' {
                 $result = Get-IMPerson -id '12345678-1234-5678-9012-123456789abc' -IncludeStatistics
 
-                Should -Invoke InvokeImmichRestMethod -Times 2  # One for person, one for statistics
+                Should -Invoke Invoke-ImmichApiGetPerson -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetPersonStatistics -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
+                }
                 $result.AssetCount | Should -Be 42
             }
         }
     }
     Describe 'Merge-IMPerson' -Tag 'Unit', 'Merge-IMPerson' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiMergePeople -ModuleName PSImmich {
                 return @(
                     [PSCustomObject]@{
                         id            = 'merged-person-guid-1234567890abcdef'
@@ -7199,17 +7656,18 @@ InModuleScope $ProjectName {
                 $mergeIds = @('23456789-2345-6789-0123-23456789abcd', '34567890-3456-7890-1234-3456789abcde')
                 Merge-IMPerson -ToPersonID '12345678-1234-5678-9012-123456789abc' -FromPersonID $mergeIds
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/people/12345678-1234-5678-9012-123456789abc/merge' -and
-                    $Body.ids.Count -eq 2
+                Should -Invoke Invoke-ImmichApiMergePeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.ids.Count -eq 3 -and
+                    $Body.ids[0] -eq '12345678-1234-5678-9012-123456789abc' -and
+                    $Body.ids[1] -eq '23456789-2345-6789-0123-23456789abcd' -and
+                    $Body.ids[2] -eq '34567890-3456-7890-1234-3456789abcde'
                 }
             }
         }
     }
     Describe 'New-IMPerson' -Tag 'Unit', 'New-IMPerson' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiCreatePerson -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     id            = 'new-person-guid-1234567890abcdef'
                     name          = 'New Person'
@@ -7234,12 +7692,11 @@ InModuleScope $ProjectName {
         }
 
         Context 'Person Creation' {
-            It 'Should create person with correct API call' {
+            It 'Should create person through the generated wrapper' {
                 New-IMPerson -Name 'Test Person'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and
-                    $RelativePath -eq '/people'
+                Should -Invoke Invoke-ImmichApiCreatePerson -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'Test Person'
                 }
             }
 
@@ -7247,15 +7704,15 @@ InModuleScope $ProjectName {
                 $birthDate = Get-Date '1995-03-15'
                 New-IMPerson -Name 'Test Person' -BirthDate $birthDate
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Body.birthDate -ne $null
+                Should -Invoke Invoke-ImmichApiCreatePerson -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $null -ne $Body.birthDate
                 }
             }
         }
     }
     Describe 'Set-IMPerson' -Tag 'Unit', 'Set-IMPerson' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiUpdatePeople -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     id        = 'updated-person-guid-1234567890abcdef'
                     name      = 'Updated Person Name'
@@ -7281,114 +7738,66 @@ InModuleScope $ProjectName {
         }
 
         Context 'Person Updates' {
-            It 'Should update person with correct API call' {
-                Set-IMPerson -Id '12345678-1234-1234-1234-123456789abc' -Name 'New Name'
+            It 'Should update person through the generated wrapper' {
+                Set-IMPerson -Id '12345678-1234-1234-1234-123456789abc' -Name 'New Name' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and
-                    $RelativePath -eq '/people'
+                Should -Invoke Invoke-ImmichApiUpdatePeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.people[0].id -eq '12345678-1234-1234-1234-123456789abc' -and
+                    $Body.people[0].name -eq 'New Name'
                 }
             }
 
             It 'Should handle IsHidden parameter' {
-                Set-IMPerson -Id '12345678-1234-5678-9012-123456789abc' -IsHidden:$true
+                Set-IMPerson -Id '12345678-1234-5678-9012-123456789abc' -IsHidden:$true -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and
-                    $RelativePath -eq '/people' -and
+                Should -Invoke Invoke-ImmichApiUpdatePeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.people[0].id -eq '12345678-1234-5678-9012-123456789abc' -and
                     $Body.people[0].isHidden -eq $true
                 }
             }
-        }
-    }
-    Describe 'Find-IMAsset' -Tag 'Unit', 'Find-IMAsset' {
-        BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{
-                    assets = @(
-                        [PSCustomObject]@{
-                            items = @(
-                                [PSCustomObject]@{
-                                    id               = 'asset1-guid-here-1234567890abcdef'
-                                    type             = 'IMAGE'
-                                    originalFileName = 'photo1.jpg'
-                                    fileCreatedAt    = '2024-01-01T10:00:00Z'
-                                },
-                                [PSCustomObject]@{
-                                    id               = 'asset2-guid-here-2345678901bcdefg'
-                                    type             = 'VIDEO'
-                                    originalFileName = 'video1.mp4'
-                                    fileCreatedAt    = '2024-01-02T11:00:00Z'
-                                }
-                            )
-                        }
-                    )
-                    albums = @()
-                    total  = 2
+
+            It 'Should send Color as the avatarColor enum' {
+                Set-IMPerson -Id '12345678-1234-1234-1234-123456789abc' -Color 'amber' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpdatePeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.people[0].avatarColor -eq 'amber' -and
+                    -not $Body.people[0].ContainsKey('color')
                 }
             }
 
-            Mock ConvertTo-ApiParameters {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Query)
-                {
-                    $result.q = $BoundParameters.Query
-                }
-                if ($BoundParameters.Type)
-                {
-                    $result.type = $BoundParameters.Type
-                }
-                if ($BoundParameters.IsFavorite -ne $null)
-                {
-                    $result.isFavorite = $BoundParameters.IsFavorite
-                }
-                return $result
-            }
-        }
-
-        Context 'Parameter Validation' {
-            It 'Should have OriginalFileName parameter' {
-                $function = Get-Command Find-IMAsset
-                $function.Parameters.Keys | Should -Contain 'OriginalFileName'
-            }
-
-            It 'Should have Type parameter with ValidateSet' {
-                $function = Get-Command Find-IMAsset
-                $typeParam = $function.Parameters['Type']
-                $validateSetAttribute = $typeParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ValidateSetAttribute' }
-                $validateSetAttribute.ValidValues | Should -Contain 'IMAGE'
-                $validateSetAttribute.ValidValues | Should -Contain 'VIDEO'
-            }
-        }
-
-        Context 'Asset Search' {
-            It 'Should search assets with correct API call' {
-                Find-IMAsset -OriginalFileName 'vacation.jpg'
-
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/search/metadata'
-                }
-            }
-
-            It 'Should include query parameters' {
-                Find-IMAsset -OriginalFileName 'beach.jpg' -Type 'IMAGE' -isFavorite:$true
-
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -ParameterFilter {
-                    $BoundParameters.originalFileName -eq 'beach.jpg' -and
-                    $BoundParameters.Type -eq 'IMAGE' -and
-                    $BoundParameters.IsFavorite -eq $true
-                }
+            It 'Should reject a color outside the avatar enum' {
+                { Set-IMPerson -Id '12345678-1234-1234-1234-123456789abc' -Color '#FF0000' -Confirm:$false } | Should -Throw
             }
         }
     }
     Describe 'Search-IMAsset' -Tag 'Unit', 'Search-IMAsset' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiSearchAssets -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     assets = [PSCustomObject]@{
-                        items = @(
+                        items      = @(
+                            [PSCustomObject]@{
+                                id               = 'asset1-guid-here-1234567890abcdef'
+                                type             = 'IMAGE'
+                                originalFileName = 'photo1.jpg'
+                                fileCreatedAt    = '2024-01-01T10:00:00Z'
+                            },
+                            [PSCustomObject]@{
+                                id               = 'asset2-guid-here-2345678901bcdefg'
+                                type             = 'VIDEO'
+                                originalFileName = 'video1.mp4'
+                                fileCreatedAt    = '2024-01-02T11:00:00Z'
+                            }
+                        )
+                        nextCursor = $null
+                    }
+                }
+            }
+
+            Mock Invoke-ImmichApiSearchSmart -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    assets = [PSCustomObject]@{
+                        items    = @(
                             [PSCustomObject]@{
                                 id               = 'search-asset1-guid-1234567890abcdef'
                                 type             = 'IMAGE'
@@ -7402,100 +7811,221 @@ InModuleScope $ProjectName {
                                 fileCreatedAt    = '2024-01-02T11:00:00Z'
                             }
                         )
+                        nextPage = $null
                     }
                 }
-            }
-
-            Mock ConvertTo-ApiParameters {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Query)
-                {
-                    $result.query = $BoundParameters.Query
-                }
-                if ($BoundParameters.Clip)
-                {
-                    $result.clip = $BoundParameters.Clip
-                }
-                if ($BoundParameters.Motion)
-                {
-                    $result.motion = $BoundParameters.Motion
-                }
-                return $result
             }
         }
 
         Context 'Parameter Validation' {
-            It 'Should have search-specific parameters' {
+            It 'Should default to the Metadata parameter set' {
                 $function = Get-Command Search-IMAsset
-                $function.Parameters.Keys | Should -Contain 'Query'
-                $function.Parameters.Keys | Should -Contain 'OCR'
-                $function.Parameters.Keys | Should -Contain 'PersonIds'
+                $function.DefaultParameterSet | Should -Be 'Metadata'
+            }
+
+            It 'Should have a Smart switch and no Find-IMAsset command' {
+                $function = Get-Command Search-IMAsset
+                $function.Parameters['Smart'].SwitchParameter | Should -BeTrue
+                Get-Command Find-IMAsset -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+            }
+
+            It 'Should make Query mandatory only in the Smart parameter set' {
+                $function = Get-Command Search-IMAsset
+                $queryParam = $function.Parameters['Query']
+                $queryParam.ParameterSets.Keys | Should -Be 'Smart'
+                $queryParam.ParameterSets['Smart'].IsMandatory | Should -BeTrue
+            }
+
+            It 'Should restrict Order to the Metadata parameter set' {
+                $function = Get-Command Search-IMAsset
+                $function.Parameters['Order'].ParameterSets.Keys | Should -Be 'Metadata'
+            }
+
+            It 'Should restrict Language to the Smart parameter set' {
+                $function = Get-Command Search-IMAsset
+                $function.Parameters['Language'].ParameterSets.Keys | Should -Be 'Smart'
+            }
+
+            It 'Should not expose removed deprecated parameters' {
+                $function = Get-Command Search-IMAsset
+                $function.Parameters.Keys | Should -Not -Contain 'DeviceId'
+                $function.Parameters.Keys | Should -Not -Contain 'DeviceAssetId'
+                $function.Parameters.Keys | Should -Not -Contain 'IsVisible'
+                $function.Parameters.Keys | Should -Not -Contain 'WithDeleted'
+            }
+
+            It 'Should have Type parameter with ValidateSet' {
+                $function = Get-Command Search-IMAsset
+                $typeParam = $function.Parameters['Type']
+                $validateSetAttribute = $typeParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ValidateSetAttribute' }
+                $validateSetAttribute.ValidValues | Should -Contain 'IMAGE'
+                $validateSetAttribute.ValidValues | Should -Contain 'VIDEO'
             }
         }
 
-        Context 'Asset Search Operations' {
-            It 'Should search assets with smart search API' {
-                Search-IMAsset -Query 'sunset beach'
+        Context 'Metadata search (default)' {
+            It 'Should POST to the metadata search endpoint and return AssetResponseDto objects' {
+                $result = Search-IMAsset -OriginalFileName 'vacation.jpg'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/search/smart'
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.filter.originalFileName.eq -eq 'vacation.jpg'
+                }
+                Should -Invoke Invoke-ImmichApiSearchSmart -ModuleName PSImmich -Times 0
+                $result.Count | Should -Be 2
+                $result[0].GetType().Name | Should -Be 'AssetResponseDto'
+            }
+
+            It 'Should send filters as operator objects inside the filter body' {
+                Search-IMAsset -OriginalFileName 'beach.jpg' -Type 'IMAGE' -IsFavorite:$true
+
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.filter.originalFileName.eq -eq 'beach.jpg' -and
+                    $Body.filter.type.eq -eq 'IMAGE' -and
+                    $Body.filter.isFavorite.eq -eq $true
                 }
             }
 
-            It 'Should handle OCR search' {
-                Search-IMAsset -Query 'running dog' -OCR 'text search'
+            It 'Should send explicit false boolean filters' {
+                Search-IMAsset -IsFavorite:$false -IsOffline:$false
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -ParameterFilter {
-                    $BoundParameters.OCR -eq 'text search' -and
-                    $BoundParameters.Query -eq 'running dog'
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.filter.isFavorite.eq -eq $false -and
+                    $Body.filter.isOffline.eq -eq $false
                 }
             }
-        }
-    }
-    Describe 'Find-IMCity' -Tag 'Unit', 'Find-IMCity' {
-        BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @(
-                    [PSCustomObject]@{
-                        id         = 'city1-guid-here-1234567890abcdef'
-                        name       = 'London'
-                        country    = 'United Kingdom'
-                        assetCount = 150
-                    },
-                    [PSCustomObject]@{
-                        id         = 'city2-guid-here-2345678901bcdefg'
-                        name       = 'Paris'
-                        country    = 'France'
-                        assetCount = 89
+
+            It 'Should send multi-value ids with the any operator' {
+                $albumId = 'b4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
+                $tagId = 'c4f5ad9c-3c3f-4b8f-9e3f-3c3f4b8f9e3f'
+                Search-IMAsset -AlbumIds $albumId -TagIds $tagId
+
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.filter.albumIds.any -contains $albumId -and
+                    $Body.filter.tagIds.any -contains $tagId
+                }
+            }
+
+            It 'Should map date parameters to inclusive gte and lte operators' {
+                $after = [datetime]'2024-01-01'
+                $before = [datetime]'2024-02-01'
+                Search-IMAsset -TakenAfter $after -TakenBefore $before
+
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.filter.takenAt.gte -eq $after -and
+                    $Body.filter.takenAt.lte -eq $before
+                }
+            }
+
+            It 'Should invert IsNotInAlbum into hasAlbums' {
+                Search-IMAsset -IsNotInAlbum
+
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.filter.hasAlbums.eq -eq $false
+                }
+            }
+
+            It 'Should map Order to orderBy.direction and WithPeople to the top level' {
+                Search-IMAsset -Order 'asc' -WithPeople:$true -WithStacked:$true
+
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.orderBy.direction -eq 'asc' -and
+                    $Body.withPeople -eq $true -and
+                    $Body.withStacked -eq $true -and
+                    -not $Body.ContainsKey('filter')
+                }
+            }
+
+            It 'Should follow nextCursor when paging' {
+                Mock Invoke-ImmichApiSearchAssets -ModuleName PSImmich {
+                    if ($Body.cursor)
+                    {
+                        return [PSCustomObject]@{ assets = [PSCustomObject]@{ items = @(); nextCursor = $null } }
                     }
-                )
+                    return [PSCustomObject]@{ assets = [PSCustomObject]@{ items = @([PSCustomObject]@{ id = 'a1' }); nextCursor = 'cursor-2' } }
+                }
+
+                $result = Search-IMAsset -Size 1
+
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Exactly -Times 2
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.cursor -eq 'cursor-2' -and $Body.size -eq 1
+                }
+                $result.Count | Should -Be 1
+            }
+
+            It 'Should throw when -Smart is not provided but -Language is' {
+                { Search-IMAsset -Language 'en' } | Should -Throw
+            }
+
+            It 'Should throw when -Query is provided without -Smart' {
+                { Search-IMAsset -Query 'Road' } | Should -Throw
+            }
+
+            It 'Should throw when -WithPeople is combined with -Smart' {
+                { Search-IMAsset -Smart -Query 'Road' -WithPeople:$true } | Should -Throw
+            }
+
+            It 'Should throw when -Order is combined with -Smart' {
+                { Search-IMAsset -Smart -Query 'Road' -Order 'asc' } | Should -Throw
             }
         }
 
-        Context 'City Search' {
-            It 'Should search cities with correct API call' {
-                Find-IMCity
+        Context 'Smart search (-Smart)' {
+            It 'Should POST to the smart search endpoint with the query and filters' {
+                $result = Search-IMAsset -Smart -Query 'sunset beach' -Country 'Sweden'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/search/cities'
+                Should -Invoke Invoke-ImmichApiSearchSmart -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.query -eq 'sunset beach' -and
+                    $Body.filter.country.eq -eq 'Sweden'
+                }
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 0
+                $result.Count | Should -Be 2
+                $result[0].GetType().Name | Should -Be 'AssetResponseDto'
+            }
+
+            It 'Should send OCR text as an ocr.matches filter' {
+                Search-IMAsset -Smart -Query 'running dog' -OCR 'text search'
+
+                Should -Invoke Invoke-ImmichApiSearchSmart -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.filter.ocr.matches -eq 'text search' -and
+                    $Body.query -eq 'running dog'
                 }
             }
 
-            It 'Should return city results' {
-                $result = Find-IMCity
+            It 'Should send Language to the top level' {
+                Search-IMAsset -Smart -Query 'dog' -Language 'sv'
 
-                $result | Should -HaveCount 2
-                $result[0].name | Should -Be 'London'
-                $result[1].country | Should -Be 'France'
+                Should -Invoke Invoke-ImmichApiSearchSmart -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.language -eq 'sv'
+                }
+            }
+
+            It 'Should throw when -Smart is provided without -Query' {
+                { Search-IMAsset -Smart } | Should -Throw
+            }
+
+            It 'Should send the next page token as an integer when paging' {
+                Mock Invoke-ImmichApiSearchSmart -ModuleName PSImmich {
+                    if ($Body.page)
+                    {
+                        return [PSCustomObject]@{ assets = [PSCustomObject]@{ items = @(); nextPage = $null } }
+                    }
+                    return [PSCustomObject]@{ assets = [PSCustomObject]@{ items = @([PSCustomObject]@{ id = 'a1' }); nextPage = '2' } }
+                }
+
+                $result = Search-IMAsset -Smart -Query 'unsp' -Size 1
+
+                Should -Invoke Invoke-ImmichApiSearchSmart -ModuleName PSImmich -Exactly -Times 2
+                Should -Invoke Invoke-ImmichApiSearchSmart -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.page -is [int] -and $Body.page -eq 2
+                }
+                $result.Count | Should -Be 1
             }
         }
     }
     Describe 'Find-IMExploreData' -Tag 'Unit', 'Find-IMExploreData' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetExploreData -ModuleName PSImmich {
                 return @(
                     [PSCustomObject]@{
                         fieldName = 'camera-make'
@@ -7516,27 +8046,36 @@ InModuleScope $ProjectName {
         }
 
         Context 'Explore Data Retrieval' {
-            It 'Should get explore data with correct API call' {
+            It 'Should call the generated explore data function' {
                 Find-IMExploreData
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/search/explore'
-                }
+                Should -Invoke Invoke-ImmichApiGetExploreData -ModuleName PSImmich -Times 1 -Exactly
             }
 
-            It 'Should return structured explore data' {
+            It 'Should return SearchExploreResponseDto objects' {
                 $result = Find-IMExploreData
 
                 $result | Should -HaveCount 2
+                $result[0].GetType().Name | Should -Be 'SearchExploreResponseDto'
                 $result[0].fieldName | Should -Be 'camera-make'
                 $result[1].items[0].value | Should -Be 'vacation'
             }
+
+            It 'Should forward an explicit session' {
+                $session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+                Find-IMExploreData -Session $session
+
+                Should -Invoke Invoke-ImmichApiGetExploreData -ModuleName PSImmich -ParameterFilter {
+                    $ImmichSession -eq $session
+                }
+            }
         }
     }
+
     Describe 'Find-IMPerson' -Tag 'Unit', 'Find-IMPerson' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiSearchPerson -ModuleName PSImmich {
                 return @(
                     [PSCustomObject]@{
                         id            = 'found-person1-guid-1234567890abcdef'
@@ -7556,264 +8095,306 @@ InModuleScope $ProjectName {
             }
         }
 
-        Context 'Person Search' {
-            It 'Should search people with correct API call' {
+        Context 'Request mapping' {
+            It 'Should pass Name and omit WithHidden when not bound' {
                 Find-IMPerson -Name 'Alice'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/search/person'
+                Should -Invoke Invoke-ImmichApiSearchPerson -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $Name -eq 'Alice' -and
+                    -not $PSBoundParameters.ContainsKey('WithHidden')
                 }
             }
 
-            It 'Should return person search results' {
+            It 'Should send an explicit WithHidden value of false' {
+                Find-IMPerson -Name 'Alice' -WithHidden $false
+
+                Should -Invoke Invoke-ImmichApiSearchPerson -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $Name -eq 'Alice' -and
+                    $WithHidden -eq $false
+                }
+            }
+
+            It 'Should reject a missing Name' {
+                { Find-IMPerson } | Should -Throw
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return PersonResponseDto objects' {
                 $result = Find-IMPerson -Name 'Alice'
 
                 $result | Should -HaveCount 2
+                $result[0].GetType().Name | Should -Be 'PersonResponseDto'
                 $result[0].name | Should -Be 'Alice Johnson'
                 $result[1].name | Should -Be 'Bob Wilson'
             }
         }
     }
+
     Describe 'Find-IMPlace' -Tag 'Unit', 'Find-IMPlace' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiSearchPlaces -ModuleName PSImmich {
                 return @(
                     [PSCustomObject]@{
-                        id         = 'place1-guid-here-1234567890abcdef'
                         name       = 'Central Park'
-                        city       = 'New York'
-                        country    = 'United States'
-                        assetCount = 67
+                        latitude   = 40.7829
+                        longitude  = -73.9654
+                        admin1name = 'New York'
+                        admin2name = 'New York County'
                     },
                     [PSCustomObject]@{
-                        id         = 'place2-guid-here-2345678901bcdefg'
                         name       = 'Tower Bridge'
-                        city       = 'London'
-                        country    = 'United Kingdom'
-                        assetCount = 23
+                        latitude   = 51.5055
+                        longitude  = -0.0754
+                        admin1name = 'England'
+                        admin2name = 'Greater London'
                     }
                 )
             }
         }
 
-        Context 'Place Search' {
-            It 'Should search places with correct API call' {
+        Context 'Request mapping' {
+            It 'Should pass the Name to the generated places function' {
                 Find-IMPlace -Name 'Central'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/search/places'
+                Should -Invoke Invoke-ImmichApiSearchPlaces -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $Name -eq 'Central'
                 }
             }
 
-            It 'Should return place search results' {
+            It 'Should reject a missing Name' {
+                { Find-IMPlace } | Should -Throw
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return PlacesResponseDto objects' {
                 $result = Find-IMPlace -Name 'Central'
 
                 $result | Should -HaveCount 2
+                $result[0].GetType().Name | Should -Be 'PlacesResponseDto'
                 $result[0].name | Should -Be 'Central Park'
-                $result[1].city | Should -Be 'London'
+                $result[1].admin2name | Should -Be 'Greater London'
             }
         }
     }
 
     Describe 'Get-IMServerLicense' -Tag 'Unit', 'Get-IMServerLicense' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetServerLicense -ModuleName PSImmich {
                 return [PSCustomObject]@{ licenseKey = 'IMCH-XXXX-XXXX-XXXX'; activatedAt = '2024-01-01T00:00:00Z' }
             }
         }
         Context 'Server License' {
-            It 'Should get server license with correct API call' {
-                Get-IMServerLicense
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/license'
-                }
+            It 'Should get server license through the generated wrapper' {
+                $Result = Get-IMServerLicense
+                Should -Invoke Invoke-ImmichApiGetServerLicense -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.licenseKey | Should -Be 'IMCH-XXXX-XXXX-XXXX'
             }
         }
     }
     Describe 'Remove-IMServerLicense' -Tag 'Unit', 'Remove-IMServerLicense' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiDeleteServerLicense -ModuleName PSImmich { return $null }
         }
         Context 'License Removal' {
-            It 'Should remove server license with correct API call' {
-                Remove-IMServerLicense
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/server/license'
-                }
+            It 'Should remove server license through the generated wrapper' {
+                Remove-IMServerLicense -Confirm:$false
+                Should -Invoke Invoke-ImmichApiDeleteServerLicense -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
     }
     Describe 'Set-IMServerLicense' -Tag 'Unit', 'Set-IMServerLicense' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiSetServerLicense -ModuleName PSImmich {
                 return [PSCustomObject]@{ licenseKey = 'IMCH-XXXX-XXXX-XXXX'; activatedAt = '2024-01-01T00:00:00Z' }
             }
         }
         Context 'License Configuration' {
-            It 'Should set server license with correct API call' {
-                Set-IMServerLicense -ActivationKey 'test-activation' -LicenseKey 'IMCL-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/server/license'
+            It 'Should set server license through the generated wrapper with the mapped body' {
+                $Result = Set-IMServerLicense -ActivationKey 'test-activation' -LicenseKey 'IMCL-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiSetServerLicense -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.activationKey -eq 'test-activation' -and
+                    $Body.licenseKey -eq 'IMCL-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX'
                 }
+                $Result.licenseKey | Should -Be 'IMCH-XXXX-XXXX-XXXX'
             }
         }
     }
     Describe 'Get-IMServer' -Tag 'Unit', 'Get-IMServer' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich { return [pscustomobject]@{ test = 'data' } }
         }
         Context '-AppliedSystemConfiguration' {
-            It 'Should get config with correct API call' {
-                Get-IMServer -AppliedSystemConfiguration
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/system-config'
-                }
+            It 'Should get config through the generated wrapper' {
+                $Result = Get-IMServer -AppliedSystemConfiguration
+                Should -Invoke Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.test | Should -Be 'data'
             }
             It 'Should get applied system config as JSON when ReturnRawJSON is used' {
-                Mock InvokeImmichRestMethod { return @{ test = 'data' } }
                 $result = Get-IMServer -AppliedSystemConfiguration -ReturnRawJSON
                 $result | Should -BeOfType [string]
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/system-config'
+                Should -Invoke Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It
+            }
+        }
+        Context '-VersionCheckState' {
+            BeforeAll {
+                Mock Invoke-ImmichApiGetVersionCheckState -ModuleName PSImmich {
+                    [PSCustomObject]@{ checkedAt = '2026-01-01T00:00:00Z'; releaseVersion = 'v3.3.6' }
                 }
+            }
+            It 'Should return a VersionCheckStateResponseDto' {
+                $Result = Get-IMServer -VersionCheckState
+
+                Should -Invoke Invoke-ImmichApiGetVersionCheckState -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.GetType().Name | Should -Be 'VersionCheckStateResponseDto'
+                $Result.releaseVersion | Should -Be 'v3.3.6'
             }
         }
         Context '-Ping' {
-            It 'Should ping server with correct API call' {
-                Get-IMServer -Ping
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/ping'
-                }
+            It 'Should ping server through the generated wrapper and report responds' {
+                Mock Invoke-ImmichApiPingServer -ModuleName PSImmich { return [pscustomobject]@{ res = 'pong' } }
+                $Result = Get-IMServer -Ping
+                Should -Invoke Invoke-ImmichApiPingServer -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.responds | Should -BeTrue
+            }
+            It 'Should report responds false when the ping response is not pong' {
+                Mock Invoke-ImmichApiPingServer -ModuleName PSImmich { return [pscustomobject]@{ res = 'unexpected' } }
+                $Result = Get-IMServer -Ping
+                $Result.responds | Should -BeFalse
             }
         }
         Context '-Theme' {
-            It 'Should get theme with correct API call' {
+            BeforeAll {
+                Mock Invoke-ImmichApiGetPublicConfig -ModuleName PSImmich { return [pscustomobject]@{ theme = [pscustomobject]@{ customCss = 'body { color: red; }' } } }
+            }
+            It 'Should get theme through the generated public config wrapper' {
                 Get-IMServer -Theme
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/theme'
-                }
+                Should -Invoke Invoke-ImmichApiGetPublicConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It
+            }
+            It 'Should return the theme object with customCss' {
+                $Result = Get-IMServer -Theme
+                $Result.customCss | Should -Be 'body { color: red; }'
             }
         }
         Context '-MediaTypes' {
-            It 'Should get supported media types with correct API call' {
+            It 'Should get supported media types through the generated wrapper' {
+                Mock Invoke-ImmichApiGetSupportedMediaTypes -ModuleName PSImmich { return [pscustomobject]@{ image = @('.jpg') } }
                 Get-IMServer -MediaTypes
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/media-types'
-                }
+                Should -Invoke Invoke-ImmichApiGetSupportedMediaTypes -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
         Context '-Version' {
-            It 'Should get server version with correct API call' {
-                Get-IMServer -Version
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/version'
-                }
+            It 'Should get server version through the generated wrapper and format it' {
+                Mock Invoke-ImmichApiGetServerVersion -ModuleName PSImmich { return [pscustomobject]@{ Major = 3; Minor = 3; Patch = 6 } }
+                $Result = Get-IMServer -Version
+                Should -Invoke Invoke-ImmichApiGetServerVersion -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.version | Should -Be '3.3.6'
             }
         }
         Context '-Storage' {
-            It 'Should get server storage with correct API call' {
-                Get-IMServer -Storage
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/storage'
-                }
+            It 'Should get server storage through the generated wrapper' {
+                Mock Invoke-ImmichApiGetStorage -ModuleName PSImmich { return [pscustomobject]@{ diskSize = '100GiB' } }
+                $Result = Get-IMServer -Storage
+                Should -Invoke Invoke-ImmichApiGetStorage -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.diskSize | Should -Be '100GiB'
             }
         }
         Context '-Statistics' {
-            It 'Should get server statistics with correct API call' {
-                Get-IMServer -Statistics
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/statistics'
-                }
+            It 'Should get server statistics through the generated wrapper' {
+                Mock Invoke-ImmichApiGetServerStatistics -ModuleName PSImmich { return [pscustomobject]@{ photos = 10 } }
+                $Result = Get-IMServer -Statistics
+                Should -Invoke Invoke-ImmichApiGetServerStatistics -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.photos | Should -Be 10
             }
         }
         Context '-Features' {
-            It 'Should get server features with correct API call' {
-                Get-IMServer -Features
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/features'
-                }
+            It 'Should get server features through the generated wrapper' {
+                Mock Invoke-ImmichApiGetServerFeatures -ModuleName PSImmich { return [pscustomobject]@{ smartSearch = $true } }
+                $Result = Get-IMServer -Features
+                Should -Invoke Invoke-ImmichApiGetServerFeatures -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.smartSearch | Should -BeTrue
             }
         }
         Context '-Configuration' {
-            It 'Should get server config with correct API call' {
+            It 'Should get server config through the generated wrapper' {
+                Mock Invoke-ImmichApiGetServerConfig -ModuleName PSImmich { return [pscustomobject]@{ isInitialized = $true } }
                 Get-IMServer -Configuration
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/config'
-                }
+                Should -Invoke Invoke-ImmichApiGetServerConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
         Context '-About' {
-            It 'Should get server about with correct API call' {
+            It 'Should get server about through the generated wrapper' {
+                Mock Invoke-ImmichApiGetAboutInfo -ModuleName PSImmich { return [pscustomobject]@{ version = 'v3.3.6' } }
                 Get-IMServer -About
-
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/server/about'
-                }
+                Should -Invoke Invoke-ImmichApiGetAboutInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
         Context '-VersionHistory' {
-            It 'Should get version history with correct API call' {
+            It 'Should get version history through the generated wrapper' {
+                Mock Invoke-ImmichApiGetVersionHistory -ModuleName PSImmich { return @() }
                 Get-IMServer -VersionHistory
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/version-history'
-                }
+                Should -Invoke Invoke-ImmichApiGetVersionHistory -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
         Context '-DefaultSystemConfiguration' {
-            It 'Should get default system config with correct API call' {
+            BeforeAll {
+                Mock Invoke-ImmichApiGetAdminConfigDefaults -ModuleName PSImmich { return [pscustomobject]@{ test = 'data' } }
+            }
+            It 'Should get default system config through the generated wrapper' {
                 Get-IMServer -DefaultSystemConfiguration
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/system-config/defaults'
-                }
+                Should -Invoke Invoke-ImmichApiGetAdminConfigDefaults -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
             It 'Should get default system config as JSON when ReturnRawJSON is used' {
-                Mock InvokeImmichRestMethod { return @{ test = 'data' } }
                 $result = Get-IMServer -DefaultSystemConfiguration -ReturnRawJSON
                 $result | Should -BeOfType [string]
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/system-config/defaults'
-                }
+                Should -Invoke Invoke-ImmichApiGetAdminConfigDefaults -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
         Context '-StorageTemplateOptions' {
-            It 'Should get storage template options with correct API call' {
+            It 'Should get storage template options through the generated wrapper' {
+                Mock Invoke-ImmichApiGetStorageTemplateOptions -ModuleName PSImmich { return [pscustomobject]@{ dayOptions = @() } }
                 Get-IMServer -StorageTemplateOptions
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/system-config/storage-template-options'
-                }
+                Should -Invoke Invoke-ImmichApiGetStorageTemplateOptions -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
         Context '-APKLinks' {
-            It 'Should get APK links with correct API call' {
+            It 'Should get APK links through the generated wrapper' {
+                Mock Invoke-ImmichApiGetApkLinks -ModuleName PSImmich { return [pscustomobject]@{ arm64v8a = 'https://example.test/arm64.apk' } }
                 Get-IMServer -APKLinks
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/apk-links'
-                }
+                Should -Invoke Invoke-ImmichApiGetApkLinks -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
         Context '-VersionCheck' {
-            It 'Should check version with correct API call' {
+            It 'Should check version through the generated wrapper' {
+                Mock Invoke-ImmichApiGetVersionCheck -ModuleName PSImmich { return [pscustomobject]@{ checkedAt = '2026-01-01T00:00:00Z' } }
                 Get-IMServer -VersionCheck
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/version-check'
-                }
+                Should -Invoke Invoke-ImmichApiGetVersionCheck -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
     }
     Describe 'Set-IMServer' -Tag 'Unit', 'Set-IMServer' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiUpdateAdminConfig {}
         }
-        Context '-RawJSON' {
-            It 'Should set config with correct API call' {
+        Context '-RawJSONConfig' {
+            It 'Should call the admin config API with the raw JSON text' {
                 $config = @{ ffmpeg = @{ crf = 25 } }
-                Set-IMServer -RawJSON ($config | ConvertTo-Json)
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/system-config'
+                Set-IMServer -RawJSONConfig ($config | ConvertTo-Json -Compress)
+                Should -Invoke Invoke-ImmichApiUpdateAdminConfig -Times 1 -ParameterFilter {
+                    $RawBody -eq '{"ffmpeg":{"crf":25}}'
                 }
+            }
+            It 'Should pass nested JSON through without depth truncation' {
+                $json = '{"ffmpeg":{"crf":25,"preset":{"name":"fast","nested":{"deep":{"value":1}}}}}'
+                Set-IMServer -RawJSONConfig $json
+                Should -Invoke Invoke-ImmichApiUpdateAdminConfig -Times 1 -ParameterFilter {
+                    $RawBody -ceq $json -and -not $Body
+                }
+            }
+            It 'Should not call the admin config API when WhatIf is used' {
+                Set-IMServer -RawJSONConfig '{}' -WhatIf
+                Should -Invoke Invoke-ImmichApiUpdateAdminConfig -Times 0
             }
         }
     }
@@ -7827,8 +8408,35 @@ InModuleScope $ProjectName {
         }
     }
     Describe 'Disconnect-Immich' -Tag 'Unit', 'Disconnect-Immich' {
-        It 'Should be true' {
-            $true | Should -Be $true
+        BeforeAll {
+            Mock Invoke-ImmichApiLogout { } -ModuleName PSImmich
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should accept Session from the pipeline' {
+                $function = Get-Command Disconnect-Immich
+                $sessionParam = $function.Parameters['Session']
+                $sessionParam.Attributes.ValueFromPipeline | Should -Contain $true
+            }
+        }
+
+        Context 'Logout Operations' {
+            It 'Should call the logout API with the provided session' {
+                $fakeSession = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Disconnect-Immich -Session $fakeSession
+
+                Should -Invoke Invoke-ImmichApiLogout -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $ImmichSession -eq $fakeSession
+                }
+            }
+
+            It 'Should call the logout API with no session when none is provided' {
+                Disconnect-Immich
+
+                Should -Invoke Invoke-ImmichApiLogout -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $null -eq $ImmichSession
+                }
+            }
         }
     }
     Describe 'Get-IMSession' -Tag 'Unit', 'Get-IMSession' {
@@ -7862,6 +8470,14 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $ContentType -eq 'application/json'
+                }
+            }
+
+            It 'Should add a leading slash to a relative URI without one' {
+                Invoke-ImmichMethod -Method 'GET' -RelativeURI 'server/version'
+
+                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $RelativePath -eq '/server/version'
                 }
             }
         }
@@ -8000,167 +8616,404 @@ InModuleScope $ProjectName {
     }
     Describe 'Add-IMSharedLinkAsset' -Tag 'Unit', 'Add-IMSharedLinkAsset' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @([PSCustomObject]@{ id = 'asset1-guid'; type = 'IMAGE' })
+            Mock Invoke-ImmichApiAddSharedLinkAssets -ModuleName PSImmich {
+                [pscustomobject]@{ assetId = $Body.assetIds[0]; success = $true; error = $null }
             }
         }
-        Context 'Shared Link Asset Addition' {
-            It 'Should add assets to shared link with correct API call' {
-                Add-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id @('12345678-1234-1234-1234-123456789def')
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/shared-links/12345678-1234-1234-1234-123456789abc/assets'
+
+        Context 'Request mapping' {
+            It 'Should add the asset to the shared link' {
+                Add-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id '12345678-1234-1234-1234-123456789def' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiAddSharedLinkAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc' -and
+                    $Body.assetIds -contains '12345678-1234-1234-1234-123456789def'
                 }
+            }
+
+            It 'Should send all assets received from the pipeline in one request' {
+                @('12345678-1234-1234-1234-123456789d01', '12345678-1234-1234-1234-123456789d02') |
+                    ForEach-Object { [pscustomobject]@{ Id = $PSItem; SharedLinkId = '12345678-1234-1234-1234-123456789abc' } } |
+                    Add-IMSharedLinkAsset -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiAddSharedLinkAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.assetIds.Count -eq 2
+                }
+            }
+
+            It 'Should not call the API when WhatIf is specified' {
+                Add-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id '12345678-1234-1234-1234-123456789def' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiAddSharedLinkAssets -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return an AssetIdsResponseDto' {
+                $Result = Add-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id '12345678-1234-1234-1234-123456789def' -Confirm:$false
+
+                $Result.GetType().Name | Should -Be 'AssetIdsResponseDto'
+                $Result.success | Should -BeTrue
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid shared link id' {
+                { Add-IMSharedLinkAsset -SharedLinkId 'not-a-guid' -Id '12345678-1234-1234-1234-123456789def' -Confirm:$false } | Should -Throw
             }
         }
     }
     Describe 'Get-IMSharedLink' -Tag 'Unit', 'Get-IMSharedLink' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @([PSCustomObject]@{ id = 'link1'; key = 'share-key-123'; type = 'ALBUM' })
+            Mock Invoke-ImmichApiGetAllSharedLinks -ModuleName PSImmich {
+                [pscustomobject]@{ id = 'link1'; key = 'share-key-123'; type = 'ALBUM' }
+            }
+            Mock Invoke-ImmichApiGetSharedLinkById -ModuleName PSImmich {
+                [pscustomobject]@{ id = $Id; key = 'share-key-123'; type = 'INDIVIDUAL' }
             }
         }
-        Context 'Shared Link Retrieval' {
-            It 'Should get shared links with correct API call' {
+
+        Context 'Request mapping' {
+            It 'Should list shared links without an album filter when AlbumId is not bound' {
                 Get-IMSharedLink
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/shared-links'
+
+                Should -Invoke Invoke-ImmichApiGetAllSharedLinks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    -not $AlbumId
                 }
+            }
+
+            It 'Should filter shared links by album' {
+                Get-IMSharedLink -AlbumId '12345678-1234-1234-1234-123456789abc'
+
+                Should -Invoke Invoke-ImmichApiGetAllSharedLinks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $AlbumId -eq '12345678-1234-1234-1234-123456789abc'
+                }
+            }
+
+            It 'Should get a single shared link by id' {
+                Get-IMSharedLink -Id '12345678-1234-1234-1234-123456789abc'
+
+                Should -Invoke Invoke-ImmichApiGetSharedLinkById -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
+                }
+            }
+
+            It 'Should forward an explicit session' {
+                $TestSession = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMSharedLink -Session $TestSession
+
+                Should -Invoke Invoke-ImmichApiGetAllSharedLinks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $TestSession
+                }
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return SharedLinkResponseDto objects' {
+                $Result = Get-IMSharedLink
+
+                $Result.GetType().Name | Should -Be 'SharedLinkResponseDto'
+                $Result.key | Should -Be 'share-key-123'
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid id' {
+                { Get-IMSharedLink -Id 'not-a-guid' } | Should -Throw
             }
         }
     }
     Describe 'New-IMSharedLink' -Tag 'Unit', 'New-IMSharedLink' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ id = 'new-link'; key = 'new-share-key'; url = 'https://immich.example.com/share/new-share-key' }
+            Mock Invoke-ImmichApiCreateSharedLink -ModuleName PSImmich {
+                [pscustomobject]@{ id = 'new-link'; key = 'new-share-key'; type = $Body.type; description = $Body.description }
             }
         }
-        Context 'Shared Link Creation' {
-            It 'Should create shared link with correct API call' {
-                New-IMSharedLink -AssetId @('12345678-1234-1234-1234-123456789abc')
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and $RelativePath -eq '/shared-links'
+
+        Context 'Request mapping' {
+            It 'Should create an individual asset link with the asset ids' {
+                New-IMSharedLink -AssetId @('12345678-1234-1234-1234-123456789abc', '12345678-1234-1234-1234-123456789def')
+
+                Should -Invoke Invoke-ImmichApiCreateSharedLink -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.type -eq 'INDIVIDUAL' -and
+                    $Body.assetIds.Count -eq 2 -and
+                    $Body.assetIds -contains '12345678-1234-1234-1234-123456789def'
                 }
+            }
+
+            It 'Should create an album link with the album id' {
+                New-IMSharedLink -AlbumId '12345678-1234-1234-1234-123456789abc'
+
+                Should -Invoke Invoke-ImmichApiCreateSharedLink -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.type -eq 'ALBUM' -and $Body.albumId -eq '12345678-1234-1234-1234-123456789abc'
+                }
+            }
+
+            It 'Should send the description' {
+                New-IMSharedLink -AssetId '12345678-1234-1234-1234-123456789abc' -Description 'Holiday photos'
+
+                Should -Invoke Invoke-ImmichApiCreateSharedLink -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.description -eq 'Holiday photos'
+                }
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return a SharedLinkResponseDto' {
+                $Result = New-IMSharedLink -AssetId '12345678-1234-1234-1234-123456789abc'
+
+                $Result.GetType().Name | Should -Be 'SharedLinkResponseDto'
+                $Result.key | Should -Be 'new-share-key'
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid asset id' {
+                { New-IMSharedLink -AssetId 'not-a-guid' } | Should -Throw
             }
         }
     }
     Describe 'Remove-IMSharedLink' -Tag 'Unit', 'Remove-IMSharedLink' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiRemoveSharedLink -ModuleName PSImmich { }
         }
-        Context 'Shared Link Removal' {
-            It 'Should remove shared link with correct API call' {
-                Remove-IMSharedLink -id '12345678-1234-5678-9012-123456789abc'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/shared-links/12345678-1234-5678-9012-123456789abc'
+
+        Context 'Request mapping' {
+            It 'Should remove the shared link by id' {
+                Remove-IMSharedLink -Id '12345678-1234-5678-9012-123456789abc' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiRemoveSharedLink -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
                 }
+            }
+
+            It 'Should not call the API when WhatIf is specified' {
+                Remove-IMSharedLink -Id '12345678-1234-5678-9012-123456789abc' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiRemoveSharedLink -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid id' {
+                { Remove-IMSharedLink -Id 'not-a-guid' -Confirm:$false } | Should -Throw
             }
         }
     }
     Describe 'Remove-IMSharedLinkAsset' -Tag 'Unit', 'Remove-IMSharedLinkAsset' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @([PSCustomObject]@{ id = 'remaining-asset'; type = 'IMAGE' })
+            Mock Invoke-ImmichApiRemoveSharedLinkAssets -ModuleName PSImmich {
+                [pscustomobject]@{ assetId = $Body.assetIds[0]; success = $true; error = $null }
             }
         }
-        Context 'Shared Link Asset Removal' {
-            It 'Should remove assets from shared link with correct API call' {
-                Remove-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id @('12345678-1234-1234-1234-123456789def')
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/shared-links/12345678-1234-1234-1234-123456789abc/assets'
+
+        Context 'Request mapping' {
+            It 'Should remove the asset from the shared link' {
+                Remove-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id '12345678-1234-1234-1234-123456789def' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiRemoveSharedLinkAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc' -and
+                    $Body.assetIds -contains '12345678-1234-1234-1234-123456789def'
                 }
+            }
+
+            It 'Should not call the API when WhatIf is specified' {
+                Remove-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id '12345678-1234-1234-1234-123456789def' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiRemoveSharedLinkAssets -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return an AssetIdsResponseDto' {
+                $Result = Remove-IMSharedLinkAsset -SharedLinkId '12345678-1234-1234-1234-123456789abc' -Id '12345678-1234-1234-1234-123456789def' -Confirm:$false
+
+                $Result.GetType().Name | Should -Be 'AssetIdsResponseDto'
             }
         }
     }
     Describe 'Set-IMSharedLink' -Tag 'Unit', 'Set-IMSharedLink' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ id = 'updated-link'; description = 'Updated description' }
+            Mock Invoke-ImmichApiUpdateSharedLink -ModuleName PSImmich {
+                [pscustomobject]@{ id = $Id; key = 'share-key-123'; description = $Body.description }
             }
         }
-        Context 'Shared Link Updates' {
-            It 'Should update shared link with correct API call' {
-                Set-IMSharedLink -Id '12345678-1234-5678-9012-123456789abc' -Description 'New description'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Patch' -and $RelativePath -eq '/shared-links/12345678-1234-5678-9012-123456789abc'
+
+        Context 'Request mapping' {
+            It 'Should update the shared link with the new description' {
+                Set-IMSharedLink -Id '12345678-1234-5678-9012-123456789abc' -Description 'New description' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpdateSharedLink -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc' -and $Body.description -eq 'New description'
                 }
+            }
+
+            It 'Should not call the API when WhatIf is specified' {
+                Set-IMSharedLink -Id '12345678-1234-5678-9012-123456789abc' -Description 'New description' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiUpdateSharedLink -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return a SharedLinkResponseDto' {
+                $Result = Set-IMSharedLink -Id '12345678-1234-5678-9012-123456789abc' -Description 'New description' -Confirm:$false
+
+                $Result.GetType().Name | Should -Be 'SharedLinkResponseDto'
+                $Result.description | Should -Be 'New description'
             }
         }
     }
     Describe 'Get-IMTag' -Tag 'Unit', 'Get-IMTag' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetAllTags {
                 return @(
                     [PSCustomObject]@{ id = 'tag1-guid'; name = 'vacation'; value = 'summer2024'; type = 'OBJECT' },
                     [PSCustomObject]@{ id = 'tag2-guid'; name = 'location'; value = 'beach'; type = 'FACE' }
                 )
-            }
+            } -ModuleName PSImmich
+            Mock Invoke-ImmichApiGetTagById {
+                return [PSCustomObject]@{ id = '12345678-1234-5678-9012-123456789abc'; name = 'vacation'; value = 'summer2024'; type = 'OBJECT' }
+            } -ModuleName PSImmich
         }
         Context 'Tag Retrieval' {
-            It 'Should get tags with correct API call' {
-                Get-IMTag
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/tags'
+            It 'Should list all tags via the generated API wrapper' {
+                $Result = Get-IMTag
+                Should -Invoke Invoke-ImmichApiGetAllTags -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.Count | Should -Be 2
+            }
+
+            It 'Should get a single tag by id via the generated API wrapper' {
+                $Result = Get-IMTag -Id '12345678-1234-5678-9012-123456789abc'
+                Should -Invoke Invoke-ImmichApiGetTagById -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
                 }
+                $Result.name | Should -Be 'vacation'
             }
         }
     }
     Describe 'New-IMTag' -Tag 'Unit', 'New-IMTag' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiCreateTag {
                 return [PSCustomObject]@{ id = 'new-tag-guid'; name = 'family'; value = 'reunion2024' }
-            }
+            } -ModuleName PSImmich
         }
         Context 'Tag Creation' {
-            It 'Should create tag with correct API call' {
+            It 'Should create tag with the name in the request body' {
                 New-IMTag -Name 'family'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and $RelativePath -eq '/tags'
+                Should -Invoke Invoke-ImmichApiCreateTag -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'family'
                 }
             }
         }
     }
     Describe 'Remove-IMTag' -Tag 'Unit', 'Remove-IMTag' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiDeleteTag { return $null } -ModuleName PSImmich
         }
         Context 'Tag Removal' {
-            It 'Should remove tag with correct API call' {
-                Remove-IMTag -id '12345678-1234-5678-9012-123456789abc'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/tags/12345678-1234-5678-9012-123456789abc'
+            It 'Should delete the tag by id via the generated API wrapper' {
+                Remove-IMTag -id '12345678-1234-5678-9012-123456789abc' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiDeleteTag -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
                 }
             }
         }
     }
     Describe 'Set-IMTag' -Tag 'Unit', 'Set-IMTag' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiUpdateTag {
                 return [PSCustomObject]@{ id = 'updated-tag-guid'; name = 'updated-name'; value = 'updated-value' }
-            }
+            } -ModuleName PSImmich
         }
         Context 'Tag Updates' {
-            It 'Should update tag with correct API call' {
-                Set-IMTag -Id '12345678-1234-5678-9012-123456789abc' -Color '#FF0000'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/tags/12345678-1234-5678-9012-123456789abc'
+            It 'Should update the tag colour via the generated API wrapper' {
+                Set-IMTag -Id '12345678-1234-5678-9012-123456789abc' -Color '#FF0000' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiUpdateTag -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc' -and $Body.color -eq '#FF0000'
                 }
             }
         }
     }
     Describe 'Get-IMTimeBucket' -Tag 'Unit', 'Get-IMTimeBucket' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetTimeBuckets {
                 return @(
-                    [PSCustomObject]@{ timeBucket = '2024-01'; count = 156 },
-                    [PSCustomObject]@{ timeBucket = '2024-02'; count = 89 }
+                    [PSCustomObject]@{ timeBucket = '2024-01-01T00:00:00.000Z'; count = 156 },
+                    [PSCustomObject]@{ timeBucket = '2024-02-01T00:00:00.000Z'; count = 89 }
                 )
+            } -ModuleName PSImmich
+
+            Mock Invoke-ImmichApiGetTimeBucket {
+                return [PSCustomObject]@{ id = @('a1'); fileCreatedAt = @('2024-02-01T00:00:00.000Z') }
+            } -ModuleName PSImmich
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should require TimeBucket in the timebucket parameter set' {
+                $Function = Get-Command Get-IMTimeBucket
+                $TimeBucketParam = $Function.Parameters['TimeBucket']
+                $TimeBucketParam.ParameterSets['timebucket'].IsMandatory | Should -BeTrue
+            }
+
+            It 'Should reject an invalid Visibility value' {
+                { Get-IMTimeBucket -Visibility 'invalid' } | Should -Throw
+            }
+
+            It 'Should reject an invalid AlbumId format' {
+                { Get-IMTimeBucket -AlbumId 'not-a-guid' } | Should -Throw
             }
         }
-        Context 'Time Bucket Retrieval' {
-            It 'Should get time buckets with correct API call' {
-                Get-IMTimeBucket -timeBucket '2024-02'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/timeline/bucket'
+
+        Context 'List Operations' {
+            It 'Should call the buckets API when no TimeBucket is given' {
+                $Result = Get-IMTimeBucket
+                Should -Invoke Invoke-ImmichApiGetTimeBuckets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $null -eq $Order -and $null -eq $ImmichSession
+                }
+                $Result.Count | Should -Be 2
+            }
+
+            It 'Should forward only bound filters to the buckets API' {
+                Get-IMTimeBucket -IsFavorite $true -Order desc -Visibility timeline
+                Should -Invoke Invoke-ImmichApiGetTimeBuckets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $IsFavorite -eq $true -and $Order -eq 'desc' -and $Visibility -eq 'timeline' -and
+                    $null -eq $AlbumId -and $null -eq $WithPartners
+                }
+            }
+
+            It 'Should forward the new spec filters to the buckets API' {
+                Get-IMTimeBucket -Bbox '1,2,3,4' -OrderBy createdAt -TagId '11111111-1111-1111-1111-111111111111' -WithCoordinates $true
+                Should -Invoke Invoke-ImmichApiGetTimeBuckets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Bbox -eq '1,2,3,4' -and $OrderBy -eq 'createdAt' -and
+                    $TagId -eq '11111111-1111-1111-1111-111111111111' -and $WithCoordinates -eq $true
+                }
+            }
+        }
+
+        Context 'Single Time Bucket Operations' {
+            It 'Should call the bucket API with the time bucket' {
+                Get-IMTimeBucket -TimeBucket '2024-02-01T00:00:00.000Z'
+                Should -Invoke Invoke-ImmichApiGetTimeBucket -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $TimeBucket -eq '2024-02-01T00:00:00.000Z' -and $null -eq $Order
+                }
+                Should -Invoke Invoke-ImmichApiGetTimeBuckets -ModuleName PSImmich -Times 0
+            }
+
+            It 'Should forward the user and partner filters to the bucket API' {
+                Get-IMTimeBucket -TimeBucket '2024-02-01T00:00:00.000Z' -UserId '22222222-2222-2222-2222-222222222222' -WithPartners $true -WithStacked $false
+                Should -Invoke Invoke-ImmichApiGetTimeBucket -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $UserId -eq '22222222-2222-2222-2222-222222222222' -and $WithPartners -eq $true -and $WithStacked -eq $false
+                }
+            }
+        }
+
+        Context 'Session Parameter' {
+            It 'Should pass Session parameter when provided' {
+                $fakeSession = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMTimeBucket -Session $fakeSession
+                Should -Invoke Invoke-ImmichApiGetTimeBuckets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $ImmichSession -eq $fakeSession
                 }
             }
         }
@@ -8182,9 +9035,8 @@ InModuleScope $ProjectName {
             $script:ImmichSession = $MockSession
 
             # Mock the new private function that handles HTTP uploads
-            Mock Invoke-MultipartHttpUpload -MockWith {
-                param($Uri, $Session, $FormData, $FileInfo, $FileFieldName)
-                return '{"userId":"test-user-id","profileImagePath":"/profile/test.jpg"}'
+            Mock Invoke-ImmichApiCreateProfileImage -MockWith {
+                return [PSCustomObject]@{ userId = 'test-user-id'; profileImagePath = '/profile/test.jpg' }
             } -ModuleName PSImmich
 
             Mock ConvertFromSecureString -MockWith {
@@ -8212,10 +9064,7 @@ InModuleScope $ProjectName {
 
                 # Mock file operations
                 Mock Get-Item {
-                    return [PSCustomObject]@{
-                        FullName = $TestFile
-                        Name     = 'valid-avatar.jpg'
-                    }
+                    return [System.IO.FileInfo]::new($TestFile)
                 } -ModuleName PSImmich
 
                 { Add-IMMyProfilePicture -FilePath $TestFile } | Should -Not -Throw
@@ -8223,23 +9072,14 @@ InModuleScope $ProjectName {
         }
 
         Context 'HTTP Upload Integration' {
-            It 'Should call Invoke-MultipartHttpUpload with correct parameters' {
+            It 'Should upload the file through the CreateProfileImage wrapper' {
                 Mock Get-Item {
-                    return [PSCustomObject]@{
-                        FullName = $TestFile
-                        Name     = 'test-avatar.jpg'
-                    }
-                } -ModuleName PSImmich
-
-                Mock Invoke-MultipartHttpUpload -MockWith {
-                    return '{"userId":"test-user-id","profileImagePath":"/profile/test.jpg"}'
+                    return [System.IO.FileInfo]::new($TestFile)
                 } -ModuleName PSImmich
 
                 Add-IMMyProfilePicture -FilePath $TestFile
 
-                Should -Invoke Invoke-MultipartHttpUpload -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
-                    $RelativePath -eq '/users/profile-image' -and
-                    $FileFieldName -eq 'file' -and
+                Should -Invoke Invoke-ImmichApiCreateProfileImage -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
                     $FileInfo.Name -eq 'test-avatar.jpg'
                 }
             }
@@ -8252,13 +9092,10 @@ InModuleScope $ProjectName {
                 [System.IO.File]::WriteAllBytes($TestFile, $ErrorImageBytes)
 
                 Mock Get-Item {
-                    return [PSCustomObject]@{
-                        FullName = $TestFile
-                        Name     = 'error-avatar.jpg'
-                    }
+                    return [System.IO.FileInfo]::new($TestFile)
                 } -ModuleName PSImmich
 
-                Mock Invoke-MultipartHttpUpload -MockWith {
+                Mock Invoke-ImmichApiCreateProfileImage -MockWith {
                     throw 'HTTP 400: Bad Request'
                 } -ModuleName PSImmich
 
@@ -8268,59 +9105,48 @@ InModuleScope $ProjectName {
     }
     Describe 'Export-IMProfilePicture' -Tag 'Unit', 'Export-IMProfilePicture' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @(1, 2, 3, 4, 5)  # Mock byte array
+            Mock Invoke-ImmichApiGetProfileImage {
+                return $null
             }
         }
         Context 'Profile Picture Export' {
-            It 'Should export profile picture with correct API call' {
+            It 'Should export profile picture through the internal API function' {
                 Export-IMProfilePicture -id '12345678-1234-5678-9012-123456789abc' -Path $TestDrive
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/users/12345678-1234-5678-9012-123456789abc/profile-image'
+                Should -Invoke Invoke-ImmichApiGetProfileImage -Times 1 -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc' -and
+                    "$OutFilePath" -like (Join-Path $TestDrive '12345678-1234-5678-9012-123456789abc.jpeg')
                 }
             }
         }
     }
     Describe 'Get-IMTopLargestAsset' -Tag 'Unit', 'Get-IMTopLargestAsset' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
+            Mock Invoke-ImmichApiSearchLargeAssets -ModuleName PSImmich {
                 return @(
                     [PSCustomObject]@{
-                        id = '123e4567-e89b-12d3-a456-426614174000'
-                        type = 'IMAGE'
+                        id               = '123e4567-e89b-12d3-a456-426614174000'
+                        type             = 'IMAGE'
                         originalFileName = 'large-image.jpg'
-                        updatedAt = '2024-01-01T10:00:00Z'
-                        exifInfo = @{
-                            fileSizeInByte = 52428800  # 50MB
-                            exifImageWidth = 4000
+                        updatedAt        = '2024-01-01T10:00:00Z'
+                        exifInfo         = @{
+                            fileSizeInByte  = 52428800  # 50MB
+                            exifImageWidth  = 4000
                             exifImageHeight = 3000
                         }
                     },
                     [PSCustomObject]@{
-                        id = '987fcdeb-51a2-43d5-b789-123456789abc'
-                        type = 'VIDEO'
+                        id               = '987fcdeb-51a2-43d5-b789-123456789abc'
+                        type             = 'VIDEO'
                         originalFileName = 'large-video.mp4'
-                        updatedAt = '2024-01-02T15:30:00Z'
-                        exifInfo = @{
-                            fileSizeInByte = 104857600  # 100MB
-                            exifImageWidth = 1920
+                        updatedAt        = '2024-01-02T15:30:00Z'
+                        exifInfo         = @{
+                            fileSizeInByte  = 104857600  # 100MB
+                            exifImageWidth  = 1920
                             exifImageHeight = 1080
                         }
                     }
                 )
             }
-
-            Mock AddCustomType -MockWith {
-                param($InputObject, $TypeName)
-                $InputObject | ForEach-Object {
-                    $_.PSTypeNames.Insert(0, "PSImmich.ObjectType.$TypeName")
-                }
-                return $InputObject
-            } -ModuleName PSImmich
-
-            Mock ConvertTo-ApiParameters -MockWith {
-                return @{ size = $BoundParameters.Size }
-            } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -8334,52 +9160,51 @@ InModuleScope $ProjectName {
                 $ValidateRange.MaxRange | Should -Be 1000
             }
 
-            It 'Should include default Size of 100 when not explicitly provided' {
-                # The function should add the default Size value to parameters
-                Get-IMTopLargestAsset
-
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ContainsKey('Size') -and $BoundParameters.Size -eq 100
-                }
-            }
-
-            It 'Should accept custom Size parameter' {
-                Get-IMTopLargestAsset -Size 50
-
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -ParameterFilter {
-                    $BoundParameters.Size -eq 50
-                }
-            }
-
             It 'Should have Session parameter of ImmichSession type' {
                 $Function = Get-Command Get-IMTopLargestAsset
                 $Function.Parameters['Session'].ParameterType.Name | Should -Be 'ImmichSession'
             }
+
+            It 'Should reject a Size outside 1-1000' {
+                { Get-IMTopLargestAsset -Size 0 } | Should -Throw
+                { Get-IMTopLargestAsset -Size 1001 } | Should -Throw
+            }
         }
 
-        Context 'API Calls' {
-            It 'Should call correct REST method and endpoint' {
+        Context 'Request mapping' {
+            It 'Should send the default Size of 100 when not explicitly provided' {
                 Get-IMTopLargestAsset
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/search/large-assets'
+                Should -Invoke Invoke-ImmichApiSearchLargeAssets -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $Size -eq 100
+                }
+            }
+
+            It 'Should forward a custom Size' {
+                Get-IMTopLargestAsset -Size 50
+
+                Should -Invoke Invoke-ImmichApiSearchLargeAssets -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $Size -eq 50
+                }
+            }
+
+            It 'Should forward an explicit session' {
+                $session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+                Get-IMTopLargestAsset -Session $session
+
+                Should -Invoke Invoke-ImmichApiSearchLargeAssets -ModuleName PSImmich -ParameterFilter {
+                    $ImmichSession -eq $session
                 }
             }
         }
 
         Context 'Response Processing' {
-            It 'Should call AddCustomType with IMLargeAsset type' {
-                Get-IMTopLargestAsset
-
-                Should -Invoke AddCustomType -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Type -eq 'IMLargeAsset'
-                }
-            }
-
-            It 'Should return array of asset objects with custom type' {
+            It 'Should return AssetResponseDto objects' {
                 $Result = Get-IMTopLargestAsset
 
                 $Result | Should -HaveCount 2
+                $Result[0].GetType().Name | Should -Be 'AssetResponseDto'
                 $Result[0].id | Should -Be '123e4567-e89b-12d3-a456-426614174000'
                 $Result[0].type | Should -Be 'IMAGE'
                 $Result[1].id | Should -Be '987fcdeb-51a2-43d5-b789-123456789abc'
@@ -8394,285 +9219,339 @@ InModuleScope $ProjectName {
                 $Result[1].exifInfo.fileSizeInByte | Should -Be 104857600
             }
         }
-
-        Context 'Parameter Conversion' {
-            It 'Should call ConvertTo-ApiParameters correctly' {
-                Get-IMTopLargestAsset -Size 250
-
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ContainsKey('Size') -and $BoundParameters.Size -eq 250 -and
-                    $CmdletName -eq 'Get-IMTopLargestAsset'
-                }
-            }
-
-            It 'Should pass converted parameters to REST method' {
-                Mock ConvertTo-ApiParameters -MockWith {
-                    return @{ size = 150 }
-                } -ModuleName PSImmich
-
-                Get-IMTopLargestAsset
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Body.size -eq 150
-                }
-            }
-        }
     }
     Describe 'Get-IMUser' -Tag 'Unit', 'Get-IMUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiSearchUsersAdmin {
                 return @(
                     [PSCustomObject]@{ id = 'user1-guid'; email = 'user1@example.com'; name = 'User One' },
                     [PSCustomObject]@{ id = 'user2-guid'; email = 'user2@example.com'; name = 'User Two' }
                 )
-            }
+            } -ModuleName PSImmich
+            Mock Invoke-ImmichApiGetUserAdmin {
+                return [PSCustomObject]@{ id = '12345678-1234-5678-9012-123456789abc'; email = 'user@example.com'; name = 'User' }
+            } -ModuleName PSImmich
+            Mock Invoke-ImmichApiGetMyUser {
+                return [PSCustomObject]@{ id = 'me-guid'; email = 'me@example.com'; name = 'Me' }
+            } -ModuleName PSImmich
         }
         Context 'User Retrieval' {
-            It 'Should get users with correct API call' {
-                Get-IMUser
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/admin/users'
+            It 'Should list users via the admin search endpoint' {
+                $result = Get-IMUser
+                $result | Should -HaveCount 2
+                Should -Invoke Invoke-ImmichApiSearchUsersAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    -not $WithDeleted
+                }
+            }
+            It 'Should get a single user by id' {
+                $null = Get-IMUser -Id '12345678-1234-5678-9012-123456789abc'
+                Should -Invoke Invoke-ImmichApiGetUserAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
+                }
+            }
+            It 'Should get the current user with -Me' {
+                $null = Get-IMUser -Me
+                Should -Invoke Invoke-ImmichApiGetMyUser -ModuleName PSImmich -Times 1 -Exactly -Scope It
+            }
+            It 'Should request deleted users with -IncludeDeleted' {
+                $null = Get-IMUser -IncludeDeleted
+                Should -Invoke Invoke-ImmichApiSearchUsersAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $WithDeleted -eq $true
                 }
             }
         }
     }
     Describe 'Get-IMUserPreference' -Tag 'Unit', 'Get-IMUserPreference' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetMyPreferences {
                 return [PSCustomObject]@{ avatar = [PSCustomObject]@{ color = 'primary' }; download = [PSCustomObject]@{ includeEmbeddedVideos = $true } }
-            }
+            } -ModuleName PSImmich
+            Mock Invoke-ImmichApiGetUserPreferencesAdmin {
+                return [PSCustomObject]@{ avatar = [PSCustomObject]@{ color = 'orange' } }
+            } -ModuleName PSImmich
         }
         Context 'User Preference Retrieval' {
-            It 'Should get user preferences with correct API call' {
-                Get-IMUserPreference
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/users/me/preferences'
+            It 'Should get the current user preferences without an id' {
+                $null = Get-IMUserPreference
+                Should -Invoke Invoke-ImmichApiGetMyPreferences -ModuleName PSImmich -Times 1 -Exactly -Scope It
+            }
+            It 'Should get preferences for a specific user by id' {
+                $null = Get-IMUserPreference -Id '12345678-1234-1234-1234-123456789abc'
+                Should -Invoke Invoke-ImmichApiGetUserPreferencesAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
         }
     }
     Describe 'New-IMUser' -Tag 'Unit', 'New-IMUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiCreateUserAdmin {
                 return [PSCustomObject]@{ id = 'new-user-guid'; email = 'new@example.com'; name = 'New User' }
-            }
+            } -ModuleName PSImmich
         }
         Context 'User Creation' {
             It 'Should create user with correct API call' {
                 $securePassword = ConvertTo-SecureString 'password123' -AsPlainText -Force
-                New-IMUser -Email 'new@example.com' -Password $securePassword -Name 'New User'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/admin/users'
+                $result = New-IMUser -Email 'new@example.com' -Password $securePassword -Name 'New User'
+                $result.Email | Should -Be 'new@example.com'
+                Should -Invoke Invoke-ImmichApiCreateUserAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.email -eq 'new@example.com' -and $Body.name -eq 'New User'
                 }
             }
         }
     }
     Describe 'Remove-IMMyProfilePicture' -Tag 'Unit', 'Remove-IMMyProfilePicture' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiDeleteProfileImage { return $null } -ModuleName PSImmich
         }
         Context 'Profile Picture Removal' {
             It 'Should remove profile picture with correct API call' {
                 Remove-IMMyProfilePicture
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/users/profile-image'
-                }
+                Should -Invoke Invoke-ImmichApiDeleteProfileImage -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
     }
     Describe 'Remove-IMUser' -Tag 'Unit', 'Remove-IMUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiDeleteUserAdmin {
                 return [PSCustomObject]@{ id = 'deleted-user-guid'; deletedAt = '2024-01-01T10:00:00Z' }
-            }
+            } -ModuleName PSImmich
         }
         Context 'User Removal' {
             It 'Should remove user with correct API call' {
-                Remove-IMUser -id '12345678-1234-5678-9012-123456789abc'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq '/admin/users/12345678-1234-5678-9012-123456789abc'
+                Remove-IMUser -id '12345678-1234-5678-9012-123456789abc' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiDeleteUserAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
                 }
             }
         }
     }
     Describe 'Restore-IMUser' -Tag 'Unit', 'Restore-IMUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiRestoreUserAdmin {
                 return [PSCustomObject]@{ id = 'restored-user-guid'; deletedAt = $null }
-            }
+            } -ModuleName PSImmich
         }
         Context 'User Restoration' {
             It 'Should restore user with correct API call' {
                 Restore-IMUser -id '12345678-1234-5678-9012-123456789abc'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/admin/users/12345678-1234-5678-9012-123456789abc/restore'
+                Should -Invoke Invoke-ImmichApiRestoreUserAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
                 }
             }
         }
     }
     Describe 'Set-IMUser' -Tag 'Unit', 'Set-IMUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiUpdateUserAdmin {
                 return [PSCustomObject]@{ id = 'updated-user-guid'; name = 'Updated Name' }
-            }
+            } -ModuleName PSImmich
         }
         Context 'User Updates' {
             It 'Should update user with correct API call' {
-                Set-IMUser -id '12345678-1234-5678-9012-123456789abc' -Name 'Updated Name'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq '/admin/users/12345678-1234-5678-9012-123456789abc'
+                Set-IMUser -id '12345678-1234-5678-9012-123456789abc' -Name 'Updated Name' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiUpdateUserAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc' -and $Body.name -eq 'Updated Name'
                 }
             }
         }
     }
     Describe 'Set-IMUserPreference' -Tag 'Unit', 'Set-IMUserPreference' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiUpdateUserPreferencesAdmin {
                 return [PSCustomObject]@{ avatar = [PSCustomObject]@{ color = 'orange' } }
-            }
+            } -ModuleName PSImmich
         }
         Context 'User Preference Updates' {
             It 'Should update user preferences with correct API call' {
-                Set-IMUserPreference -id '12345678-1234-1234-1234-123456789abc' -AvatarColor 'orange'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/admin/users/12345678-1234-1234-1234-123456789abc/preferences'
+                Set-IMUserPreference -id '12345678-1234-1234-1234-123456789abc' -AvatarColor 'orange' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiUpdateUserPreferencesAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc' -and $Body.avatar.color -eq 'orange'
                 }
             }
         }
     }
     Describe 'Get-IMStack' -Tag 'Unit', 'Get-IMStack' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            $StackId = '12345678-1234-1234-1234-123456789abc'
+            $PrimaryId = '12345678-1234-1234-1234-123456789def'
+            Mock Invoke-ImmichApiSearchStacks -ModuleName PSImmich {
                 return @(
-                    [PSCustomObject]@{ id = 'stack1-guid'; primaryAssetId = 'asset1-guid'; assetCount = 5 },
-                    [PSCustomObject]@{ id = 'stack2-guid'; primaryAssetId = 'asset2-guid'; assetCount = 3 }
+                    [PSCustomObject]@{ id = $StackId; primaryAssetId = $PrimaryId; assets = @() },
+                    [PSCustomObject]@{ id = 'stack2-guid'; primaryAssetId = 'asset2-guid'; assets = @() }
                 )
             }
+            Mock Invoke-ImmichApiGetStack -ModuleName PSImmich {
+                return [PSCustomObject]@{ id = $StackId; primaryAssetId = $PrimaryId; assets = @() }
+            }
         }
-        Context 'Stack Retrieval' {
-            It 'Should get stacks with correct API call' {
-                Get-IMStack
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/stacks'
+        Context 'List' {
+            It 'Should call SearchStacks without a query when no PrimaryAssetId is given' {
+                $Result = Get-IMStack
+                Should -Invoke Invoke-ImmichApiSearchStacks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    -not $PrimaryAssetId
                 }
+                $Result | Should -HaveCount 2
+                $Result[0].GetType().Name | Should -Be 'StackResponseDto'
+            }
+            It 'Should pass PrimaryAssetId as a query parameter' {
+                Get-IMStack -PrimaryAssetId $PrimaryId
+                Should -Invoke Invoke-ImmichApiSearchStacks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $PrimaryAssetId -eq $PrimaryId
+                }
+            }
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMStack -Session $Session
+                Should -Invoke Invoke-ImmichApiSearchStacks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+        }
+        Context 'By Id' {
+            It 'Should call GetStack with the id' {
+                $Result = Get-IMStack -Id $StackId
+                Should -Invoke Invoke-ImmichApiGetStack -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $StackId
+                }
+                Should -Invoke Invoke-ImmichApiSearchStacks -ModuleName PSImmich -Exactly 0 -Scope It
+                $Result.GetType().Name | Should -Be 'StackResponseDto'
             }
         }
     }
     Describe 'New-IMStack' -Tag 'Unit', 'New-IMStack' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ id = 'new-stack-guid'; primaryAssetId = 'primary-asset-guid'; assetCount = 3 }
+            Mock Invoke-ImmichApiCreateStack -ModuleName PSImmich {
+                return [PSCustomObject]@{ id = 'new-stack-guid'; primaryAssetId = '12345678-1234-5678-9012-123456789abc'; assets = @() }
             }
         }
         Context 'Stack Creation' {
-            It 'Should create stack with correct API call' {
-                New-IMStack -AssetIds @('12345678-1234-5678-9012-123456789abc', '23456789-2345-6789-0123-23456789abcd', '34567890-3456-7890-1234-3456789abcde')
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and $RelativePath -eq '/stacks'
+            It 'Should send the asset ids in the body' {
+                $Result = New-IMStack -AssetIds @('12345678-1234-5678-9012-123456789abc', '23456789-2345-6789-0123-23456789abcd', '34567890-3456-7890-1234-3456789abcde')
+                Should -Invoke Invoke-ImmichApiCreateStack -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.assetIds.Count -eq 3 -and $Body.assetIds[0] -eq '12345678-1234-5678-9012-123456789abc'
                 }
+                $Result.GetType().Name | Should -Be 'StackResponseDto'
+            }
+            It 'Should reject an invalid asset id' {
+                { New-IMStack -AssetIds @('not-a-guid') } | Should -Throw
             }
         }
     }
     Describe 'Remove-IMStack' -Tag 'Unit', 'Remove-IMStack' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiDeleteStacks -ModuleName PSImmich { return $null }
         }
         Context 'Stack Removal' {
-            It 'Should remove stack with correct API call' {
+            It 'Should bulk delete the stack id' {
                 Remove-IMStack -Id '12345678-1234-5678-9012-123456789abc' -Confirm:$false
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/stacks' -and $Body.ids -contains '12345678-1234-5678-9012-123456789abc'
+                Should -Invoke Invoke-ImmichApiDeleteStacks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.ids -contains '12345678-1234-5678-9012-123456789abc'
                 }
+            }
+            It 'Should send all ids from the pipeline in one request' {
+                @('12345678-1234-5678-9012-123456789abc', '23456789-2345-6789-0123-23456789abcd') | Remove-IMStack -Force
+                Should -Invoke Invoke-ImmichApiDeleteStacks -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.ids.Count -eq 2
+                }
+            }
+            It 'Should not call the API when -WhatIf is used' {
+                Remove-IMStack -Id '12345678-1234-5678-9012-123456789abc' -WhatIf
+                Should -Invoke Invoke-ImmichApiDeleteStacks -ModuleName PSImmich -Exactly 0 -Scope It
             }
         }
     }
-
     Describe 'Remove-IMStackAsset' -Tag 'Unit', 'Remove-IMStackAsset' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ id = 'updated-stack-guid'; assetCount = 2 }
-            }
+            Mock Invoke-ImmichApiRemoveAssetFromStack -ModuleName PSImmich { }
         }
         Context 'Stack Asset Removal' {
-            It 'Should remove asset from stack with correct API call' {
-                Remove-IMStackAsset -StackId '12345678-1234-1234-1234-123456789abc' -AssetId '12345678-1234-1234-1234-123456789def'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/stacks/12345678-1234-1234-1234-123456789abc/assets/12345678-1234-1234-1234-123456789def'
+            It 'Should remove the asset from the stack' {
+                Remove-IMStackAsset -StackId '12345678-1234-1234-1234-123456789abc' -AssetId '12345678-1234-1234-1234-123456789def' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiRemoveAssetFromStack -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc' -and $AssetId -eq '12345678-1234-1234-1234-123456789def'
                 }
             }
         }
     }
-
     Describe 'Set-IMStack' -Tag 'Unit', 'Set-IMStack' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return [PSCustomObject]@{ id = 'updated-stack-guid'; primaryAssetId = 'new-primary-asset-guid' }
+            Mock Invoke-ImmichApiUpdateStack -ModuleName PSImmich {
+                return [PSCustomObject]@{ id = '12345678-1234-1234-1234-123456789abc'; primaryAssetId = '12345678-1234-1234-1234-123456789def'; assets = @() }
             }
         }
         Context 'Stack Updates' {
-            It 'Should update stack with correct API call' {
-                Set-IMStack -Id '12345678-1234-1234-1234-123456789abc' -PrimaryAssetId '12345678-1234-1234-1234-123456789def'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/stacks/12345678-1234-1234-1234-123456789abc'
+            It 'Should send the primary asset id to the update route' {
+                $Result = Set-IMStack -Id '12345678-1234-1234-1234-123456789abc' -PrimaryAssetId '12345678-1234-1234-1234-123456789def'
+                Should -Invoke Invoke-ImmichApiUpdateStack -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc' -and $Body.primaryAssetId -eq '12345678-1234-1234-1234-123456789def'
                 }
+                $Result.GetType().Name | Should -Be 'StackResponseDto'
             }
         }
     }
-
     Describe 'Get-IMPlugin' -Tag 'Unit', 'Get-IMPlugin' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                if ($RelativePath -eq '/plugins')
-                {
-                    return @(
-                        @{id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Plugin 1'; version = '1.0.0' },
-                        @{id = '223e4567-e89b-12d3-a456-426614174001'; name = 'Test Plugin 2'; version = '2.1.0' }
-                    )
-                }
-                elseif ($RelativePath -match '/plugins/[a-f0-9-]+')
-                {
-                    return @{id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Plugin 1'; version = '1.0.0' }
-                }
+            Mock Invoke-ImmichApiSearchPlugins -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Plugin 1'; title = 'Plugin One'; version = '1.0.0'; enabled = $true; methods = @() },
+                    [pscustomobject]@{ id = '223e4567-e89b-12d3-a456-426614174001'; name = 'Test Plugin 2'; title = 'Plugin Two'; version = '2.1.0'; enabled = $false; methods = @() }
+                )
             }
-            Mock AddCustomType {
-                param($InputObject, $Type)
-                return $InputObject
-            } -ModuleName 'PSImmich'
+            Mock Invoke-ImmichApiGetPlugin -ModuleName PSImmich {
+                return [pscustomobject]@{ id = $Id; name = 'Test Plugin 1'; title = 'Plugin One'; version = '1.0.0'; enabled = $true; methods = @() }
+            }
         }
 
         Context 'When retrieving all plugins (list parameter set)' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiSearchPlugins without filters' {
                 Get-IMPlugin
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/plugins'
+                Should -Invoke Invoke-ImmichApiSearchPlugins -Times 1 -Exactly -Scope It -ModuleName PSImmich
+            }
+
+            It 'Should return PluginResponseDto objects' {
+                $Result = Get-IMPlugin
+
+                $Result | Should -HaveCount 2
+                $Result[0].GetType().Name | Should -Be 'PluginResponseDto'
+                $Result[0].name | Should -Be 'Test Plugin 1'
+            }
+
+            It 'Should forward filter parameters to Invoke-ImmichApiSearchPlugins' {
+                Get-IMPlugin -Name 'Test Plugin 1' -Title 'Plugin One' -Version '1.0.0' -Description 'desc'
+
+                Should -Invoke Invoke-ImmichApiSearchPlugins -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Name -eq 'Test Plugin 1' -and $Title -eq 'Plugin One' -and $Version -eq '1.0.0' -and
+                    $Description -eq 'desc'
                 }
             }
 
-            It 'Should add custom type to results' {
-                Get-IMPlugin
+            It 'Should pass the explicit Session to Invoke-ImmichApiSearchPlugins' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
 
-                Should -Invoke AddCustomType -Times 2 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
-                    $Type -eq 'IMPlugin'
+                Get-IMPlugin -Session $Session
+
+                Should -Invoke Invoke-ImmichApiSearchPlugins -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $ImmichSession -eq $Session
                 }
             }
         }
 
         Context 'When retrieving specific plugin by ID (id parameter set)' {
-            It 'Should call InvokeImmichRestMethod with plugin ID path' {
+            It 'Should call Invoke-ImmichApiGetPlugin with the plugin ID' {
                 Get-IMPlugin -Id '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/plugins/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetPlugin -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
-            It 'Should add custom type to single result' {
-                Get-IMPlugin -Id '123e4567-e89b-12d3-a456-426614174000'
+            It 'Should return a PluginResponseDto object' {
+                $Result = Get-IMPlugin -Id '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke AddCustomType -Times 1 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
-                    $Type -eq 'IMPlugin'
-                }
+                $Result.GetType().Name | Should -Be 'PluginResponseDto'
+                $Result.id | Should -Be '123e4567-e89b-12d3-a456-426614174000'
             }
         }
 
@@ -8680,16 +9559,16 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Get-IMPlugin
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/plugins/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetPlugin -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Get-IMPlugin
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/plugins/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetPlugin -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
         }
@@ -8709,60 +9588,217 @@ InModuleScope $ProjectName {
         }
     }
 
-    # Workflow tests excluded for now. Workflows API is still under development. Some request parameters have undefined types.
-    Describe 'Get-IMWorkflow' -Tag 'Unit', 'Get-IMWorkflow' -Skip:$true {
+    Describe 'Get-IMPluginMethod' -Tag 'Unit', 'Get-IMPluginMethod' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                if ($RelativePath -eq '/workflows')
-                {
-                    return @(
-                        @{id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Workflow 1'; enabled = $true },
-                        @{id = '223e4567-e89b-12d3-a456-426614174001'; name = 'Test Workflow 2'; enabled = $false }
-                    )
-                }
-                elseif ($RelativePath -match '/workflows/[a-f0-9-]+')
-                {
-                    return @{id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Workflow 1'; enabled = $true; actions = @(); filters = @() }
+            Mock Invoke-ImmichApiSearchPluginMethods -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ key = 'my-plugin#send'; name = 'send'; title = 'Send'; description = 'Sends'; hostFunctions = $false; types = @('AssetV1'); uiHints = @(); schema = @{} },
+                    [pscustomobject]@{ key = 'other#tag'; name = 'tag'; title = 'Tag'; description = 'Tags'; hostFunctions = $true; types = @(); uiHints = @(); schema = @{} }
+                )
+            }
+        }
+
+        Context 'When retrieving plugin methods' {
+            It 'Should call Invoke-ImmichApiSearchPluginMethods without filters' {
+                Get-IMPluginMethod
+
+                Should -Invoke Invoke-ImmichApiSearchPluginMethods -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $null -eq $Name -and $null -eq $Trigger
                 }
             }
-            Mock AddCustomType {
-                param($InputObject, $Type)
-                return $InputObject
-            } -ModuleName 'PSImmich'
+
+            It 'Should return PluginMethodResponseDto objects' {
+                $Result = Get-IMPluginMethod
+
+                $Result | Should -HaveCount 2
+                $Result[0].GetType().Name | Should -Be 'PluginMethodResponseDto'
+                $Result[0].key | Should -Be 'my-plugin#send'
+            }
+
+            It 'Should forward filter parameters to Invoke-ImmichApiSearchPluginMethods' {
+                Get-IMPluginMethod -Name 'send' -Title 'Send' -Description 'Sends' -PluginName 'my-plugin' -PluginVersion '1.0.0' -Trigger 'AssetCreate'
+
+                Should -Invoke Invoke-ImmichApiSearchPluginMethods -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Name -eq 'send' -and $Title -eq 'Send' -and $Description -eq 'Sends' -and
+                    $PluginName -eq 'my-plugin' -and $PluginVersion -eq '1.0.0' -and $Trigger -eq 'AssetCreate' -and
+                    $null -eq $Type
+                }
+            }
+
+            It 'Should filter the returned methods by type without sending the type to the API' {
+                $Result = @(Get-IMPluginMethod -Type 'AssetV1')
+
+                $Result | Should -HaveCount 1
+                $Result[0].key | Should -Be 'my-plugin#send'
+                Should -Invoke Invoke-ImmichApiSearchPluginMethods -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $null -eq $Type
+                }
+            }
+
+            It 'Should forward a plugin method ID filter' {
+                Get-IMPluginMethod -Id '123e4567-e89b-12d3-a456-426614174000'
+
+                Should -Invoke Invoke-ImmichApiSearchPluginMethods -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should pass the explicit Session to Invoke-ImmichApiSearchPluginMethods' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+                Get-IMPluginMethod -Session $Session
+
+                Should -Invoke Invoke-ImmichApiSearchPluginMethods -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+        }
+
+        Context 'Parameter validation' {
+            It 'Should reject an invalid Trigger value' {
+                { Get-IMPluginMethod -Trigger 'Invalid' } | Should -Throw
+            }
+
+            It 'Should reject an invalid Type value' {
+                { Get-IMPluginMethod -Type 'Invalid' } | Should -Throw
+            }
+
+            It 'Should validate Id GUID format' {
+                { Get-IMPluginMethod -Id 'invalid-guid' } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Get-IMPluginTemplate' -Tag 'Unit', 'Get-IMPluginTemplate' {
+        BeforeAll {
+            Mock Invoke-ImmichApiSearchPluginTemplates -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ key = 'template-1'; title = 'Template One'; description = 'First'; trigger = 'AssetCreate'; uiHints = @(); steps = @() },
+                    [pscustomobject]@{ key = 'template-2'; title = 'Template Two'; description = 'Second'; trigger = 'AssetTagged'; uiHints = @(); steps = @() }
+                )
+            }
+        }
+
+        Context 'When retrieving workflow templates' {
+            It 'Should call Invoke-ImmichApiSearchPluginTemplates' {
+                Get-IMPluginTemplate
+
+                Should -Invoke Invoke-ImmichApiSearchPluginTemplates -Times 1 -Exactly -Scope It -ModuleName PSImmich
+            }
+
+            It 'Should return PluginTemplateResponseDto objects' {
+                $Result = Get-IMPluginTemplate
+
+                $Result | Should -HaveCount 2
+                $Result[0].GetType().Name | Should -Be 'PluginTemplateResponseDto'
+                $Result[0].key | Should -Be 'template-1'
+            }
+
+            It 'Should pass the explicit Session to Invoke-ImmichApiSearchPluginTemplates' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+                Get-IMPluginTemplate -Session $Session
+
+                Should -Invoke Invoke-ImmichApiSearchPluginTemplates -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+        }
+    }
+
+    Describe 'Get-IMWorkflow' -Tag 'Unit', 'Get-IMWorkflow' {
+        BeforeAll {
+            $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+            Mock Invoke-ImmichApiSearchWorkflows -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Workflow 1'; trigger = 'AssetCreate'; enabled = $true; logging = $false; steps = @() },
+                    [pscustomobject]@{ id = '223e4567-e89b-12d3-a456-426614174001'; name = 'Test Workflow 2'; trigger = 'AssetTagged'; enabled = $false; logging = $true; steps = @() }
+                )
+            }
+            Mock Invoke-ImmichApiGetWorkflow -ModuleName PSImmich {
+                return [pscustomobject]@{ id = $Id; name = 'Test Workflow 1'; trigger = 'AssetCreate'; enabled = $true; logging = $false; steps = @() }
+            }
+            Mock Invoke-ImmichApiGetWorkflowForShare -ModuleName PSImmich {
+                return [pscustomobject]@{ name = 'Test Workflow 1'; trigger = 'AssetCreate'; steps = @() }
+            }
         }
 
         Context 'When retrieving all workflows (list parameter set)' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiSearchWorkflows without filters by default' {
                 Get-IMWorkflow
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/workflows'
+                Should -Invoke Invoke-ImmichApiSearchWorkflows -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $null -eq $Name -and $null -eq $Description -and $null -eq $Enabled -and $null -eq $Logging -and $null -eq $Trigger
                 }
             }
 
-            It 'Should add custom type to results' {
-                Get-IMWorkflow
+            It 'Should pass filter parameters through to the API' {
+                Get-IMWorkflow -Name 'Test' -Description 'Desc' -Trigger 'AssetCreate'
 
-                Should -Invoke AddCustomType -Times 2 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
-                    $Type -eq 'IMWorkflow'
+                Should -Invoke Invoke-ImmichApiSearchWorkflows -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Name -eq 'Test' -and $Description -eq 'Desc' -and $Trigger -eq 'AssetCreate' -and $null -eq $Enabled -and $null -eq $Logging
                 }
+            }
+
+            It 'Should filter the returned workflows by enabled state' {
+                $result = @(Get-IMWorkflow -Enabled:$false)
+
+                $result | Should -HaveCount 1
+                $result[0].name | Should -Be 'Test Workflow 2'
+            }
+
+            It 'Should filter the returned workflows by logging state' {
+                $result = @(Get-IMWorkflow -Logging:$true)
+
+                $result | Should -HaveCount 1
+                $result[0].name | Should -Be 'Test Workflow 2'
+            }
+
+            It 'Should return WorkflowResponseDto objects' {
+                $result = @(Get-IMWorkflow)
+
+                $result.Count | Should -Be 2
+                $result[0].GetType().Name | Should -Be 'WorkflowResponseDto'
+                $result[1].trigger | Should -Be 'AssetTagged'
+            }
+
+            It 'Should reject an invalid trigger' {
+                { Get-IMWorkflow -Trigger 'upload' } | Should -Throw
             }
         }
 
-        Context 'When retrieving specific workflow by ID (id parameter set)' {
-            It 'Should call InvokeImmichRestMethod with workflow ID path' {
+        Context 'When retrieving a specific workflow (id parameter set)' {
+            It 'Should call Invoke-ImmichApiGetWorkflow with the workflow ID' {
                 Get-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
+                Should -Invoke Invoke-ImmichApiGetWorkflowForShare -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
 
-            It 'Should add custom type to single result' {
-                Get-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000'
+            It 'Should return a WorkflowResponseDto' {
+                $result = Get-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke AddCustomType -Times 1 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
-                    $Type -eq 'IMWorkflow'
+                $result.GetType().Name | Should -Be 'WorkflowResponseDto'
+                $result.id | Should -Be '123e4567-e89b-12d3-a456-426614174000'
+            }
+
+            It 'Should call the share endpoint and return a WorkflowShareResponseDto when -Share is specified' {
+                $result = Get-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Share
+
+                Should -Invoke Invoke-ImmichApiGetWorkflowForShare -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
+                Should -Invoke Invoke-ImmichApiGetWorkflow -ModuleName PSImmich -Times 0 -Exactly -Scope It
+                $result.GetType().Name | Should -Be 'WorkflowShareResponseDto'
+            }
+
+            It 'Should forward the session' {
+                Get-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Session $Session
+
+                Should -Invoke Invoke-ImmichApiGetWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
                 }
             }
         }
@@ -8771,16 +9807,16 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Get-IMWorkflow
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Get-IMWorkflow
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
         }
@@ -8792,113 +9828,104 @@ InModuleScope $ProjectName {
         }
 
         Context 'Session parameter' {
-            It 'Should pass Session parameter when provided' {
+            It 'Should expose the Session parameter as ImmichSession' {
                 $function = Get-Command Get-IMWorkflow
                 $sessionParam = $function.Parameters['Session']
                 $sessionParam.ParameterType.Name | Should -Be 'ImmichSession'
             }
         }
     }
-
-    Describe 'New-IMWorkflow' -Tag 'Unit', 'New-IMWorkflow' -Skip:$true {
+    Describe 'New-IMWorkflow' -Tag 'Unit', 'New-IMWorkflow' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @{
-                    id          = '123e4567-e89b-12d3-a456-426614174000'
-                    name        = 'Test Workflow'
-                    description = 'Test Description'
-                    enabled     = $true
-                    actions     = @()
-                    filters     = @()
-                }
+            Mock Invoke-ImmichApiCreateWorkflow -ModuleName PSImmich {
+                return [pscustomobject]@{ id = '123e4567-e89b-12d3-a456-426614174000'; name = $Body.name; trigger = $Body.trigger; enabled = $Body.enabled; logging = $false; steps = @() }
             }
-            Mock ConvertTo-ApiParameters {
-                return @{
-                    name        = $BoundParameters.Name
-                    description = $BoundParameters.Description
-                    enabled     = $BoundParameters.Enabled
-                    actions     = $BoundParameters.Actions
-                    filters     = $BoundParameters.Filters
-                    triggerType = $BoundParameters.TriggerType
-                }
-            }
-            Mock AddCustomType {
-                param($InputObject, $Type)
-                return $InputObject
-            } -ModuleName 'PSImmich'
         }
 
         Context 'When creating a new workflow' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
-                New-IMWorkflow -Name 'Test Workflow'
+            It 'Should call Invoke-ImmichApiCreateWorkflow with name, trigger and default enabled state' {
+                New-IMWorkflow -Name 'Test Workflow' -Trigger 'AssetCreate'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Post' -and $RelativePath -eq '/workflows'
+                Should -Invoke Invoke-ImmichApiCreateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'Test Workflow' -and $Body.trigger -eq 'AssetCreate' -and $Body.enabled -eq $true
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters for body parameters' {
-                New-IMWorkflow -Name 'Test Workflow' -Description 'Test Description'
+            It 'Should omit optional fields when they are not specified' {
+                New-IMWorkflow -Name 'Test Workflow' -Trigger 'AssetCreate'
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
-            }
-
-            It 'Should add custom type to result' {
-                New-IMWorkflow -Name 'Test Workflow'
-
-                Should -Invoke AddCustomType -Times 1 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
-                    $Type -eq 'IMWorkflow'
+                Should -Invoke Invoke-ImmichApiCreateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    -not $Body.ContainsKey('description') -and -not $Body.ContainsKey('logging') -and -not $Body.ContainsKey('steps')
                 }
             }
 
-            It 'Should handle all optional parameters' {
-                New-IMWorkflow -Name 'Test' -Description 'Desc' -TriggerType 'upload' -Enabled:$false -Actions @() -Filters @()
+            It 'Should send description, logging and steps when specified' {
+                $steps = @(@{ method = 'TagAsset'; config = @{ tagId = 'tag' }; enabled = $true })
+                New-IMWorkflow -Name 'Test' -Trigger 'AssetTagged' -Description 'Desc' -Logging:$true -Steps $steps
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiCreateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.description -eq 'Desc' -and $Body.logging -eq $true -and $Body.steps.Count -eq 1 -and $Body.steps[0].method -eq 'TagAsset'
+                }
+            }
+
+            It 'Should send enabled false when -Enabled:$false is specified' {
+                New-IMWorkflow -Name 'Test' -Trigger 'AssetCreate' -Enabled:$false
+
+                Should -Invoke Invoke-ImmichApiCreateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.enabled -eq $false
+                }
+            }
+
+            It 'Should return a WorkflowResponseDto' {
+                $result = New-IMWorkflow -Name 'Test Workflow' -Trigger 'AssetCreate'
+
+                $result.GetType().Name | Should -Be 'WorkflowResponseDto'
+                $result.name | Should -Be 'Test Workflow'
+            }
+        }
+
+        Context 'Parameter validation' {
+            It 'Should require Name and Trigger' {
+                $command = Get-Command New-IMWorkflow
+                $command.Parameters['Name'].Attributes.Where({ $_ -is [Parameter] }).Mandatory | Should -Contain $true
+                $command.Parameters['Trigger'].Attributes.Where({ $_ -is [Parameter] }).Mandatory | Should -Contain $true
+            }
+
+            It 'Should reject an unknown trigger' {
+                { New-IMWorkflow -Name 'Test' -Trigger 'upload' } | Should -Throw
             }
         }
     }
-
-    Describe 'Set-IMWorkflow' -Tag 'Unit', 'Set-IMWorkflow' -Skip:$true {
+    Describe 'Set-IMWorkflow' -Tag 'Unit', 'Set-IMWorkflow' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
-            Mock ConvertTo-ApiParameters {
-                return @{
-                    name        = $BoundParameters.Name
-                    description = $BoundParameters.Description
-                    enabled     = $BoundParameters.Enabled
-                    actions     = $BoundParameters.Actions
-                    filters     = $BoundParameters.Filters
-                    triggerType = $BoundParameters.TriggerType
-                }
+            Mock Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich {
+                return [pscustomobject]@{ id = $Id; name = 'Updated'; trigger = 'AssetCreate'; enabled = $true; logging = $false; steps = @() }
             }
-            Mock AddCustomType {
-                param($InputObject, $Type)
-                return $InputObject
-            } -ModuleName 'PSImmich'
         }
 
         Context 'When updating a workflow' {
-            It 'Should call InvokeImmichRestMethod with correct parameters for single ID' {
+            It 'Should call Invoke-ImmichApiUpdateWorkflow with the workflow ID' {
                 Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Name 'Updated' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $Body.name -eq 'Updated'
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters for body parameters' {
-                Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Name 'Updated' -Confirm:$false
+            It 'Should only send bound parameters in the body' {
+                Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Enabled:$false -Confirm:$false
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.enabled -eq $false -and -not $Body.ContainsKey('name') -and -not $Body.ContainsKey('trigger') -and -not $Body.ContainsKey('steps')
+                }
             }
 
-            It 'Should add custom type to result' {
-                Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Name 'Updated' -Confirm:$false
+            It 'Should send trigger, logging and steps when specified' {
+                $steps = @(@{ method = 'TagAsset'; config = @{} })
+                Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Trigger 'AssetTagged' -Logging:$true -Steps $steps -Confirm:$false
 
-                Should -Invoke AddCustomType -Times 1 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
-                    $Type -eq 'IMWorkflow'
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.trigger -eq 'AssetTagged' -and $Body.logging -eq $true -and $Body.steps.Count -eq 1
                 }
             }
 
@@ -8906,7 +9933,19 @@ InModuleScope $ProjectName {
                 $Ids = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
                 Set-IMWorkflow -Id $Ids -Name 'Updated' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 2 -Exactly -Scope It
+            }
+
+            It 'Should not call the API when -WhatIf is specified' {
+                Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Name 'Updated' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+
+            It 'Should return a WorkflowResponseDto' {
+                $result = Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Name 'Updated' -Confirm:$false
+
+                $result.GetType().Name | Should -Be 'WorkflowResponseDto'
             }
         }
 
@@ -8914,16 +9953,16 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Set-IMWorkflow -Name 'Updated' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Set-IMWorkflow -Name 'Updated' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
         }
@@ -8932,41 +9971,39 @@ InModuleScope $ProjectName {
             It 'Should validate Id GUID format' {
                 { Set-IMWorkflow -Id 'invalid-guid' -Name 'Test' } | Should -Throw
             }
+
+            It 'Should reject an unknown trigger' {
+                { Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Trigger 'upload' -Confirm:$false } | Should -Throw
+            }
         }
     }
-
-    Describe 'Remove-IMWorkflow' -Tag 'Unit', 'Remove-IMWorkflow' -Skip:$true {
+    Describe 'Remove-IMWorkflow' -Tag 'Unit', 'Remove-IMWorkflow' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return $null
-            }
+            Mock Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich {}
         }
 
         Context 'When removing workflows' {
-            It 'Should call InvokeImmichRestMethod with correct parameters for single ID' {
+            It 'Should call Invoke-ImmichApiDeleteWorkflow with the workflow ID' {
                 Remove-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
+            }
+
+            It 'Should not call the API when -WhatIf is specified' {
+                Remove-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
 
             It 'Should handle multiple IDs' {
                 $Ids = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
                 Remove-IMWorkflow -Id $Ids -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
-            }
-
-            It 'Should call InvokeImmichRestMethod for each ID in array' {
-                $Ids = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
-                Remove-IMWorkflow -Id $Ids -Confirm:$false
-
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
-                }
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/223e4567-e89b-12d3-a456-426614174001'
+                Should -Invoke Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '223e4567-e89b-12d3-a456-426614174001'
                 }
             }
         }
@@ -8975,24 +10012,24 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Remove-IMWorkflow -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Remove-IMWorkflow -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept WorkflowId alias from pipeline by property name' {
                 [PSCustomObject]@{WorkflowId = '123e4567-e89b-12d3-a456-426614174000' } | Remove-IMWorkflow -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
         }
@@ -9003,26 +10040,369 @@ InModuleScope $ProjectName {
             }
         }
     }
-    Describe 'Copy-IMAssetInfo' -Tag 'Unit', 'Copy-IMAssetInfo' {
+
+    Describe 'Get-IMWorkflowTrigger' -Tag 'Unit', 'Get-IMWorkflowTrigger' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return $null
+            Mock Invoke-ImmichApiGetWorkflowTriggers -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ trigger = 'AssetCreate'; types = @('asset.create') },
+                    [pscustomobject]@{ trigger = 'AssetTagged'; types = @('asset.tag') }
+                )
             }
-            Mock ConvertTo-ApiParameters {
-                return @{
-                    sourceId    = $BoundParameters.SourceId
-                    targetId    = $BoundParameters.TargetId
-                    albums      = $BoundParameters.Albums
-                    metadata    = $BoundParameters.Metadata
-                    sharedLinks = $BoundParameters.SharedLinks
-                    sidecar     = $BoundParameters.Sidecar
-                    stack       = $BoundParameters.Stack
+        }
+
+        It 'Should call Invoke-ImmichApiGetWorkflowTriggers' {
+            Get-IMWorkflowTrigger
+
+            Should -Invoke Invoke-ImmichApiGetWorkflowTriggers -ModuleName PSImmich -Times 1 -Exactly -Scope It
+        }
+
+        It 'Should return WorkflowTriggerResponseDto objects' {
+            $result = @(Get-IMWorkflowTrigger)
+
+            $result.Count | Should -Be 2
+            $result[0].GetType().Name | Should -Be 'WorkflowTriggerResponseDto'
+            $result[0].trigger | Should -Be 'AssetCreate'
+            $result[0].types | Should -Contain 'asset.create'
+        }
+    }
+
+    Describe 'Get-IMWorkflowLog' -Tag 'Unit', 'Get-IMWorkflowLog' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetWorkflowLogs -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ id = 'log-1'; at = '2025-01-01T00:00:00Z'; result = 'completed'; lastStep = 0; triggerDataId = 'asset-1' }
+                )
+            }
+        }
+
+        Context 'When retrieving logs' {
+            It 'Should only send the workflow ID by default' {
+                Get-IMWorkflowLog -Id '123e4567-e89b-12d3-a456-426614174000'
+
+                Should -Invoke Invoke-ImmichApiGetWorkflowLogs -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $null -eq $Before -and $null -eq $Limit -and $null -eq $Result
+                }
+            }
+
+            It 'Should pass Before, Limit and Result through to the API' {
+                Get-IMWorkflowLog -Id '123e4567-e89b-12d3-a456-426614174000' -Before ([datetime]'2025-06-01') -Limit 10 -Result 'error'
+
+                Should -Invoke Invoke-ImmichApiGetWorkflowLogs -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Before -eq [datetime]'2025-06-01' -and $Limit -eq 10 -and $Result -eq 'error'
+                }
+            }
+
+            It 'Should return WorkflowLogEntryDto objects' {
+                $result = Get-IMWorkflowLog -Id '123e4567-e89b-12d3-a456-426614174000'
+
+                $result.GetType().Name | Should -Be 'WorkflowLogEntryDto'
+                $result.result | Should -Be 'completed'
+            }
+        }
+
+        Context 'Pipeline support' {
+            It 'Should accept Id from pipeline by value' {
+                '123e4567-e89b-12d3-a456-426614174000' | Get-IMWorkflowLog
+
+                Should -Invoke Invoke-ImmichApiGetWorkflowLogs -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should accept Id from pipeline by property name' {
+                [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Get-IMWorkflowLog
+
+                Should -Invoke Invoke-ImmichApiGetWorkflowLogs -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
         }
 
+        Context 'Parameter validation' {
+            It 'Should validate Id GUID format' {
+                { Get-IMWorkflowLog -Id 'invalid-guid' } | Should -Throw
+            }
+
+            It 'Should reject an unknown result' {
+                { Get-IMWorkflowLog -Id '123e4567-e89b-12d3-a456-426614174000' -Result 'failed' } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Set-IMQueue' -Tag 'Unit', 'Set-IMQueue' {
+        BeforeAll {
+            Mock Invoke-ImmichApiUpdateQueue -ModuleName PSImmich {
+                [pscustomobject]@{ name = $Name; isPaused = $Body.isPaused; statistics = [pscustomobject]@{ waiting = 0; active = 0; completed = 1; failed = 0; delayed = 0; paused = 0 } }
+            }
+        }
+
+        Context 'Request mapping' {
+            It 'Should pause the queue with isPaused=true' {
+                Set-IMQueue -Name 'thumbnailGeneration' -IsPaused $true -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpdateQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq 'thumbnailGeneration' -and $Body.isPaused -eq $true
+                }
+            }
+
+            It 'Should resume the queue with isPaused=false' {
+                Set-IMQueue -Name 'faceDetection' -IsPaused $false -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpdateQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq 'faceDetection' -and $Body.isPaused -eq $false
+                }
+            }
+
+            It 'Should update each queue received from the pipeline' {
+                @('thumbnailGeneration', 'videoConversion') | Set-IMQueue -IsPaused $true -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpdateQueue -ModuleName PSImmich -Exactly 2 -Scope It
+            }
+
+            It 'Should forward an explicit session' {
+                $TestSession = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Set-IMQueue -Session $TestSession -Name 'ocr' -IsPaused $true -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpdateQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $TestSession
+                }
+            }
+
+            It 'Should not call the API when WhatIf is specified' {
+                Set-IMQueue -Name 'ocr' -IsPaused $true -WhatIf
+
+                Should -Invoke Invoke-ImmichApiUpdateQueue -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return a QueueResponseDto' {
+                $Result = Set-IMQueue -Name 'ocr' -IsPaused $true -Confirm:$false
+
+                $Result.GetType().Name | Should -Be 'QueueResponseDto'
+                $Result.name | Should -Be 'ocr'
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid queue name' {
+                { Set-IMQueue -Name 'invalidQueue' -IsPaused $true -Confirm:$false } | Should -Throw
+            }
+        }
+    }
+    Describe 'Clear-IMQueue' -Tag 'Unit', 'Clear-IMQueue' {
+        BeforeAll {
+            Mock Invoke-ImmichApiEmptyQueue -ModuleName PSImmich { }
+        }
+
+        Context 'Request mapping' {
+            It 'Should call Invoke-ImmichApiEmptyQueue with the queue name and failed=false' {
+                Clear-IMQueue -Name 'thumbnailGeneration' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq 'thumbnailGeneration' -and
+                    $Body.failed -eq $false
+                }
+            }
+
+            It 'Should not send a force field' {
+                Clear-IMQueue -Name 'thumbnailGeneration' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    -not $Body.ContainsKey('force')
+                }
+            }
+
+            It 'Should clear each queue received from the pipeline' {
+                'thumbnailGeneration', 'faceDetection' | Clear-IMQueue -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 2 -Scope It
+            }
+
+            It 'Should not call the API when WhatIf is specified' {
+                Clear-IMQueue -Name 'thumbnailGeneration' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+        }
+
+        Context 'Force parameter' {
+            It 'Should write a warning and still clear the queue when Force is specified' {
+                Clear-IMQueue -Name 'thumbnailGeneration' -Force -Confirm:$false -WarningVariable warnings -WarningAction SilentlyContinue
+
+                $warnings | Should -Not -BeNullOrEmpty
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 1 -Scope It
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid queue name' {
+                { Clear-IMQueue -Name 'invalidQueue' -Confirm:$false } | Should -Throw
+            }
+        }
+    }
+    Describe 'Get-IMQueue' -Tag 'Unit', 'Get-IMQueue' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetQueue -ModuleName PSImmich {
+                [pscustomobject]@{ name = $Name; isPaused = $false; statistics = [pscustomobject]@{ waiting = 2; active = 1; completed = 3; failed = 0; delayed = 0; paused = 0 } }
+            }
+            Mock Invoke-ImmichApiGetQueues -ModuleName PSImmich {
+                @(
+                    [pscustomobject]@{ name = 'thumbnailGeneration'; isPaused = $false; statistics = [pscustomobject]@{ waiting = 2; active = 1; completed = 3; failed = 0; delayed = 0; paused = 0 } }
+                    [pscustomobject]@{ name = 'faceDetection'; isPaused = $true; statistics = [pscustomobject]@{ waiting = 0; active = 0; completed = 0; failed = 0; delayed = 0; paused = 0 } }
+                )
+            }
+        }
+
+        Context 'Request mapping' {
+            It 'Should call Invoke-ImmichApiGetQueues when no name is specified' {
+                Get-IMQueue
+
+                Should -Invoke Invoke-ImmichApiGetQueues -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiGetQueue -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+
+            It 'Should call Invoke-ImmichApiGetQueue with the queue name' {
+                Get-IMQueue -Name 'thumbnailGeneration'
+
+                Should -Invoke Invoke-ImmichApiGetQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq 'thumbnailGeneration'
+                }
+                Should -Invoke Invoke-ImmichApiGetQueues -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+
+            It 'Should retrieve each queue received from the pipeline' {
+                'thumbnailGeneration', 'facialRecognition' | Get-IMQueue
+
+                Should -Invoke Invoke-ImmichApiGetQueue -ModuleName PSImmich -Exactly 2 -Scope It
+            }
+
+            It 'Should forward an explicit session' {
+                $TestSession = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMQueue -Session $TestSession
+
+                Should -Invoke Invoke-ImmichApiGetQueues -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $TestSession
+                }
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return a QueueResponseDto per queue' {
+                $Result = Get-IMQueue
+
+                $Result | Should -HaveCount 2
+                $Result[0].GetType().Name | Should -Be 'QueueResponseDto'
+                $Result[0].statistics.waiting | Should -Be 2
+                $Result[1].isPaused | Should -BeTrue
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid queue name' {
+                { Get-IMQueue -Name 'invalidQueue' } | Should -Throw
+            }
+        }
+    }
+    Describe 'Get-IMQueueJob' -Tag 'Unit', 'Get-IMQueueJob' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetQueueJobs -ModuleName PSImmich {
+                @([pscustomobject]@{ id = 'job-1'; name = 'thumbnailGeneration'; timestamp = 1700000000000; data = @{ assetId = 'a1' } })
+            }
+        }
+
+        Context 'Request mapping' {
+            It 'Should call Invoke-ImmichApiGetQueueJobs with the queue name and no status filter' {
+                Get-IMQueueJob -Name 'thumbnailGeneration'
+
+                Should -Invoke Invoke-ImmichApiGetQueueJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq 'thumbnailGeneration' -and -not $Status
+                }
+            }
+
+            It 'Should pass the status filter as a query value, not a request body' {
+                Get-IMQueueJob -Name 'faceDetection' -Status failed
+
+                Should -Invoke Invoke-ImmichApiGetQueueJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq 'faceDetection' -and $Status -contains 'failed'
+                }
+            }
+
+            It 'Should pass multiple status values' {
+                Get-IMQueueJob -Name 'videoConversion' -Status active, waiting
+
+                Should -Invoke Invoke-ImmichApiGetQueueJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Status -contains 'active' -and $Status -contains 'waiting'
+                }
+            }
+
+            It 'Should forward an explicit session' {
+                $TestSession = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMQueueJob -Session $TestSession -Name 'ocr'
+
+                Should -Invoke Invoke-ImmichApiGetQueueJobs -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $TestSession
+                }
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return a QueueJobResponseDto' {
+                $Result = Get-IMQueueJob -Name 'thumbnailGeneration'
+
+                $Result.GetType().Name | Should -Be 'QueueJobResponseDto'
+                $Result.id | Should -Be 'job-1'
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid status value' {
+                { Get-IMQueueJob -Name 'ocr' -Status 'bogus' } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Get-IMUserStatistic' -Tag 'Unit', 'Get-IMUserStatistic' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetUserStatisticsAdmin {
+                return [PSCustomObject]@{ photos = 10; videos = 2; usage = 12345 }
+            } -ModuleName PSImmich
+        }
+        Context 'User Statistics' {
+            It 'Should get statistics for a user by id' {
+                $null = Get-IMUserStatistic -Id '12345678-1234-5678-9012-123456789abc'
+                Should -Invoke Invoke-ImmichApiGetUserStatisticsAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
+                }
+            }
+        }
+    }
+    Describe 'Get-ImUserSession' -Tag 'Unit', 'Get-ImUserSession' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetUserSessionsAdmin {
+                return @([PSCustomObject]@{ id = 'session-1'; current = $false })
+            } -ModuleName PSImmich
+        }
+        Context 'User Sessions' {
+            It 'Should get sessions for a user by id' {
+                $null = Get-IMUserSession -Id '12345678-1234-5678-9012-123456789abc'
+                Should -Invoke Invoke-ImmichApiGetUserSessionsAdmin -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
+                }
+            }
+        }
+    }
+
+    Describe 'Copy-IMAssetInfo' -Tag 'Unit', 'Copy-IMAssetInfo' {
+        BeforeAll {
+            Mock Invoke-ImmichApiCopyAsset -ModuleName PSImmich {
+                return $null
+            }
+        }
+
         Context 'When copying all asset information' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiCopyAsset with correct parameters' {
                 $params = @{
                     SourceId = '123e4567-e89b-12d3-a456-426614174000'
                     TargetId = '987fcdeb-51a2-43d5-b789-123456789abc'
@@ -9030,9 +10410,7 @@ InModuleScope $ProjectName {
 
                 Copy-IMAssetInfo @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq '/assets/copy' -and
+                Should -Invoke Invoke-ImmichApiCopyAsset -Times 1 -Exactly -ModuleName PSImmich -ParameterFilter {
                     $Body.sourceId -eq $params.SourceId -and
                     $Body.targetId -eq $params.TargetId
                 }
@@ -9053,9 +10431,7 @@ InModuleScope $ProjectName {
 
                 Copy-IMAssetInfo @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq '/assets/copy' -and
+                Should -Invoke Invoke-ImmichApiCopyAsset -Times 1 -Exactly -ModuleName PSImmich -ParameterFilter {
                     $Body.sourceId -eq $params.SourceId -and
                     $Body.targetId -eq $params.TargetId -and
                     $Body.albums -eq $params.Albums -and
@@ -9074,7 +10450,7 @@ InModuleScope $ProjectName {
 
                 Copy-IMAssetInfo @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 0 -Exactly
+                Should -Invoke Invoke-ImmichApiCopyAsset -Times 0 -Exactly -ModuleName PSImmich
             }
         }
 
@@ -9087,12 +10463,12 @@ InModuleScope $ProjectName {
 
                 Copy-IMAssetInfo @params
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -ParameterFilter {
-                    $BoundParameters.Albums -eq $true -and
-                    $BoundParameters.Metadata -eq $true -and
-                    $BoundParameters.SharedLinks -eq $true -and
-                    $BoundParameters.Sidecar -eq $true -and
-                    $BoundParameters.Stack -eq $true
+                Should -Invoke Invoke-ImmichApiCopyAsset -Times 1 -Exactly -ModuleName PSImmich -ParameterFilter {
+                    $Body.albums -eq $true -and
+                    $Body.metadata -eq $true -and
+                    $Body.sharedLinks -eq $true -and
+                    $Body.sidecar -eq $true -and
+                    $Body.stack -eq $true
                 }
             }
         }
@@ -9118,12 +10494,12 @@ InModuleScope $ProjectName {
 
                 Copy-IMAssetInfo @params
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -ParameterFilter {
-                    $BoundParameters.Albums -eq $true -and
-                    $BoundParameters.Metadata -eq $true -and
-                    -not $BoundParameters.ContainsKey('SharedLinks') -and
-                    -not $BoundParameters.ContainsKey('Sidecar') -and
-                    -not $BoundParameters.ContainsKey('Stack')
+                Should -Invoke Invoke-ImmichApiCopyAsset -Times 1 -Exactly -ModuleName PSImmich -ParameterFilter {
+                    $Body.albums -eq $true -and
+                    $Body.metadata -eq $true -and
+                    $Body.sharedLinks -eq $false -and
+                    $Body.sidecar -eq $false -and
+                    $Body.stack -eq $false
                 }
             }
 
@@ -9136,20 +10512,82 @@ InModuleScope $ProjectName {
 
                 Copy-IMAssetInfo @params
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -ParameterFilter {
-                    $BoundParameters.Albums -eq $false -and
-                    -not $BoundParameters.ContainsKey('Metadata') -and
-                    -not $BoundParameters.ContainsKey('SharedLinks') -and
-                    -not $BoundParameters.ContainsKey('Sidecar') -and
-                    -not $BoundParameters.ContainsKey('Stack')
+                Should -Invoke Invoke-ImmichApiCopyAsset -Times 1 -Exactly -ModuleName PSImmich -ParameterFilter {
+                    $Body.albums -eq $false -and
+                    $Body.metadata -eq $false -and
+                    $Body.sharedLinks -eq $false -and
+                    $Body.sidecar -eq $false -and
+                    $Body.stack -eq $false
                 }
+            }
+        }
+    }
+    Describe 'Resolve-IMDuplicate' -Tag 'Unit', 'Resolve-IMDuplicate' {
+        BeforeAll {
+            Mock Invoke-ImmichApiResolveDuplicates -ModuleName PSImmich {}
+        }
+
+        Context 'When resolving a single duplicate group' {
+            It 'Should send the group with keep and trash asset ids' {
+                Resolve-IMDuplicate -DuplicateId '5b0bbb8d-3a3e-4f46-a1ab-0e7a2a7f3c11' -KeepAssetId 'a1f0c6f2-1d43-4c1b-9d7e-2b0a6c3f8e10' -TrashAssetId 'b2e1d7a3-2e54-4d2c-8e8f-3c1b7d4f9f21' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiResolveDuplicates -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.groups.Count -eq 1 -and
+                    $Body.groups[0].duplicateId -eq '5b0bbb8d-3a3e-4f46-a1ab-0e7a2a7f3c11' -and
+                    $Body.groups[0].keepAssetIds -contains 'a1f0c6f2-1d43-4c1b-9d7e-2b0a6c3f8e10' -and
+                    $Body.groups[0].trashAssetIds -contains 'b2e1d7a3-2e54-4d2c-8e8f-3c1b7d4f9f21'
+                }
+            }
+
+            It 'Should not call the endpoint when WhatIf is specified' {
+                Resolve-IMDuplicate -DuplicateId '5b0bbb8d-3a3e-4f46-a1ab-0e7a2a7f3c11' -KeepAssetId 'a1f0c6f2-1d43-4c1b-9d7e-2b0a6c3f8e10' -TrashAssetId 'b2e1d7a3-2e54-4d2c-8e8f-3c1b7d4f9f21' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiResolveDuplicates -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+        }
+
+        Context 'When resolving groups from the pipeline' {
+            It 'Should send multiple groups in a single body when piped by property name' {
+                $Groups = @(
+                    [PSCustomObject]@{ DuplicateId = '5b0bbb8d-3a3e-4f46-a1ab-0e7a2a7f3c11'; KeepAssetId = 'a1f0c6f2-1d43-4c1b-9d7e-2b0a6c3f8e10'; TrashAssetId = 'd4b3f9c5-4a76-4f4e-8a0a-5e3d9f6b1a43' }
+                    [PSCustomObject]@{ DuplicateId = '6c1c0c9e-4b4f-4b57-b2bc-1f8b3e5a0d22'; KeepAssetId = 'c3a2e8b4-3f65-4e3d-9f9f-4d2c8e5a0f32'; TrashAssetId = 'e5c4a0d6-5b87-4a5f-9b1b-6f4e0a7c2b54' }
+                )
+
+                $Groups | Resolve-IMDuplicate -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiResolveDuplicates -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.groups.Count -eq 2 -and
+                    $Body.groups[1].duplicateId -eq '6c1c0c9e-4b4f-4b57-b2bc-1f8b3e5a0d22'
+                }
+            }
+        }
+
+        Context 'When an explicit session is provided' {
+            It 'Should forward the session to the REST call' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+                Resolve-IMDuplicate -Session $Session -DuplicateId '5b0bbb8d-3a3e-4f46-a1ab-0e7a2a7f3c11' -KeepAssetId 'a1f0c6f2-1d43-4c1b-9d7e-2b0a6c3f8e10' -TrashAssetId 'b2e1d7a3-2e54-4d2c-8e8f-3c1b7d4f9f21' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiResolveDuplicates -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+        }
+
+        Context 'When parameters are invalid' {
+            It 'Should throw for a malformed duplicate id' {
+                { Resolve-IMDuplicate -DuplicateId 'not-a-guid' -KeepAssetId 'a1f0c6f2-1d43-4c1b-9d7e-2b0a6c3f8e10' -TrashAssetId 'b2e1d7a3-2e54-4d2c-8e8f-3c1b7d4f9f21' -Confirm:$false } | Should -Throw
+            }
+
+            It 'Should throw when KeepAssetId is omitted' {
+                { Resolve-IMDuplicate -DuplicateId '5b0bbb8d-3a3e-4f46-a1ab-0e7a2a7f3c11' -TrashAssetId 'b2e1d7a3-2e54-4d2c-8e8f-3c1b7d4f9f21' -Confirm:$false } | Should -Throw
             }
         }
     }
 
     Describe 'Remove-IMDuplicate' -Tag 'Remove-IMDuplicate' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich {}
         }
 
         Context 'Parameter Validation' {
@@ -9176,22 +10614,18 @@ InModuleScope $ProjectName {
                 (Get-Command Remove-IMDuplicate).Parameters.ContainsKey('Confirm') | Should -Be $true
             }
 
-            It 'Should call InvokeImmichRestMethod when confirmed for single duplicate' {
+            It 'Should call Invoke-ImmichApiDeleteDuplicates when confirmed for single duplicate' {
                 Remove-IMDuplicate -Ids '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/duplicates' -and
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
-            It 'Should call InvokeImmichRestMethod when confirmed for multiple duplicates' {
+            It 'Should call Invoke-ImmichApiDeleteDuplicates when confirmed for multiple duplicates' {
                 $duplicateIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
                 Remove-IMDuplicate -Ids $duplicateIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/duplicates' -and
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids.Count -eq 2 -and
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000' -and
                     $Body.ids -contains '987fcdeb-51a2-43d5-b789-123456789abc'
@@ -9203,7 +10637,7 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Remove-IMDuplicate -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
@@ -9212,7 +10646,7 @@ InModuleScope $ProjectName {
                 $duplicateObject = [PSCustomObject]@{ Ids = '123e4567-e89b-12d3-a456-426614174000' }
                 $duplicateObject | Remove-IMDuplicate -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
@@ -9221,7 +10655,7 @@ InModuleScope $ProjectName {
                 $duplicateObject = [PSCustomObject]@{ id = '123e4567-e89b-12d3-a456-426614174000' }
                 $duplicateObject | Remove-IMDuplicate -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
@@ -9233,7 +10667,7 @@ InModuleScope $ProjectName {
                 )
                 $duplicates | Remove-IMDuplicate -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids.Count -eq 2 -and
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000' -and
                     $Body.ids -contains '987fcdeb-51a2-43d5-b789-123456789abc'
@@ -9244,7 +10678,7 @@ InModuleScope $ProjectName {
                 $duplicateIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc', 'abcdef01-2345-6789-abcd-ef0123456789')
                 $duplicateIds | Remove-IMDuplicate -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids.Count -eq 3
                 }
             }
@@ -9261,18 +10695,18 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Remove-IMDuplicate -Ids '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
         }
 
         Context 'API Integration' {
-            It 'Should call correct REST endpoint' {
+            It 'Should call the generated DeleteDuplicates wrapper with the duplicate IDs' {
                 Remove-IMDuplicate -Ids '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/duplicates'
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
@@ -9280,7 +10714,7 @@ InModuleScope $ProjectName {
                 $duplicateIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc', 'abcdef01-2345-6789-abcd-ef0123456789')
                 Remove-IMDuplicate -Ids $duplicateIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids.Count -eq 3 -and
                     ($duplicateIds | ForEach-Object { $Body.ids -contains $_ }) -notcontains $false
                 }
@@ -9289,7 +10723,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMFace' -Tag 'Unit', 'Remove-IMFace' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiDeleteFace -ModuleName PSImmich {}
         }
 
         Context 'Parameter Validation' {
@@ -9318,31 +10752,53 @@ InModuleScope $ProjectName {
                 $CmdletBinding = $Command.ScriptBlock.Attributes | Where-Object { $_ -is [System.Management.Automation.CmdletBindingAttribute] }
                 $CmdletBinding.SupportsShouldProcess | Should -Be $true
             }
+
+            It 'Should not call the API when -WhatIf is specified' {
+                Remove-IMFace -Id '123e4567-e89b-12d3-a456-426614174000' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiDeleteFace -ModuleName PSImmich -Exactly 0 -Scope It
+            }
         }
 
         Context 'API Calls' {
-            It 'Should call correct endpoint for single ID' {
+            It 'Should call Invoke-ImmichApiDeleteFace for a single ID' {
                 $TestId = '123e4567-e89b-12d3-a456-426614174000'
                 Remove-IMFace -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq "/faces/$TestId"
+                Should -Invoke Invoke-ImmichApiDeleteFace -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestId
                 }
             }
 
-            It 'Should call endpoint multiple times for multiple IDs' {
+            It 'Should call the endpoint once per ID for multiple IDs' {
                 $TestIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
                 Remove-IMFace -Id $TestIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 2 -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteFace -ModuleName PSImmich -Exactly 2 -Scope It
             }
 
-            It 'Should include Force parameter in body when specified' {
-                $TestId = '123e4567-e89b-12d3-a456-426614174000'
-                Remove-IMFace -Id $TestId -Force -Confirm:$false
+            It 'Should always send the required force field, defaulting to false' {
+                Remove-IMFace -Id '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq "/faces/$TestId"
+                Should -Invoke Invoke-ImmichApiDeleteFace -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.ContainsKey('force') -and $Body.force -eq $false
+                }
+            }
+
+            It 'Should send force as true when -Force is specified' {
+                Remove-IMFace -Id '123e4567-e89b-12d3-a456-426614174000' -Force -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteFace -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.force -eq $true
+                }
+            }
+
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Remove-IMFace -Id '123e4567-e89b-12d3-a456-426614174000' -Session $Session -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteFace -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
                 }
             }
         }
@@ -9352,7 +10808,7 @@ InModuleScope $ProjectName {
                 $TestIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
                 $TestIds | Remove-IMFace -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 2 -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteFace -ModuleName PSImmich -Exactly 2 -Scope It
             }
         }
     }

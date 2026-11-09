@@ -12,19 +12,19 @@
         The type of job to resume. Valid values include thumbnailGeneration, metadataExtraction,
         videoConversion, faceDetection, and other background job types.
     .PARAMETER Force
-        Forces the resumption without additional confirmation.
+        Retained for compatibility. The queues API has no force option, so this parameter has no effect and a warning is written.
     .EXAMPLE
         Resume-IMJob -Job 'thumbnailGeneration'
 
         Resumes thumbnail generation processing.
     .EXAMPLE
-        Resume-IMJob -Job 'videoConversion' -Force
+        Resume-IMJob -Job 'videoConversion'
 
-        Forcibly resumes video conversion jobs.
+        Resumes video conversion jobs.
     .EXAMPLE
-        Get-IMJob | Where-Object {$_.jobCounts.paused -gt 0} | ForEach-Object { Resume-IMJob -Job $_.name }
+        Get-IMJob | Where-Object {$_.isPaused} | ForEach-Object { Resume-IMJob -Job $_.name }
 
-        Resumes all job types that have paused jobs.
+        Resumes all job types whose queues are paused.
     .NOTES
         Use this cmdlet to resume jobs that were previously suspended with Suspend-IMJob.
         Monitor job status with Get-IMJob to verify jobs are processing normally after resuming.
@@ -57,18 +57,21 @@
         $Job,
 
         [Parameter()]
-        [ApiParameter('force')]
         [switch]
         $Force
     )
 
+    if ($Force)
+    {
+        Write-Warning 'The -Force parameter has no effect: the queues API does not support forced resumption.'
+    }
+
     $Job | ForEach-Object {
         $CurrentJob = $PSItem
         $Body = @{
-            command = 'resume'
+            isPaused = $false
         }
-        $Body += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-        InvokeImmichRestMethod -Method PUT -RelativePath "/jobs/$CurrentJob" -ImmichSession:$Session -Body:$Body
+        Invoke-ImmichApiUpdateQueue -Name $CurrentJob -Body $Body -ImmichSession $Session
     }
 }
 #endregion

@@ -56,15 +56,13 @@
         $Visibility
     )
 
-    begin
-    {
-        $QueryParameters = @{}
-        $QueryParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-    }
-
     process
     {
-        InvokeImmichRestMethod -Method Get -RelativePath '/assets/statistics' -ImmichSession:$Session -QueryParameters $QueryParameters
+        $ApiArguments = @{ ImmichSession = $Session }
+        if ($PSBoundParameters.ContainsKey('IsFavorite')) { $ApiArguments.IsFavorite = $IsFavorite }
+        if ($PSBoundParameters.ContainsKey('IsTrashed')) { $ApiArguments.IsTrashed = $IsTrashed }
+        if ($PSBoundParameters.ContainsKey('Visibility')) { $ApiArguments.Visibility = $Visibility }
+        [AssetStatsResponseDto]::new((Invoke-ImmichApiGetAssetStatistics @ApiArguments))
     }
 }
 #endregion

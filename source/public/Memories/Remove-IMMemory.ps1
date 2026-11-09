@@ -61,7 +61,7 @@
             $CurrentID = $PSItem
             if ($PSCmdlet.ShouldProcess($CurrentID, 'DELETE'))
             {
-                InvokeImmichRestMethod -Method Delete -RelativePath "/memories/$CurrentID" -ImmichSession:$Session
+                Invoke-ImmichApiDeleteMemory -Id $CurrentID -ImmichSession $Session
             }
         }
     }

@@ -56,15 +56,17 @@
         $Type
     )
 
-    begin
-    {
-        $BodyParameters = @{}
-        $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-    }
-
     process
     {
-        InvokeImmichRestMethod -Method Post -RelativePath '/activities' -ImmichSession:$Session -Body $BodyParameters
+        # Built per item so pipeline-bound values such as AlbumId are included.
+        $BodyParameters = @{}
+        $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
+        if (-not $BodyParameters.ContainsKey('type'))
+        {
+            # The API requires a type; comments are the default activity.
+            $BodyParameters.type = 'comment'
+        }
+        Invoke-ImmichApiCreateActivity -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [ActivityResponseDto]::new($PSItem) }
     }
 
 }

@@ -28,7 +28,7 @@
         This cmdlet supports ShouldProcess and will prompt for confirmation before removing face detections.
         Use caution with the -Force parameter as it bypasses safety checks.
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP, parameter handled through PSBoundParameters')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP')]
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter()]
@@ -41,7 +41,6 @@
         $Id,
 
         [Parameter()]
-        [ApiParameter('force')]
         [switch]
         $Force
     )
@@ -53,10 +52,11 @@
 
             if ($PSCmdlet.ShouldProcess($CurrentID, 'Remove Face Detection'))
             {
-                $BodyParameters = @{}
-                $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
+                $Body = @{
+                    force = [bool]$Force
+                }
 
-                InvokeImmichRestMethod -Method DELETE -RelativePath "/faces/$CurrentID" -ImmichSession:$Session -Body:$BodyParameters
+                Invoke-ImmichApiDeleteFace -Id $CurrentID -Body $Body -ImmichSession $Session
             }
         }
     }

@@ -92,37 +92,8 @@
     # Add body to invoke rest method splat
     if ($Body)
     {
-        $NewBody = @{}
-        foreach ($Key in $Body.Keys)
-        {
-            switch ($Body.$Key.GetType().Name)
-            {
-                'boolean'
-                {
-                    $NewBody.$Key = $Body.$Key.ToString().ToLower()
-                    break
-                }
-                'SwitchParameter'
-                {
-                    $NewBody.$Key = ($Body.$Key -as [boolean]).ToString().ToLower()
-                    break
-                }
-                'datetime'
-                {
-                    $NewBody.$Key = $Body.$Key.ToString('yyyy-MM-ddTHH:mm:ss')
-                    break
-                }
-                'SecureString'
-                {
-                    $NewBody.$Key = ConvertFromSecureString -SecureString $Body.$Key
-                }
-                default
-                {
-                    $NewBody.$Key = $Body.$Key
-                }
-            }
-        }
-        $InvokeRestMethodSplat.Body = $NewBody | ConvertTo-Json -Compress
+        $NewBody = ConvertTo-ImmichRequestBody -InputObject $Body
+        $InvokeRestMethodSplat.Body = $NewBody | ConvertTo-Json -Compress -Depth 10
     }
 
     if ($RawBody)
@@ -136,6 +107,17 @@
         $InvokeRestMethodSplat.Uri += '?'
         $QueryParameterStringArray = foreach ($QueryParameter in $QueryParameters.Keys)
         {
+            # Arrays are sent as bracketed keys, e.g. status[]=a&status[]=b. A single repeated-key value
+            # is parsed as a string by the server, which rejects it for array-typed parameters.
+            if ($QueryParameters.$QueryParameter -is [System.Collections.IEnumerable] -and $QueryParameters.$QueryParameter -isnot [string])
+            {
+                foreach ($Item in $QueryParameters.$QueryParameter)
+                {
+                    "$($QueryParameter)[]=$($Item)"
+                }
+                continue
+            }
+
             switch ($QueryParameters.$QueryParameter.GetType().Name)
             {
                 'string'
@@ -160,7 +142,7 @@
                 }
                 'datetime'
                 {
-                    "$($QueryParameter)=$($QueryParameters.$QueryParameter.ToString('yyyy-MM-ddTHH:mm:ss'))"
+                    "$($QueryParameter)=$(([DateTimeOffset]$QueryParameters.$QueryParameter).UtcDateTime.ToString('o'))"
                 }
                 default
                 {
@@ -179,8 +161,8 @@
 
     Write-Debug -Message "InvokeImmichRestMethod; Calling Invoke-RestMethod with settings`r`n$($InvokeRestMethodSplat | ConvertTo-Json)"
 
-    # Output response to file if content type is octet-stream
-    if ($ContentType -eq 'application/octet-stream' -and $Method -eq 'Get')
+    # Write the response to the requested file when an output path is supplied
+    if ($OutFilePath)
     {
         Invoke-RestMethod @InvokeRestMethodSplat -Verbose:$false -OutFile $OutFilePath
     }

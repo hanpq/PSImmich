@@ -14,7 +14,7 @@
     .PARAMETER AvatarColor
         Sets avatar background color for the user.
     .PARAMETER email
-        Defines a specific user id to be retreived
+        Defines a specific user id to be retrieved
     .PARAMETER MemoriesEnabled
         Should Memories enabled. Enabled by default
     .PARAMETER Name
@@ -86,7 +86,7 @@
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Set'))
             {
-                InvokeImmichRestMethod -Method PUT -RelativePath "/admin/users/$PSItem" -ImmichSession:$Session -Body $BodyParameters
+                Invoke-ImmichApiUpdateUserAdmin -Id $PSItem -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [UserAdminResponseDto]::new($PSItem) }
             }
         }
     }

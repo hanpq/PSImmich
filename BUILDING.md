@@ -1,5 +1,7 @@
 # Building and releasing PSImmich
 
+For new Immich versions, follow the [repeatable API upgrade workflow](.github/skills/upgrade-immich/SKILL.md). Keep release-specific gaps and validation evidence in an assessment, starting with [3.4.0](api/UPGRADE-3.4.0.md).
+
 ## Develop and verify
 
 From the repository root, run the full build and test suite:
@@ -18,7 +20,7 @@ The default `Verify` task builds the module from `source/` and runs unit, QA and
 
 Import the generated module from `output/PSImmich/<version>/` to try it locally. Make changes in `source/`, not generated output under `output/`.
 
-Local tests run unit, QA and infrastructure suites by default. Use `-Task Test -TestSuite Module` for unit/QA tests or `-Task Test -TestSuite Infrastructure` for build/release tests. Run `-Task Test -TestSuite Integration` against a live Immich instance after setting `PSIMMICHURI`, `PSIMMICHAPIKEY`, `PSIMMICHUSER` and `PSIMMICHPASSWORD`. CI runs module tests with coverage across all supported platforms, infrastructure tests once on Linux PowerShell 7, and live integration tests on same-repository PRs and pushes when these four secrets are set. Fork PRs skip live integration tests. Release publishing runs the module suite.
+Local tests run unit, QA and infrastructure suites by default. Use `-Task Test -TestSuite Module` for unit/QA tests or `-Task Test -TestSuite Infrastructure` for build/release tests. For a subset of module tests, add `-Tag`, for example `-Task Test -TestSuite Module -Tag 'Get-IMStack','New-IMStack'`; each unit Describe is tagged with `Unit` and its cmdlet name. Tag-filtered runs skip code coverage. Run `-Task Test -TestSuite Integration` against a live Immich instance after setting `PSIMMICHURI`, `PSIMMICHAPIKEY`, `PSIMMICHUSER` and `PSIMMICHPASSWORD`. CI runs module tests with coverage across all supported platforms, infrastructure tests once on Linux PowerShell 7, and live integration tests on same-repository PRs and pushes when these four secrets are set. Fork PRs skip live integration tests. Release publishing runs the module suite.
 
 Coverage instruments the built module that the tests execute, then uses ModuleBuilder's source mappings to report the original `source/public` and `source/private` files in `output/testResults/JaCoCo_coverage.xml`. The module test run fails if coverage is below the configured target (currently 1%).
 
@@ -36,10 +38,12 @@ Tasks require PowerShell 7 (`pwsh` on PATH). Debugging requires the VS Code Powe
 
 ## Submit a change
 
-1. Make and test your change on a branch.
+1. Make and test your change on a branch, never directly on `main`. For an Immich upgrade, use a dedicated branch such as `upgrade/immich-3.4.0` and commit each coherent feature/change batch with its related tests and help.
 2. Open a pull request against `main`. CI runs for pull requests and pushes to `main`. Pushes that only change release metadata (`.release-please-manifest.json`, `version.txt`, `CHANGELOG.md`), such as merged release PRs, skip CI on `main` because the PR and the release workflow already test them.
 3. Use a Conventional Commit title for changes that should trigger a release. `feat:` requests a minor release; `fix:` and `perf:` request a patch; `!` or a `BREAKING CHANGE:` footer requests a major release. `docs:`, `test:`, and `chore:` do not trigger releases.
-4. Squash-merge using the PR title as the commit message so Release Please can determine the correct version and generate release notes.
+4. For a single-change PR, squash-merge using the Conventional Commit PR title. For a multi-batch Immich upgrade, preserve the individual Conventional Commits, preferably with a merge commit, so Release Please can summarize each feature/fix. Squashing the entire upgrade into one commit loses the individual batch subjects; if squash is required, agree an alternative such as separate PRs per batch. This guidance is for development PRs; stable-promotion release PRs have their own merge restrictions below.
+
+For Immich upgrades, the maintainer manually creates the development PR, verifies and merges it, then initiates release preparation only after confirming everything is OK. The assistant implements and validates batches on the upgrade branch and provides a commit/test handoff; it does not open or merge PRs, prepare releases or publish. Pushes require a request. Release Please generates the changelog from releasable commits during release preparation; do not manually duplicate those entries during upgrade development.
 
 ## Release channel cheat sheet
 

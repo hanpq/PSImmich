@@ -77,7 +77,7 @@
     process
     {
         $Id | ForEach-Object {
-            InvokeImmichRestMethod -Method POST -RelativePath "/libraries/$PSItem/validate" -ImmichSession:$Session -Body:$BodyParameters
+            Invoke-ImmichApiValidate -Id $PSItem -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [ValidateLibraryResponseDto]::new($PSItem) }
         }
     }
 }

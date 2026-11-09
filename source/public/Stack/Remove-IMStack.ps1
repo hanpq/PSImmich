@@ -75,7 +75,7 @@
 
         if ($PSCmdlet.ShouldProcess("Stacks: $($BodyParameters.ids -join ',')", 'DELETE'))
         {
-            InvokeImmichRestMethod -Method Delete -RelativePath '/stacks' -ImmichSession:$Session -Body:$BodyParameters
+            Invoke-ImmichApiDeleteStacks -Body $BodyParameters -ImmichSession $Session
         }
     }
 }

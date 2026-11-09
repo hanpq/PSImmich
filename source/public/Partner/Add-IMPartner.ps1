@@ -29,7 +29,6 @@
     )
 
     $BodyParameters = ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-
-    InvokeImmichRestMethod -Method POST -RelativePath '/partners' -ImmichSession:$Session -Body $BodyParameters
+    Invoke-ImmichApiCreatePartner -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [PartnerResponseDto]::new($PSItem) }
 }
 #endregion

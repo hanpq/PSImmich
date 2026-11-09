@@ -97,20 +97,20 @@
             $switchParams = @('Albums', 'Metadata', 'SharedLinks', 'Sidecar', 'Stack')
             $specifiedSwitches = $switchParams | Where-Object { $PSBoundParameters.ContainsKey($_) }
 
-            # If no specific switches are specified, copy everything (default behavior)
-            if ($specifiedSwitches.Count -eq 0)
+            # If no specific switches are specified, copy everything (default behavior).
+            # Otherwise send explicit false for unspecified switches, because the server defaults omitted ones to true.
+            foreach ($SwitchParam in $switchParams)
             {
-                $PSBoundParameters.Albums = $true
-                $PSBoundParameters.Metadata = $true
-                $PSBoundParameters.SharedLinks = $true
-                $PSBoundParameters.Sidecar = $true
-                $PSBoundParameters.Stack = $true
+                if ($specifiedSwitches.Count -eq 0 -or $PSBoundParameters.ContainsKey($SwitchParam) -eq $false)
+                {
+                    $PSBoundParameters[$SwitchParam] = $specifiedSwitches.Count -eq 0
+                }
             }
 
             $BodyParameters = @{}
             $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
 
-            InvokeImmichRestMethod -Method PUT -RelativePath '/assets/copy' -ImmichSession:$Session -Body $BodyParameters
+            Invoke-ImmichApiCopyAsset -Body $BodyParameters -ImmichSession $Session
         }
     }
 }

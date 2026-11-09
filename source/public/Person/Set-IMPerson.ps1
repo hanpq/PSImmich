@@ -18,7 +18,7 @@
     .PARAMETER Name
         Display name for the person.
     .PARAMETER Color
-        Defines the color associated with the person
+        Avatar color for the person. One of: primary, pink, red, yellow, blue, green, purple, orange, gray, amber.
     .PARAMETER IsFavorite
         Defines if the person is marked as favorite
     .EXAMPLE
@@ -44,7 +44,8 @@
         $BirthDate,
 
         [Parameter()]
-        [ApiParameter('color')]
+        [ApiParameter('avatarColor')]
+        [ValidateSet('primary', 'pink', 'red', 'yellow', 'blue', 'green', 'purple', 'orange', 'gray', 'amber')]
         [string]
         $Color,
 
@@ -82,6 +83,11 @@
             $CurrentID = $PSItem
             $BodyParameters = @{}
             $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
+            if ($PSBoundParameters.ContainsKey('BirthDate'))
+            {
+                # Date-only value: a serialized DateTime is shifted to UTC and can land on the previous day.
+                $BodyParameters.birthDate = $BirthDate.ToString('yyyy-MM-dd')
+            }
             $BodyParameters.id = $CurrentID
             $ObjectArray += $BodyParameters
         }
@@ -94,7 +100,7 @@
             $BodyResult = @{
                 people = $ObjectArray
             }
-            InvokeImmichRestMethod -Method Put -RelativePath '/people' -ImmichSession:$Session -Body:$BodyResult
+            Invoke-ImmichApiUpdatePeople -Body $BodyResult -ImmichSession $Session
         }
     }
 

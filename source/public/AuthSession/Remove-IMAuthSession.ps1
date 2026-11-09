@@ -56,14 +56,14 @@
                 {
                     if ($PSCmdlet.ShouldProcess('All auth sessions', 'DELETE'))
                     {
-                        InvokeImmichRestMethod -Method DELETE -RelativePath '/sessions' -ImmichSession:$Session
+                        Invoke-ImmichApiDeleteAllSessions -ImmichSession $Session
                     }
                 }
                 'id'
                 {
                     if ($PSCmdlet.ShouldProcess($CurrentID, 'DELETE'))
                     {
-                        InvokeImmichRestMethod -Method DELETE -RelativePath "/sessions/$CurrentID" -ImmichSession:$Session
+                        Invoke-ImmichApiDeleteSession -Id $CurrentID -ImmichSession $Session
                     }
                 }
             }

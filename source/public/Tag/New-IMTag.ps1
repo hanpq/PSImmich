@@ -33,7 +33,7 @@
     $BodyParameters = @{}
     $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
 
-    InvokeImmichRestMethod -Method Post -RelativePath '/tags' -ImmichSession:$Session -Body:$BodyParameters
+    Invoke-ImmichApiCreateTag -Body $BodyParameters -ImmichSession $Session
 
 }
 #endregion

@@ -73,7 +73,7 @@
     $BodyParameters = @{}
     $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
 
-    InvokeImmichRestMethod -Method POST -RelativePath '/admin/users' -ImmichSession:$Session -Body $BodyParameters
+    Invoke-ImmichApiCreateUserAdmin -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [UserAdminResponseDto]::new($PSItem) }
 
 }
 #endregion

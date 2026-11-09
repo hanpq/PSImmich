@@ -29,13 +29,7 @@
 
     process
     {
-        # Resolve session - same pattern as InvokeImmichRestMethod
         $FileInfo = Get-Item -Path $FilePath.FullName
-        $RelativePath = '/users/profile-image'
-
-        # Use unified HttpClient approach via private function
-        $ResponseContent = Invoke-MultipartHttpUpload -RelativePath $RelativePath -Session:$Session -FormData @{} -FileInfo $FileInfo -FileFieldName 'file'
-
-        $ResponseContent | ConvertFrom-Json
+        Invoke-ImmichApiCreateProfileImage -FileInfo $FileInfo -FormData @{} -ImmichSession $Session
     }
 }

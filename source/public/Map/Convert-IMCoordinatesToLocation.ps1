@@ -47,27 +47,24 @@
         Coordinate precision affects the accuracy of the returned location information.
     #>
 
-    [CmdletBinding(DefaultParameterSetName = 'list')]
+    [CmdletBinding()]
     param(
         [Parameter()]
         [ImmichSession]
         $Session = $null,
 
         [Parameter(Mandatory)]
-        [ApiParameter('lat')]
         [double]
         $Latitude,
 
         [Parameter(Mandatory)]
-        [ApiParameter('lon')]
         [double]
         $Longitude
     )
 
-    $QueryParameters = @{}
-    $QueryParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-
-    InvokeImmichRestMethod -Method Get -RelativePath '/map/reverse-geocode' -ImmichSession:$Session -QueryParameters $QueryParameters
-
+    process
+    {
+        Invoke-ImmichApiReverseGeocode -Lat $Latitude -Lon $Longitude -ImmichSession $Session | ForEach-Object { [MapReverseGeocodeResponseDto]::new($PSItem) }
+    }
 }
 #endregion

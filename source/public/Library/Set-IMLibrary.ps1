@@ -86,7 +86,7 @@
         $Id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Update'))
             {
-                InvokeImmichRestMethod -Method PUT -RelativePath "/libraries/$PSItem" -ImmichSession:$Session -Body:$BodyParameters
+                Invoke-ImmichApiUpdateLibrary -Id $PSItem -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [LibraryResponseDto]::new($PSItem) }
             }
         }
     }

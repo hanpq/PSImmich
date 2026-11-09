@@ -39,6 +39,8 @@
     .PARAMETER Port
         Specifies the port number for SMTP server connection. Common values are 25 (plain),
         587 (TLS), 465 (SSL), or custom ports as configured by your SMTP provider.
+    .PARAMETER Secure
+        Controls whether the SMTP connection uses TLS/SSL from the start. Defaults to $false.
     .PARAMETER Username
         Specifies the username for SMTP server authentication. This is typically an
         email address or account name required by the SMTP server for authentication.
@@ -108,27 +110,36 @@
         $port = 25,
 
         [Parameter()]
+        [ApiParameter('transport.secure')]
+        [boolean]
+        $Secure = $false,
+
+        [Parameter()]
         [ApiParameter('transport.username')]
         [string]
         $username = ''
     )
 
-    begin
-    {
-        # Use enhanced ConvertTo-ApiParameters with dot-notation support for nested objects
-        $BodyParameters = @{}
-        $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-
-        # Handle special SecureString conversion for transport.password
-        if ($PSBoundParameters.ContainsKey('Password') -and $BodyParameters.ContainsKey('transport'))
-        {
-            $BodyParameters.transport.password = $Password | ConvertFromSecureString
-        }
-    }
-
     process
     {
-        InvokeImmichRestMethod -Method Post -RelativePath '/admin/notifications/test-email' -ImmichSession:$Session -Body $BodyParameters
+        # The API requires every transport field, so the body is built explicitly
+        # rather than from bound parameters only.
+        $Body = @{
+            enabled   = $enabled
+            from      = $from
+            replyTo   = $replyto
+            transport = @{
+                host       = $hostname
+                ignoreCert = $ignoreCert
+                password   = [System.Net.NetworkCredential]::new('', $Password).Password
+                port       = $port
+                secure     = $Secure
+                username   = $username
+            }
+        }
+
+        $Result = Invoke-ImmichApiSendTestEmailAdmin -Body $Body -ImmichSession $Session
+        [TestEmailResponseDto]::new($Result)
     }
 
 }

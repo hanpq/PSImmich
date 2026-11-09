@@ -146,24 +146,31 @@
         if ($PSCmdlet.ParameterSetName -eq 'id')
         {
             $id | ForEach-Object {
-                InvokeImmichRestMethod -Method Get -RelativePath "/memories/$PSItem" -ImmichSession:$Session
+                Invoke-ImmichApiGetMemory -Id $PSItem -ImmichSession $Session | ForEach-Object { [MemoryResponseDto]::new($PSItem) }
             }
         }
     }
 
     end
     {
-        if ($PSCmdlet.ParameterSetName -eq 'list')
+        if ($PSCmdlet.ParameterSetName -in 'list', 'statistics')
         {
-            $QueryParameters = @{}
-            $QueryParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-            InvokeImmichRestMethod -Method Get -RelativePath '/memories' -ImmichSession:$Session -QueryParameters $QueryParameters
-        }
-        elseif ($PSCmdlet.ParameterSetName -eq 'statistics')
-        {
-            $QueryParameters = @{}
-            $QueryParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-            InvokeImmichRestMethod -Method Get -RelativePath '/memories/statistics' -ImmichSession:$Session -QueryParameters $QueryParameters
+            $ApiParams = @{ ImmichSession = $Session }
+            if ($PSBoundParameters.ContainsKey('For')) { $ApiParams.For = $For.ToString('yyyy-MM-dd') }
+            if ($PSBoundParameters.ContainsKey('NumberOfMemories')) { $ApiParams.Size = $NumberOfMemories }
+            if ($PSBoundParameters.ContainsKey('IsSaved')) { $ApiParams.IsSaved = [bool]$IsSaved }
+            if ($PSBoundParameters.ContainsKey('IsTrashed')) { $ApiParams.IsTrashed = [bool]$IsTrashed }
+            if ($PSBoundParameters.ContainsKey('Type')) { $ApiParams.Type = $Type }
+            if ($PSBoundParameters.ContainsKey('Order')) { $ApiParams.Order = $Order }
+
+            if ($PSCmdlet.ParameterSetName -eq 'list')
+            {
+                Invoke-ImmichApiSearchMemories @ApiParams | ForEach-Object { [MemoryResponseDto]::new($PSItem) }
+            }
+            else
+            {
+                Invoke-ImmichApiMemoriesStatistics @ApiParams | ForEach-Object { [MemoryStatisticsResponseDto]::new($PSItem) }
+            }
         }
     }
 }

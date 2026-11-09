@@ -49,23 +49,24 @@
 
     begin
     {
-        $BodyParameters = @{
-            ids = @()
-        }
+        $DuplicateIds = [System.Collections.Generic.List[string]]::new()
     }
 
     process
     {
         $Ids | ForEach-Object {
-            $BodyParameters.ids += $psitem
+            $DuplicateIds.Add($PSItem)
         }
     }
 
     end
     {
-        if ($PSCmdlet.ShouldProcess(($BodyParameters.ids -join ','), 'DELETE'))
+        if ($PSCmdlet.ShouldProcess(($DuplicateIds -join ','), 'DELETE'))
         {
-            InvokeImmichRestMethod -Method Delete -RelativePath '/duplicates' -ImmichSession:$Session -Body:$BodyParameters
+            $Body = @{
+                ids = @($DuplicateIds)
+            }
+            Invoke-ImmichApiDeleteDuplicates -Body $Body -ImmichSession $Session
         }
     }
 

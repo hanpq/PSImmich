@@ -21,14 +21,10 @@
         [ImmichSession]$Session = $null,
 
         [Parameter(Mandatory)]
-        [ApiParameter('name')]
         [string]$Name
     )
 
-    $Query = @{}
-    $Query += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-
-    InvokeImmichRestMethod -Method GET -RelativePath '/search/places' -ImmichSession:$Session -QueryParameters:$Query | AddCustomType IMPlace
+    Invoke-ImmichApiSearchPlaces -Name $Name -ImmichSession $Session | ForEach-Object { [PlacesResponseDto]::new($PSItem) }
 
 }
 #endregion

@@ -66,7 +66,7 @@
         $IncludeAssets,
 
         [Parameter(ParameterSetName = 'list')]
-        [ApiParameter('shared')]
+        [ApiParameter('isShared')]
         [boolean]
         $Shared,
 
@@ -81,18 +81,21 @@
 
     begin
     {
-        switch ($PSCmdlet.ParameterSetName)
-        {
-            'list'
+        # The album API no longer returns assets, so they are retrieved through metadata search filtered by album.
+        $AttachAssets = {
+            param($Album)
+            $Assets = [System.Collections.Generic.List[object]]::new()
+            $Page = 1
+            do
             {
-                $QueryParameters = @{}
-                $QueryParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-            }
-            'id'
-            {
-                $QueryParameters = @{}
-                $QueryParameters.withoutAssets = (-not $IncludeAssets)
-            }
+                $Search = Invoke-ImmichApiSearchAssets -Body @{ albumIds = @($Album.id); page = $Page; size = 1000 } -ImmichSession $Session
+                if ($Search.assets.items)
+                {
+                    $Assets.AddRange(@($Search.assets.items))
+                }
+                $Page++
+            } while ($Search.assets.nextPage)
+            $Album | Add-Member -NotePropertyName assets -NotePropertyValue $Assets.ToArray()
         }
     }
 
@@ -102,30 +105,34 @@
         {
             'list'
             {
-                $Result = InvokeImmichRestMethod -Method Get -RelativePath '/albums' -ImmichSession:$Session -QueryParameters $QueryParameters
+                $ApiArguments = @{ ImmichSession = $Session }
+                if ($PSBoundParameters.ContainsKey('AssetId')) { $ApiArguments.AssetId = $AssetId }
+                if ($PSBoundParameters.ContainsKey('Shared')) { $ApiArguments.IsShared = $Shared }
+                $Result = Invoke-ImmichApiGetAllAlbums @ApiArguments | ForEach-Object { [AlbumResponseDto]::new($PSItem) }
                 if ($Name)
                 {
                     $Result = $Result | Where-Object { $_.AlbumName -eq $Name }
                 }
                 if ($SearchString)
                 {
-                    $Result = $Result | Where-Object { $_.Albumname -like $SearchString }
+                    $Result = $Result | Where-Object { $_.AlbumName -like $SearchString }
                 }
-                if (-not $IncludeAssets)
-                {
-                    $Result | AddCustomType IMAlbum
+                $Result | ForEach-Object {
+                    if ($IncludeAssets)
+                    {
+                        & $AttachAssets $PSItem
+                    }
+                    $PSItem
                 }
-                else
-                {
-                    $Result | ForEach-Object {
-                        Get-IMAlbum -Id $PSItem.Id -IncludeAssets
-                    } | AddCustomType IMAlbum
-                }
-
             }
             'id'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/albums/$AlbumId" -ImmichSession:$Session -QueryParameters $QueryParameters | AddCustomType IMAlbum
+                $Album = [AlbumResponseDto]::new((Invoke-ImmichApiGetAlbumInfo -Id $AlbumId -ImmichSession $Session))
+                if ($IncludeAssets)
+                {
+                    & $AttachAssets $Album
+                }
+                $Album
             }
         }
     }

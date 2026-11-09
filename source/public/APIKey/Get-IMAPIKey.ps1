@@ -44,11 +44,11 @@
             {
                 'list'
                 {
-                    InvokeImmichRestMethod -Method Get -RelativePath '/api-keys' -ImmichSession:$Session | AddCustomType IMAPIKey
+                    Invoke-ImmichApiGetApiKeys -ImmichSession $Session | ForEach-Object { [ApiKeyResponseDto]::new($PSItem) }
                 }
                 'id'
                 {
-                    InvokeImmichRestMethod -Method Get -RelativePath "/api-keys/$CurrentID" -ImmichSession:$Session | AddCustomType IMAPIKey
+                    Invoke-ImmichApiGetApiKey -Id $CurrentID -ImmichSession $Session | ForEach-Object { [ApiKeyResponseDto]::new($PSItem) }
                 }
             }
         }

@@ -31,9 +31,7 @@
 
     process
     {
-        $QueryParameters = @{}
-        $QueryParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-        InvokeImmichRestMethod -Method GET -RelativePath '/partners' -ImmichSession:$Session -QueryParameters:$QueryParameters
+        Invoke-ImmichApiGetPartners -Direction $Direction -ImmichSession $Session | ForEach-Object { [PartnerResponseDto]::new($PSItem) }
     }
 }
 #endregion

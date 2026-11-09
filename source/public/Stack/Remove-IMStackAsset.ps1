@@ -60,7 +60,7 @@
     {
         if ($PSCmdlet.ShouldProcess("Asset $AssetId from Stack $StackId", 'Remove'))
         {
-            InvokeImmichRestMethod -Method Delete -RelativePath "/stacks/$StackId/assets/$AssetId" -ImmichSession:$Session
+            Invoke-ImmichApiRemoveAssetFromStack -Id $StackId -AssetId $AssetId -ImmichSession $Session
         }
     }
 }

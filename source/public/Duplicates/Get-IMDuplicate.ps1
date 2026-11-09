@@ -37,7 +37,7 @@
         $Session = $null
     )
 
-    InvokeImmichRestMethod -Method Get -RelativePath '/duplicates' -ImmichSession:$Session | AddCustomType -Type IMAssetDuplicate
+    Invoke-ImmichApiGetAssetDuplicates -ImmichSession $Session | ForEach-Object { [DuplicateResponseDto]::new($PSItem) }
 
 }
 #endregion

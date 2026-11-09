@@ -42,7 +42,7 @@
 
     if ($PSCmdlet.ShouldProcess('Service license', 'set'))
     {
-        InvokeImmichRestMethod -Method Put -RelativePath '/server/license' -ImmichSession:$Session -Body:$BodyParameters
+        Invoke-ImmichApiSetServerLicense -Body $BodyParameters -ImmichSession:$Session
     }
 
 }

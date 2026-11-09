@@ -8,14 +8,15 @@
         "APITOKEN",
         "GALLERYAPITOKEN",
         "GITHUBTOKEN",
-        "PSTOOLS",
         "hanpq",
         "LASTEXITCODE",
+        "mkdocs",
         "notmatch",
+        "platyps",
+        "Powershellgallery",
         "psake",
         "PSHOME",
-        "mkdocs",
-        "platyps",
-        "Powershellgallery"
+        "PSTOOLS",
+        "securestring"
     ]
 }

@@ -16,6 +16,12 @@
         FileInfo object representing the file to upload
     .PARAMETER FileFieldName
         The form field name for the file (e.g., 'assetData', 'file')
+    .PARAMETER Headers
+        Additional HTTP headers to send with the request (e.g., 'x-immich-checksum')
+    .PARAMETER AdditionalFiles
+        Hashtable of extra form field names to FileInfo objects, sent as application/octet-stream parts
+    .PARAMETER QueryParameters
+        Hashtable of query string parameters appended to the request URI. Booleans are lowercased.
     .EXAMPLE
         Invoke-MultipartHttpUpload -RelativePath '/assets' -Session $session -FormData $data -FileInfo $file -FileFieldName 'assetData'
     #>
@@ -35,7 +41,16 @@
         [object]$FileInfo,
 
         [Parameter(Mandatory)]
-        [string]$FileFieldName
+        [string]$FileFieldName,
+
+        [Parameter()]
+        [hashtable]$Headers = @{},
+
+        [Parameter()]
+        [hashtable]$AdditionalFiles = @{},
+
+        [Parameter()]
+        [hashtable]$QueryParameters = @{}
     )
 
 
@@ -58,6 +73,7 @@
     $HttpClient = New-Object System.Net.Http.HttpClient
     $MultipartContent = New-Object System.Net.Http.MultipartFormDataContent
     $FileStream = $null
+    $OpenStreams = @()
 
     try
     {
@@ -71,10 +87,15 @@
         $ApiKey = ConvertFromSecureString -SecureString $Session.AccessToken
         $HttpClient.DefaultRequestHeaders.Add('x-api-key', $ApiKey)
 
+        foreach ($header in $Headers.GetEnumerator())
+        {
+            $HttpClient.DefaultRequestHeaders.Add($header.Key, [string]$header.Value)
+        }
+
         # Add form fields
         foreach ($field in $FormData.GetEnumerator())
         {
-            $StringContent = New-Object System.Net.Http.StringContent($field.Value.ToString())
+            $StringContent = New-Object System.Net.Http.StringContent((ConvertTo-MultipartFieldValue -Value $field.Value))
             $MultipartContent.Add($StringContent, $field.Key)
         }
 
@@ -84,8 +105,31 @@
         $StreamContent.Headers.ContentType = New-Object System.Net.Http.Headers.MediaTypeHeaderValue('application/octet-stream')
         $MultipartContent.Add($StreamContent, $FileFieldName, $FileInfo.Name)
 
+        foreach ($additionalFile in $AdditionalFiles.GetEnumerator())
+        {
+            $AdditionalStream = [System.IO.File]::OpenRead($additionalFile.Value.FullName)
+            $OpenStreams += $AdditionalStream
+            $AdditionalContent = New-Object System.Net.Http.StreamContent($AdditionalStream)
+            $AdditionalContent.Headers.ContentType = New-Object System.Net.Http.Headers.MediaTypeHeaderValue('application/octet-stream')
+            $MultipartContent.Add($AdditionalContent, $additionalFile.Key, $additionalFile.Value.Name)
+        }
+
         # Send request
-        $Response = $HttpClient.PostAsync($(($Session.ApiUri) + $RelativePath), $MultipartContent).Result
+        $Uri = ($Session.ApiUri) + $RelativePath
+        if ($QueryParameters.Count -gt 0)
+        {
+            $QueryPairs = foreach ($Query in $QueryParameters.GetEnumerator())
+            {
+                $QueryValue = $Query.Value
+                if ($QueryValue -is [bool])
+                {
+                    $QueryValue = $QueryValue.ToString().ToLowerInvariant()
+                }
+                [uri]::EscapeDataString($Query.Key) + '=' + [uri]::EscapeDataString([string]$QueryValue)
+            }
+            $Uri += '?' + ($QueryPairs -join '&')
+        }
+        $Response = $HttpClient.PostAsync($Uri, $MultipartContent).Result
         $ResponseContent = $Response.Content.ReadAsStringAsync().Result
 
         if ($Response.IsSuccessStatusCode)
@@ -103,6 +147,10 @@
         if ($FileStream)
         {
             $FileStream.Dispose()
+        }
+        foreach ($Stream in $OpenStreams)
+        {
+            $Stream.Dispose()
         }
         if ($MultipartContent)
         {

@@ -93,7 +93,7 @@
         # Handle special datetime formatting for purchase.hideBuyButtonUntil
         if ($PSBoundParameters.ContainsKey('HideBuyButtonUntil') -and $BodyParameters.ContainsKey('purchase'))
         {
-            $BodyParameters.purchase.hideBuyButtonUntil = $HideBuyButtonUntil.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
+            $BodyParameters.purchase.hideBuyButtonUntil = ([DateTimeOffset]$HideBuyButtonUntil).UtcDateTime.ToString('o')
         }
     }
 
@@ -102,7 +102,7 @@
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Set'))
             {
-                InvokeImmichRestMethod -Method PUT -RelativePath "/admin/users/$PSItem/preferences" -ImmichSession:$Session -Body $BodyParameters
+                Invoke-ImmichApiUpdateUserPreferencesAdmin -Id $PSItem -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [UserPreferencesResponseDto]::new($PSItem) }
             }
         }
     }

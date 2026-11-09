@@ -50,8 +50,8 @@
         {
             $Name | ForEach-Object {
                 $CurrentName = $PSItem
-                $Result = InvokeImmichRestMethod -Method GET -RelativePath "/queues/$CurrentName" -ImmichSession:$Session
-                $Result | AddCustomType IMQueue
+                Invoke-ImmichApiGetQueue -Name $CurrentName -ImmichSession $Session |
+                    ForEach-Object { [QueueResponseDto]::new($PSItem) }
             }
         }
     }
@@ -60,8 +60,8 @@
     {
         if ($PSCmdlet.ParameterSetName -eq 'list')
         {
-            $Result = InvokeImmichRestMethod -Method GET -RelativePath '/queues' -ImmichSession:$Session
-            $Result | AddCustomType IMQueue
+            Invoke-ImmichApiGetQueues -ImmichSession $Session |
+                ForEach-Object { [QueueResponseDto]::new($PSItem) }
         }
     }
 }

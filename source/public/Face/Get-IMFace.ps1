@@ -47,11 +47,7 @@
     process
     {
         $Id | ForEach-Object {
-            $CurrentID = $PSItem
-            $QueryParameters = @{
-                id = $CurrentID
-            }
-            InvokeImmichRestMethod -Method GET -RelativePath '/faces' -ImmichSession:$Session -QueryParameters:$QueryParameters
+            Invoke-ImmichApiGetFaces -Id $PSItem -ImmichSession $Session | ForEach-Object { [AssetFaceResponseDto]::new($PSItem) }
         }
     }
 }

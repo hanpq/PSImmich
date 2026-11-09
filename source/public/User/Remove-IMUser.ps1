@@ -51,7 +51,7 @@
         $id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'DELETE'))
             {
-                InvokeImmichRestMethod -Method DELETE -RelativePath "/admin/users/$PSItem" -ImmichSession:$Session -Body $BodyParameters
+                Invoke-ImmichApiDeleteUserAdmin -Id $PSItem -Body $BodyParameters -ImmichSession $Session
             }
         }
     }

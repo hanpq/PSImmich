@@ -52,7 +52,8 @@
                 $SavedProgressPreference = $global:ProgressPreference
                 $global:ProgressPreference = 'SilentlyContinue'
             }
-            InvokeImmichRestMethod -Method Get -RelativePath "/assets/$Id/thumbnail" -ImmichSession:$Session -ContentType 'application/octet-stream' -OutFilePath $OutputPath
+            $ApiArguments = @{ Id = $CurrentID; OutFilePath = $OutputPath; ImmichSession = $Session }
+            Invoke-ImmichApiViewAsset @ApiArguments
             if ($PSVersionTable.PSEdition -eq 'Desktop')
             {
                 $global:ProgressPreference = $SavedProgressPreference

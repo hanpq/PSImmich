@@ -73,7 +73,7 @@
 
     end
     {
-        InvokeImmichRestMethod -Method PUT -RelativePath "/albums/$AlbumId/users" -ImmichSession:$Session -Body:$BodyParameters
+        Invoke-ImmichApiAddUsersToAlbum -Id $AlbumId -Body $BodyParameters -ImmichSession $Session
     }
 }
 #endregion

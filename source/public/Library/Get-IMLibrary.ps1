@@ -28,11 +28,9 @@
 
         Retrieves all libraries owned by a specific user.
     .EXAMPLE
-        Get-IMLibrary | Where-Object {$_.type -eq 'EXTERNAL'}
+        Get-IMLibrary | Where-Object {$_.assetCount -gt 0}
 
-        Retrieves only external libraries (those that scan existing folders).
-    .NOTES
-        Libraries can be either UPLOAD (for uploading new assets) or EXTERNAL (for scanning existing folders).
+        Retrieves only libraries that contain assets.
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'list')]
@@ -62,10 +60,10 @@
         {
             $id | ForEach-Object {
                 $CurrentID = $PSItem
-                $Result = InvokeImmichRestMethod -Method Get -RelativePath "/libraries/$CurrentID" -ImmichSession:$Session
+                $Result = Invoke-ImmichApiGetLibrary -Id $CurrentID -ImmichSession $Session | ForEach-Object { [LibraryResponseDto]::new($PSItem) }
                 if ($IncludeStatistics)
                 {
-                    $Stats = InvokeImmichRestMethod -Method GET -RelativePath "/libraries/$CurrentID/statistics" -ImmichSession:$Session
+                    $Stats = Invoke-ImmichApiGetLibraryStatistics -Id $CurrentID -ImmichSession $Session | ForEach-Object { [LibraryStatsResponseDto]::new($PSItem) }
                     $Result | Add-Member -MemberType NoteProperty -Name 'Statistics' -Value $Stats
                 }
                 $Result
@@ -79,11 +77,11 @@
         {
             if ($ownerId)
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/libraries' -ImmichSession:$Session | Where-Object { $_.ownerid -eq $ownerid }
+                Invoke-ImmichApiGetAllLibraries -ImmichSession $Session | ForEach-Object { [LibraryResponseDto]::new($PSItem) } | Where-Object { $_.ownerId -eq $ownerId }
             }
             else
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/libraries' -ImmichSession:$Session
+                Invoke-ImmichApiGetAllLibraries -ImmichSession $Session | ForEach-Object { [LibraryResponseDto]::new($PSItem) }
             }
         }
     }

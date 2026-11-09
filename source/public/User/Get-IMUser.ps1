@@ -49,24 +49,19 @@
         {
             'list'
             {
-                if ($IncludeDeleted)
-                {
-                    InvokeImmichRestMethod -Method Get -RelativePath '/admin/users' -ImmichSession:$Session -Query:@{withDeleted = $true } | AddCustomType IMUser
-                }
-                else
-                {
-                    InvokeImmichRestMethod -Method Get -RelativePath '/admin/users' -ImmichSession:$Session | AddCustomType IMUser
-                }
+                $ApiArguments = @{ ImmichSession = $Session }
+                if ($IncludeDeleted) { $ApiArguments.WithDeleted = $true }
+                Invoke-ImmichApiSearchUsersAdmin @ApiArguments | ForEach-Object { [UserAdminResponseDto]::new($PSItem) }
             }
             'id'
             {
                 $id | ForEach-Object {
-                    InvokeImmichRestMethod -Method Get -RelativePath "/admin/users/$PSItem" -ImmichSession:$Session | AddCustomType IMUser
+                    Invoke-ImmichApiGetUserAdmin -Id $PSItem -ImmichSession $Session | ForEach-Object { [UserAdminResponseDto]::new($PSItem) }
                 }
             }
             'me'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/users/me' -ImmichSession:$Session | AddCustomType IMUser
+                Invoke-ImmichApiGetMyUser -ImmichSession $Session | ForEach-Object { [UserResponseDto]::new($PSItem) }
             }
         }
     }

@@ -65,53 +65,49 @@
         $RemoveAssets,
 
         [Parameter()]
-        [ApiParameter('albumName')]
         [string]
         $AlbumName,
 
         [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [ApiParameter('albumThumbnailAssetId')]
         [string]
         $AlbumThumbnailAssetId,
 
         [Parameter()]
-        [ApiParameter('description')]
         [string]
         $Description,
 
         [Parameter()]
-        [ApiParameter('isActivityEnabled')]
         [boolean]
         $IsActivityEnabled,
 
         [Parameter()]
-        [ApiParameter('order')]
         [string]
         [ValidateSet('asc', 'desc')]
         $Order
     )
 
-    begin
-    {
-        $BodyParameters = @{}
-        $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-    }
-
     process
     {
+        $BodyParameters = @{}
+        if ($PSBoundParameters.ContainsKey('AlbumName')) { $BodyParameters.albumName = $AlbumName }
+        if ($PSBoundParameters.ContainsKey('AlbumThumbnailAssetId')) { $BodyParameters.albumThumbnailAssetId = $AlbumThumbnailAssetId }
+        if ($PSBoundParameters.ContainsKey('Description')) { $BodyParameters.description = $Description }
+        if ($PSBoundParameters.ContainsKey('IsActivityEnabled')) { $BodyParameters.isActivityEnabled = $IsActivityEnabled }
+        if ($PSBoundParameters.ContainsKey('Order')) { $BodyParameters.order = $Order }
+
         $Id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Update'))
             {
-                InvokeImmichRestMethod -Method PATCH -RelativePath "/albums/$PSItem" -ImmichSession:$Session -Body:$BodyParameters
+                Invoke-ImmichApiUpdateAlbumInfo -Id $PSItem -Body $BodyParameters -ImmichSession $Session
 
                 if ($PSBoundParameters.ContainsKey('AddAssets'))
                 {
-                    $null = InvokeImmichRestMethod -Method PUT -RelativePath "/albums/$PSItem/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$AddAssets }
+                    $null = Invoke-ImmichApiAddAssetsToAlbum -Id $PSItem -Body @{ids = [string[]]$AddAssets } -ImmichSession $Session
                 }
                 if ($PSBoundParameters.ContainsKey('RemoveAssets'))
                 {
-                    $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/albums/$PSItem/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$RemoveAssets }
+                    $null = Invoke-ImmichApiRemoveAssetFromAlbum -Id $PSItem -Body @{ids = [string[]]$RemoveAssets } -ImmichSession $Session
                 }
             }
         }

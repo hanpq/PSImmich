@@ -248,6 +248,40 @@ InModuleScope $ProjectName {
                     } } | Should -Not -Throw
             }
         }
+        Context 'When calling post with boolean and datetime body values' {
+            It 'Should send booleans as JSON booleans and datetimes as UTC ISO 8601' {
+                InvokeImmichRestMethod -Method post -immichsession:$Session -RelativePath '/auth/login' -Body:@{
+                    flag     = $true
+                    switchOn = [switch]$true
+                    when     = [datetime]::SpecifyKind([datetime]'2026-11-06T10:00:00', 'Utc')
+                }
+                Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Body -match '"flag":true' -and
+                    $Body -match '"switchOn":true' -and
+                    $Body -match '"when":"2026-11-06T10:00:00(\.0+)?Z"'
+                }
+            }
+            It 'Should send datetimes nested in hashtables as UTC ISO 8601' {
+                InvokeImmichRestMethod -Method post -immichsession:$Session -RelativePath '/auth/login' -Body:@{
+                    filter = @{
+                        takenAt = @{ lte = [datetime]::SpecifyKind([datetime]'2026-11-06T10:00:00', 'Utc') }
+                    }
+                }
+                Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Body -match '"lte":"2026-11-06T10:00:00(\.0+)?Z"'
+                }
+            }
+        }
+        Context 'When calling get with datetime query' {
+            It 'Should format the datetime as UTC ISO 8601' {
+                InvokeImmichRestMethod -Method get -immichsession:$Session -RelativePath '/auth/login' -QueryParameters:@{
+                    since = [datetime]::SpecifyKind([datetime]'2026-11-06T10:00:00', 'Utc')
+                }
+                Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Uri -match 'since=2026-11-06T10:00:00(\.0+)?Z$'
+                }
+            }
+        }
     }
     Describe 'ValidateToken' -Tag 'Unit', 'ValidateToken' {
         BeforeAll {
@@ -368,6 +402,79 @@ InModuleScope $ProjectName {
     Describe 'Invoke-MultipartHttpUpload' -Tag 'Unit', 'Invoke-MultipartHttpUpload' {
         It 'Should be true' {
             $true | Should -Be $true
+        }
+    }
+
+    Describe 'ConvertTo-MultipartFieldValue' -Tag 'Unit', 'ConvertTo-MultipartFieldValue' {
+        It 'Should write a true boolean as lowercase true' {
+            ConvertTo-MultipartFieldValue -Value $true | Should -BeExactly 'true'
+        }
+
+        It 'Should write a false boolean as lowercase false' {
+            ConvertTo-MultipartFieldValue -Value $false | Should -BeExactly 'false'
+        }
+
+        It 'Should write a switch that is present as lowercase true' {
+            ConvertTo-MultipartFieldValue -Value ([System.Management.Automation.SwitchParameter]$true) | Should -BeExactly 'true'
+        }
+
+        It 'Should write a switch that is absent as lowercase false' {
+            ConvertTo-MultipartFieldValue -Value ([System.Management.Automation.SwitchParameter]$false) | Should -BeExactly 'false'
+        }
+
+        It 'Should write strings and numbers with ToString' {
+            ConvertTo-MultipartFieldValue -Value 'PSImmich' | Should -BeExactly 'PSImmich'
+            ConvertTo-MultipartFieldValue -Value 42 | Should -BeExactly '42'
+        }
+    }
+
+    Describe 'ConvertTo-ImmichRequestBody' -Tag 'Unit', 'ConvertTo-ImmichRequestBody' {
+        It 'Should pass plain values through unchanged' {
+            $Result = ConvertTo-ImmichRequestBody -InputObject @{ name = 'PSImmich'; count = 42; missing = $null }
+            $Result.name | Should -BeExactly 'PSImmich'
+            $Result.count | Should -Be 42
+            $Result.Keys | Should -Contain 'missing'
+            $Result.missing | Should -BeNullOrEmpty
+        }
+
+        It 'Should convert booleans and switches to booleans' {
+            $Result = ConvertTo-ImmichRequestBody -InputObject @{
+                flag     = $true
+                off      = $false
+                switchOn = [System.Management.Automation.SwitchParameter]$true
+            }
+            $Result.flag | Should -BeTrue
+            $Result.off | Should -BeFalse
+            $Result.switchOn | Should -BeTrue
+            $Result.switchOn.GetType().Name | Should -BeExactly 'Boolean'
+        }
+
+        It 'Should convert datetimes to UTC round-trip strings' {
+            $Result = ConvertTo-ImmichRequestBody -InputObject @{
+                when = [datetime]::SpecifyKind([datetime]'2026-11-06T10:00:00', 'Utc')
+            }
+            $Result.when | Should -Match '^2026-11-06T10:00:00'
+            $Result.when | Should -Match 'Z$|\+00:00$'
+        }
+
+        It 'Should normalize values nested in hashtables and ordered dictionaries' {
+            $Result = ConvertTo-ImmichRequestBody -InputObject @{
+                filter = @{
+                    takenAt = [ordered]@{
+                        lte     = [datetime]::SpecifyKind([datetime]'2026-11-06T10:00:00', 'Utc')
+                        enabled = [switch]$true
+                    }
+                }
+            }
+            $Result.filter.takenAt.lte | Should -Match '^2026-11-06T10:00:00'
+            $Result.filter.takenAt.enabled | Should -BeTrue
+            $Result.filter | Should -BeOfType ([hashtable])
+        }
+
+        It 'Should return an empty hashtable for an empty input' {
+            $Result = ConvertTo-ImmichRequestBody -InputObject @{}
+            $Result | Should -BeOfType ([hashtable])
+            $Result.Count | Should -Be 0
         }
     }
 

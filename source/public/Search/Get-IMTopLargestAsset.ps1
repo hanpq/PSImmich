@@ -37,27 +37,11 @@
         $Session = $null,
 
         [Parameter()]
-        [ApiParameter('size')]
         [ValidateRange(1, 1000)]
         [int]
         $Size = 100
     )
 
-    # Ensure Size parameter is always included, even when using default value
-    $Parameters = @{}
-    foreach ($key in $PSBoundParameters.Keys)
-    {
-        $Parameters[$key] = $PSBoundParameters[$key]
-    }
-    if (-not $Parameters.ContainsKey('Size'))
-    {
-        $Parameters['Size'] = $Size
-    }
-
-    $Body = @{}
-    $Body += (ConvertTo-ApiParameters -BoundParameters $Parameters -CmdletName $MyInvocation.MyCommand.Name)
-
-    $Result = InvokeImmichRestMethod -Method POST -RelativePath '/search/large-assets' -ImmichSession:$Session -Body $Body
-    $Result | AddCustomType IMLargeAsset
+    Invoke-ImmichApiSearchLargeAssets -Size $Size -ImmichSession $Session | ForEach-Object { [AssetResponseDto]::new($PSItem) }
 }
 #endregion

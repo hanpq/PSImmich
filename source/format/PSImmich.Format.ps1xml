@@ -2,9 +2,9 @@
 <Configuration>
     <ViewDefinitions>
         <View>
-            <Name>PSImmich.ObjectType.IMAsset</Name>
+            <Name>AssetResponseDto</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMAsset</TypeName>
+                <TypeName>AssetResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
@@ -46,9 +46,9 @@
             </TableControl>
         </View>
         <View>
-            <Name>PSImmich.ObjectType.IMAlbum</Name>
+            <Name>AlbumResponseDto</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMAlbum</TypeName>
+                <TypeName>AlbumResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
@@ -72,10 +72,6 @@
                         <Label>Assets</Label>
                         <Width>6</Width>
                     </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Owner</Label>
-                        <Width>40</Width>
-                    </TableColumnHeader>
                 </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
@@ -93,10 +89,7 @@
                                 <PropertyName>shared</PropertyName>
                             </TableColumnItem>
                             <TableColumnItem>
-                                <PropertyName>assetcount</PropertyName>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <ScriptBlock>$PSItem.owner.email</ScriptBlock>
+                                <PropertyName>assetCount</PropertyName>
                             </TableColumnItem>
                         </TableColumnItems>
                     </TableRowEntry>
@@ -104,9 +97,9 @@
             </TableControl>
         </View>
         <View>
-            <Name>PSImmich.ObjectType.IMActivity</Name>
+            <Name>ActivityResponseDto</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMActivity</TypeName>
+                <TypeName>ActivityResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
@@ -149,9 +142,10 @@
             </TableControl>
         </View>
         <View>
-            <Name>PSImmich.ObjectType.IMAPIKey</Name>
+            <Name>ApiKeyResponseDto</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMAPIKey</TypeName>
+                <TypeName>ApiKeyResponseDto</TypeName>
+                <TypeName>ApiKeyCreateResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
@@ -193,9 +187,9 @@
             </TableControl>
         </View>
         <View>
-            <Name>PSImmich.ObjectType.IMPlace</Name>
+            <Name>PSImmich.ObjectType.PlacesResponseDto</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMPlace</TypeName>
+                <TypeName>PlacesResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
@@ -246,7 +240,8 @@
         <View>
             <Name>PSImmich.ObjectType.IMUser</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMUser</TypeName>
+                <TypeName>UserAdminResponseDto</TypeName>
+                <TypeName>UserResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
@@ -295,81 +290,9 @@
             </TableControl>
         </View>
         <View>
-            <Name>PSImmich.ObjectType.IMLargeAsset</Name>
+            <Name>QueueResponseDto</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMLargeAsset</TypeName>
-            </ViewSelectedBy>
-            <TableControl>
-                <TableHeaders>
-                    <TableColumnHeader>
-                        <Label>Id</Label>
-                        <Width>37</Width>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Type</Label>
-                        <Width>6</Width>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>FileName</Label>
-                        <Width>30</Width>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Size (MB)</Label>
-                        <Width>10</Width>
-                        <Alignment>Right</Alignment>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Resolution</Label>
-                        <Width>12</Width>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Updated</Label>
-                        <Width>20</Width>
-                    </TableColumnHeader>
-                </TableHeaders>
-                <TableRowEntries>
-                    <TableRowEntry>
-                        <TableColumnItems>
-                            <TableColumnItem>
-                                <PropertyName>id</PropertyName>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <PropertyName>type</PropertyName>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <PropertyName>originalFileName</PropertyName>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <ScriptBlock>
-                                    if ($_.exifInfo.fileSizeInByte) {
-                                    [math]::Round($_.exifInfo.fileSizeInByte / 1MB, 2)
-                                    } else {
-                                    'N/A'
-                                    }
-                                </ScriptBlock>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <ScriptBlock>
-                                    if ($_.exifInfo.exifImageWidth -and $_.exifInfo.exifImageHeight)
-                                    {
-                                    "$($_.exifInfo.exifImageWidth)x$($_.exifInfo.exifImageHeight)"
-                                    } else {
-                                    'N/A'
-                                    }
-                                </ScriptBlock>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <PropertyName>updatedAt</PropertyName>
-                            </TableColumnItem>
-                        </TableColumnItems>
-                    </TableRowEntry>
-                </TableRowEntries>
-            </TableControl>
-        </View>
-        <View>
-            <Name>PSImmich.ObjectType.IMQueue</Name>
-            <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMQueue</TypeName>
+                <TypeName>QueueResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
@@ -414,16 +337,24 @@
                                 </ScriptBlock>
                             </TableColumnItem>
                             <TableColumnItem>
-                                <PropertyName>waiting</PropertyName>
+                                <ScriptBlock>
+                                    if ($_.statistics) { $_.statistics.waiting } else { 'N/A' }
+                                </ScriptBlock>
                             </TableColumnItem>
                             <TableColumnItem>
-                                <PropertyName>active</PropertyName>
+                                <ScriptBlock>
+                                    if ($_.statistics) { $_.statistics.active } else { 'N/A' }
+                                </ScriptBlock>
                             </TableColumnItem>
                             <TableColumnItem>
-                                <PropertyName>completed</PropertyName>
+                                <ScriptBlock>
+                                    if ($_.statistics) { $_.statistics.completed } else { 'N/A' }
+                                </ScriptBlock>
                             </TableColumnItem>
                             <TableColumnItem>
-                                <PropertyName>failed</PropertyName>
+                                <ScriptBlock>
+                                    if ($_.statistics) { $_.statistics.failed } else { 'N/A' }
+                                </ScriptBlock>
                             </TableColumnItem>
                         </TableColumnItems>
                     </TableRowEntry>
@@ -431,36 +362,23 @@
             </TableControl>
         </View>
         <View>
-            <Name>PSImmich.ObjectType.IMQueueJob</Name>
+            <Name>QueueJobResponseDto</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMQueueJob</TypeName>
+                <TypeName>QueueJobResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
                     <TableColumnHeader>
                         <Label>Id</Label>
-                        <Width>8</Width>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Status</Label>
-                        <Width>10</Width>
+                        <Width>38</Width>
                     </TableColumnHeader>
                     <TableColumnHeader>
                         <Label>Name</Label>
                         <Width>20</Width>
                     </TableColumnHeader>
                     <TableColumnHeader>
-                        <Label>Progress</Label>
-                        <Width>10</Width>
-                        <Alignment>Right</Alignment>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Created</Label>
-                        <Width>20</Width>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Updated</Label>
-                        <Width>20</Width>
+                        <Label>Timestamp</Label>
+                        <Width>16</Width>
                     </TableColumnHeader>
                 </TableHeaders>
                 <TableRowEntries>
@@ -470,21 +388,10 @@
                                 <PropertyName>id</PropertyName>
                             </TableColumnItem>
                             <TableColumnItem>
-                                <PropertyName>status</PropertyName>
-                            </TableColumnItem>
-                            <TableColumnItem>
                                 <PropertyName>name</PropertyName>
                             </TableColumnItem>
                             <TableColumnItem>
-                                <ScriptBlock>
-                                    if ($_.progress) { "$($_.progress)%" } else { 'N/A' }
-                                </ScriptBlock>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <PropertyName>createdAt</PropertyName>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <PropertyName>updatedAt</PropertyName>
+                                <PropertyName>timestamp</PropertyName>
                             </TableColumnItem>
                         </TableColumnItems>
                     </TableRowEntry>

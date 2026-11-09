@@ -34,18 +34,8 @@
 
         [Parameter(ParameterSetName = 'list')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [ApiParameter('albumId')]
         $AlbumId
     )
-
-    begin
-    {
-        if ($PSCmdlet.ParameterSetName -eq 'list')
-        {
-            $QueryParameters = @{}
-            $QueryParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-        }
-    }
 
     process
     {
@@ -53,12 +43,17 @@
         {
             'list'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/shared-links' -ImmichSession:$Session -QueryParameters $QueryParameters
+                $ListParameters = @{ ImmichSession = $Session }
+                if ($PSBoundParameters.ContainsKey('AlbumId'))
+                {
+                    $ListParameters.AlbumId = $AlbumId
+                }
+                Invoke-ImmichApiGetAllSharedLinks @ListParameters | ForEach-Object { [SharedLinkResponseDto]::new($PSItem) }
             }
             'id'
             {
                 $id | ForEach-Object {
-                    InvokeImmichRestMethod -Method Get -RelativePath "/shared-links/$PSItem" -ImmichSession:$Session
+                    Invoke-ImmichApiGetSharedLinkById -Id $PSItem -ImmichSession $Session | ForEach-Object { [SharedLinkResponseDto]::new($PSItem) }
                 }
             }
         }

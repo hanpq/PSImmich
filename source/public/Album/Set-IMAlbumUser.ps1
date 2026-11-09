@@ -49,21 +49,16 @@
 
         [Parameter(Mandatory)]
         [ValidateSet('editor', 'viewer')]
-        [ApiParameter('role')]
         [string]
         $Role
     )
 
-    begin
-    {
-        $BodyParameters = @{}
-        $BodyParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-    }
-
     process
     {
+        $BodyParameters = @{ role = $Role }
+
         $UserId | ForEach-Object {
-            InvokeImmichRestMethod -Method PUT -RelativePath "/albums/$AlbumId/user/$PSItem" -ImmichSession:$Session -Body:$BodyParameters
+            Invoke-ImmichApiUpdateAlbumUser -Id $AlbumId -UserId $PSItem -Body $BodyParameters -ImmichSession $Session
         }
     }
 }

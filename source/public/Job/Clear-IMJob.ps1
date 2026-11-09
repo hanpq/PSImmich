@@ -12,9 +12,10 @@
         The type of job queue to clear. Valid values include thumbnailGeneration, metadataExtraction,
         videoConversion, faceDetection, and other job types.
     .PARAMETER Force
-        Forces the operation to proceed without additional confirmation for potentially disruptive actions.
+        Retained for compatibility. The queues API has no force option, so this parameter has no effect and a warning is written.
     .PARAMETER FailedOnly
-        Clears only failed jobs from the queue, leaving completed and pending jobs intact.
+        Clears only failed jobs from the queue, leaving completed and pending jobs intact. This uses the deprecated
+        jobs API because the queues API cannot clear failed jobs without also clearing the queue.
     .EXAMPLE
         Clear-IMJob -Job 'thumbnailGeneration'
 
@@ -23,10 +24,6 @@
         Clear-IMJob -Job 'faceDetection' -FailedOnly
 
         Clears only failed jobs from the face detection queue.
-    .EXAMPLE
-        Clear-IMJob -Job 'metadataExtraction' -Force
-
-        Forcibly clears the metadata extraction job queue.
     .NOTES
         Use caution when clearing job queues as this may remove jobs that haven't completed yet.
         The FailedOnly parameter is recommended for routine maintenance.
@@ -63,24 +60,27 @@
         $FailedOnly,
 
         [Parameter()]
-        [ApiParameter('force')]
         [switch]
         $Force
     )
 
+    if ($Force)
+    {
+        Write-Warning 'The -Force parameter has no effect: the queues API does not support forced clearing.'
+    }
+
     $Job | ForEach-Object {
         $CurrentJob = $PSItem
-        $Body = @{}
         if ($FailedOnly)
         {
-            $Body += @{command = 'clear-failed' }
+            $Body = @{ command = 'clear-failed' }
+            Invoke-ImmichApiRunQueueCommandLegacy -Name $CurrentJob -Body $Body -ImmichSession $Session
         }
         else
         {
-            $Body += @{command = 'empty' }
+            $Body = @{ failed = $false }
+            Invoke-ImmichApiEmptyQueue -Name $CurrentJob -Body $Body -ImmichSession $Session
         }
-        $Body += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-        InvokeImmichRestMethod -Method PUT -RelativePath "/jobs/$CurrentJob" -ImmichSession:$Session -Body:$Body
     }
 }
 #endregion

@@ -36,6 +36,6 @@
 
     process
     {
-        InvokeImmichRestMethod -Method Post -RelativePath '/stacks' -ImmichSession:$Session -Body $BodyParameters | AddCustomType IMStack
+        Invoke-ImmichApiCreateStack -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [StackResponseDto]::new($PSItem) }
     }
 }

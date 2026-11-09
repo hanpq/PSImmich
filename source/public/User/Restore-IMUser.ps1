@@ -31,7 +31,7 @@
     process
     {
         $id | ForEach-Object {
-            InvokeImmichRestMethod -Method POST -RelativePath "/admin/users/$PSItem/restore" -ImmichSession:$Session
+            Invoke-ImmichApiRestoreUserAdmin -Id $PSItem -ImmichSession $Session | ForEach-Object { [UserAdminResponseDto]::new($PSItem) }
         }
     }
 

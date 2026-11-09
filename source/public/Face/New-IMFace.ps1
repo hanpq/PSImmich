@@ -99,7 +99,6 @@
     $BodyParameters = @{}
     $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
 
-    InvokeImmichRestMethod -Method POST -RelativePath '/faces' -ImmichSession:$Session -Body:$BodyParameters
-
+    Invoke-ImmichApiCreateFace -Body $BodyParameters -ImmichSession $Session
 }
 #endregion

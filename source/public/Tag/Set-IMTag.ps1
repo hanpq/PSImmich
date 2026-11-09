@@ -78,15 +78,15 @@
             {
                 if ($PSBoundParameters.Keys -contains 'AddAssets')
                 {
-                    InvokeImmichRestMethod -Method PUT -RelativePath "/tags/$PSitem/assets" -ImmichSession:$Session -Body:@{ids = ($AddAssets -as [string[]]) }
+                    Invoke-ImmichApiTagAssets -Id $PSItem -Body @{ids = ($AddAssets -as [string[]]) } -ImmichSession $Session
                 }
                 if ($PSBoundParameters.Keys -contains 'RemoveAssets')
                 {
-                    InvokeImmichRestMethod -Method DELETE -RelativePath "/tags/$PSitem/assets" -ImmichSession:$Session -Body:@{ids = ($RemoveAssets -as [string[]]) }
+                    Invoke-ImmichApiUntagAssets -Id $PSItem -Body @{ids = ($RemoveAssets -as [string[]]) } -ImmichSession $Session
                 }
                 if ($PSBoundParameters.Keys -contains 'Color')
                 {
-                    InvokeImmichRestMethod -Method PUT -RelativePath "/tags/$PSitem" -ImmichSession:$Session -Body:@{color = $Color }
+                    Invoke-ImmichApiUpdateTag -Id $PSItem -Body @{color = $Color } -ImmichSession $Session
                 }
             }
         }

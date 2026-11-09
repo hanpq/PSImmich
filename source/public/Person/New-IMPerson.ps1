@@ -43,6 +43,11 @@
 
     $BodyParameters = @{}
     $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-    InvokeImmichRestMethod -Method Post -RelativePath '/people' -ImmichSession:$Session -Body:$BodyParameters
+    if ($PSBoundParameters.ContainsKey('BirthDate'))
+    {
+        # Date-only value: a serialized DateTime is shifted to UTC and can land on the previous day.
+        $BodyParameters.birthDate = $BirthDate.ToString('yyyy-MM-dd')
+    }
+    Invoke-ImmichApiCreatePerson -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [PersonResponseDto]::new($PSItem) }
 }
 #endregion

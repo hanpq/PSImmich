@@ -53,24 +53,20 @@
         $Path
     )
 
-    begin
-    {
-        $QueryParameters = @{}
-        $QueryParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-    }
-
     process
     {
         $Id | ForEach-Object {
             $CurrentID = $PSItem
-            $AssetObject = Get-IMAsset -id $CurrentID
+            $AssetObject = Get-IMAsset -id $CurrentID -Session $Session
             $OutputPath = Join-Path -Path $Path -ChildPath $AssetObject.originalFileName
             if ($PSVersionTable.PSEdition -eq 'Desktop')
             {
                 $SavedProgressPreference = $global:ProgressPreference
                 $global:ProgressPreference = 'SilentlyContinue'
             }
-            InvokeImmichRestMethod -Method Get -RelativePath "/assets/$CurrentID/original" -ImmichSession:$Session -QueryParameters $QueryParameters -ContentType 'application/octet-stream' -OutFilePath $OutputPath
+            $ApiArguments = @{ Id = $CurrentID; OutFilePath = $OutputPath; ImmichSession = $Session }
+            if ($PSBoundParameters.ContainsKey('Key')) { $ApiArguments.Key = $Key }
+            Invoke-ImmichApiDownloadAsset @ApiArguments
             if ($PSVersionTable.PSEdition -eq 'Desktop')
             {
                 $global:ProgressPreference = $SavedProgressPreference

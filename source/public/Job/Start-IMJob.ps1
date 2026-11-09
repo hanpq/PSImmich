@@ -66,11 +66,6 @@
             'user-cleanup',
             'memory-cleanup',
             'memory-create',
-            'backup-databaseperson-cleanup',
-            'tag-cleanup',
-            'user-cleanup',
-            'memory-cleanup',
-            'memory-create',
             'backup-database'
         )]
         [string[]]
@@ -89,17 +84,17 @@
             {
                 if ($PSCmdlet.ShouldProcess('All assets in trash', 'REMOVE'))
                 {
-                    InvokeImmichRestMethod -Method POST -RelativePath '/trash/empty' -ImmichSession:$Session
+                    Invoke-ImmichApiEmptyTrash -ImmichSession $Session
                 }
             }
-            { @('person-cleanup', 'tag-cleanup', 'user-cleanup', 'memory-cleanup', 'memory-create', 'backup-databaseperson-cleanup', 'tag-cleanup', 'user-cleanup', 'memory-cleanup', 'memory-create', 'backup-database') -contains $PSItem }
+            { @('person-cleanup', 'tag-cleanup', 'user-cleanup', 'memory-cleanup', 'memory-create', 'backup-database') -contains $PSItem }
             {
                 if ($PSCmdlet.ShouldProcess("Start job: $($PSitem)", 'START'))
                 {
                     $Body = @{
                         name = $PSitem
                     }
-                    InvokeImmichRestMethod -Method POST -RelativePath '/jobs' -ImmichSession:$Session -Body:$Body
+                    Invoke-ImmichApiCreateJob -Body $Body -ImmichSession $Session
                 }
             }
             default
@@ -111,7 +106,7 @@
                         command = 'start'
                     }
                     $Body += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-                    InvokeImmichRestMethod -Method PUT -RelativePath "/jobs/$CurrentJob" -ImmichSession:$Session -Body:$Body
+                    Invoke-ImmichApiRunQueueCommandLegacy -Name $CurrentJob -Body $Body -ImmichSession $Session
                 }
             }
         }

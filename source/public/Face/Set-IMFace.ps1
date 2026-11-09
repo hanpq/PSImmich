@@ -60,7 +60,7 @@
                 id = $FaceId
             }
 
-            InvokeImmichRestMethod -Method PUT -RelativePath "/faces/$PersonId" -ImmichSession $Session -Body $Body
+            Invoke-ImmichApiReassignFacesById -Id $PersonId -Body $Body -ImmichSession $Session | ForEach-Object { [PersonResponseDto]::new($PSItem) }
         }
     }
 }

@@ -20,7 +20,7 @@
         $Session = $null
     )
 
-    InvokeImmichRestMethod -Method Get -RelativePath '/server/license' -ImmichSession:$Session
+    Invoke-ImmichApiGetServerLicense -ImmichSession:$Session
 
 }
 #endregion

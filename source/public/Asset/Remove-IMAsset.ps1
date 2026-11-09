@@ -56,7 +56,10 @@
         $BodyParameters = @{
             ids = @()
         }
-        $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
+        if ($PSBoundParameters.ContainsKey('Force'))
+        {
+            $BodyParameters.force = [bool]$Force
+        }
     }
 
     process
@@ -70,7 +73,7 @@
     {
         if ($PSCmdlet.ShouldProcess(($BodyParameters.ids -join ','), 'DELETE'))
         {
-            InvokeImmichRestMethod -Method Delete -RelativePath '/assets' -ImmichSession:$Session -Body:$BodyParameters
+            Invoke-ImmichApiDeleteAssets -Body $BodyParameters -ImmichSession $Session
         }
     }
 

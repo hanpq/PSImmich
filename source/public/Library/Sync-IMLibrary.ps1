@@ -66,7 +66,7 @@
     {
         $Id | ForEach-Object {
             $CurrentID = $PSItem
-            InvokeImmichRestMethod -Method POST -RelativePath "/libraries/$CurrentID/scan" -ImmichSession:$Session
+            Invoke-ImmichApiScanLibrary -Id $CurrentID -ImmichSession $Session
         }
 
     }

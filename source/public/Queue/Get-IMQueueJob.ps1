@@ -48,16 +48,18 @@
         $Name,
 
         [Parameter()]
-        [ApiParameter('status')]
         [ValidateSet('waiting', 'active', 'completed', 'failed', 'delayed', 'paused')]
         [string[]]
         $Status
     )
 
-    $Body = @{}
-    $Body += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
+    $RequestParameters = @{ Name = $Name; ImmichSession = $Session }
+    if ($PSBoundParameters.ContainsKey('Status'))
+    {
+        $RequestParameters['Status'] = $Status
+    }
 
-    $Result = InvokeImmichRestMethod -Method GET -RelativePath "/queues/$Name/jobs" -ImmichSession:$Session -Body $Body
-    $Result | AddCustomType IMQueueJob
+    Invoke-ImmichApiGetQueueJobs @RequestParameters |
+        ForEach-Object { [QueueJobResponseDto]::new($PSItem) }
 }
 #endregion

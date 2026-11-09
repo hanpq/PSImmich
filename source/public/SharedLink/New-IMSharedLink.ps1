@@ -110,7 +110,7 @@
 
     end
     {
-        InvokeImmichRestMethod -Method POST -RelativePath '/shared-links' -ImmichSession:$Session -Body $BodyParameters
+        Invoke-ImmichApiCreateSharedLink -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [SharedLinkResponseDto]::new($PSItem) }
     }
 }
 #endregion

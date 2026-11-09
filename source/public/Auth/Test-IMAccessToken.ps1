@@ -31,10 +31,10 @@
         $Session = $null
     )
 
-    $Result = InvokeImmichRestMethod -Method POST -RelativePath '/auth/validateToken' -ImmichSession:$Session
+    $Result = Invoke-ImmichApiValidateAccessToken -ImmichSession $Session
     if ($Result)
     {
-        return $Result.AuthStatus
+        return [ValidateAccessTokenResponseDto]::new($Result).authStatus
     }
     else
     {
