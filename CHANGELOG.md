@@ -3,6 +3,160 @@
 The format is based on and uses the types of changes according to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.7](https://github.com/hanpq/PSImmich/compare/v2.3.1...v3.3.7) (2026-11-09)
+
+### Bug Fixes
+
+* **changelog:** remove stale 3.3.7 section before stable promotion ([b5825f6](https://github.com/hanpq/PSImmich/commit/b5825f69fb53c8b53fd3737403f25a5f3c8b24ff))
+
+* **build:** limit module release notes to PSGallery size ([f3c0900](https://github.com/hanpq/PSImmich/commit/f3c09004afecfb1e4ccb75a4a670e8642e6fb933))
+
+* **activity:** default activity type to comment ([320def3](https://github.com/hanpq/PSImmich/commit/320def3e2d8db13c8a2d741d60b828406d2e01e4))
+
+* **activity:** send piped album id when adding activity ([4115f50](https://github.com/hanpq/PSImmich/commit/4115f50e7d37d20a643c77dd2fb31c4f67685aaa))
+
+* **album:** route album cmdlets through the internal API layer ([e8ed321](https://github.com/hanpq/PSImmich/commit/e8ed32116ac4f91cef98ef24e5eb8b11e6b8c881))
+
+* **api-key:** send default all permission when none is specified ([6334615](https://github.com/hanpq/PSImmich/commit/633461547ccdf73e834837dc068044e094229f33))
+
+* **api:** bind DTO objects to ID parameters from the pipeline ([26a33c0](https://github.com/hanpq/PSImmich/commit/26a33c08d296038bb2d0379b2f8a096facbe3c6f))
+
+* **api:** send booleans and ISO 8601 datetimes for Immich 3.3.6 ([7f56875](https://github.com/hanpq/PSImmich/commit/7f56875673cab06c0e944e8555a742f92ff313a8))
+
+* **api:** serialize nested request bodies to full depth ([cd74ea5](https://github.com/hanpq/PSImmich/commit/cd74ea50090e04a5e17cc8269fd46a05720eac94))
+
+* **asset:** send boolean multipart form fields as lowercase true and false ([5eda64e](https://github.com/hanpq/PSImmich/commit/5eda64e4850c28bd07f2a6392b728a10ad4575ad))
+
+* **asset:** send explicit false for unspecified copy switches ([d9a1ada](https://github.com/hanpq/PSImmich/commit/d9a1ada160d13ecdaf8bd2e7624338b328e5dca7))
+
+* **build:** compare generated API layer independent of line endings ([abca263](https://github.com/hanpq/PSImmich/commit/abca26374d2c0c57a43d75c3ff6ff9623cc0712c))
+
+* code quality ([8721ea9](https://github.com/hanpq/PSImmich/commit/8721ea9c53f8a24e427f36495184655c499c27a3))
+
+* **memory:** send each asset id once when creating a memory ([081f0a0](https://github.com/hanpq/PSImmich/commit/081f0a0e03a8e2286cabf911f84ecd398f4444a4))
+
+* **memory:** send required type and year when creating memories ([9561745](https://github.com/hanpq/PSImmich/commit/956174556b5447a57ab50ac18bbcd5549eeb237a))
+
+* **notification:** send required SMTP transport fields and plain-text password ([a64f42e](https://github.com/hanpq/PSImmich/commit/a64f42e1cbc6cf903199157a4ceba2d97ea6863c))
+
+* **person:** migrate person merging to the bulk endpoint ([9257eae](https://github.com/hanpq/PSImmich/commit/9257eaeda8392a78068fa68fef7973d178de2ee1))
+
+* **person:** unwrap people list and send birth date as a date ([c2a9db6](https://github.com/hanpq/PSImmich/commit/c2a9db696d431f53c0e25084b799ffff3f70618e))
+
+* **plugin:** filter enabled, logging and type client-side ([540bf4d](https://github.com/hanpq/PSImmich/commit/540bf4d5f1a3064ed98616ca974d89f4543bbe81))
+
+* prepare 3.3.6-beta001 prerelease ([06b72d3](https://github.com/hanpq/PSImmich/commit/06b72d3c4ae0b71e18f727d2bc3889bfc125d33d))
+
+* **queue:** send array query parameters as bracketed keys ([709590f](https://github.com/hanpq/PSImmich/commit/709590fe714c8c7daff895c1c890e3179c3a14cc))
+
+* **queue:** stop sending unsupported force field when clearing queues ([97bd06b](https://github.com/hanpq/PSImmich/commit/97bd06bab19166d32bc0dcde6feba234bd8e145e))
+
+* **search:** page metadata and smart search and send memory dates for Immich 3.3.6 ([f7810da](https://github.com/hanpq/PSImmich/commit/f7810da7d79798f204f7a8826142d32c7379f3c4))
+
+* **search:** send nested filter dates in UTC ISO 8601 ([9df5610](https://github.com/hanpq/PSImmich/commit/9df5610075d0c40f2076f976eb67a0a1a423f1f9))
+
+* **server:** read theme from the public config endpoint ([f1ad1fe](https://github.com/hanpq/PSImmich/commit/f1ad1fe65c7feb58149455519e09bd52ed7c7e04))
+
+* **server:** send admin configuration as raw JSON without depth truncation ([bc96928](https://github.com/hanpq/PSImmich/commit/bc969289ff76bba475e834e968222cec679d3e9a))
+
+* **server:** use admin config endpoints for system configuration ([c83dd9f](https://github.com/hanpq/PSImmich/commit/c83dd9ffd6f76b567cff76431e7f1a63a1c09a90))
+
+* **session:** accept relative URIs without a leading slash ([52113d7](https://github.com/hanpq/PSImmich/commit/52113d78fe788c4dea78852b99174e46f08c0568))
+
+* **user:** correct typo in email parameter description ([5b9b106](https://github.com/hanpq/PSImmich/commit/5b9b10605b9687efd4a93b52f37889fed4c8c2b9))
+
+### ⚠ BREAKING CHANGES
+
+* **plugin:** Get-IMPlugin and Get-IMPluginMethod no longer accept -Enabled.
+
+* **person:** Set-IMPerson -Color no longer accepts hex color values.
+
+* **map:** Get-IMMapMarker returns MapMarkerResponseDto and Convert-IMCoordinatesToLocation returns MapReverseGeocodeResponseDto. The Immich 3.3.6 DTOs do not define assetCount (markers) or name (reverse geocode), so those properties are no longer returned.
+
+* **notification:** the cmdlet returns TestEmailResponseDto instead of the raw response.
+
+* **plugin:** Get-IMPlugin returns PluginResponseDto objects instead of IMPlugin custom objects. Property names follow the 3.3.6 spec.
+
+* **auth-session:** SessionResponseDto in Immich 3.3.6 has no ipAddress or userAgent properties, so Get-IMAuthSession no longer returns them.
+
+* **face:** Remove-IMFace always sends the required force field (default $false). Previously it was omitted unless -Force was given.
+
+* **workflow:** New-IMWorkflow and Set-IMWorkflow no longer accept -TriggerType, -Actions, or -Filters. Use -Trigger and -Steps instead.
+
+* **search:** Find-IMAsset is removed; use Search-IMAsset. The parameters -DeviceId, -DeviceAssetId, -IsVisible and -WithDeleted are removed because the Immich 3.3.6 search DTOs no longer define them. Smart search still pages with the deprecated `page` field because 3.3.6 has no replacement.
+
+* **search:** Find-IMCity has been removed. GET /search/cities is a web places-page feature with no PowerShell use case.
+
+* **queue:** queue cmdlets return DTO types named QueueResponseDto and QueueJobResponseDto instead of objects tagged PSImmich.ObjectType.IMQueue and PSImmich.ObjectType.IMQueueJob.
+
+* Get-IMJob output changed from jobCounts to statistics per queue. Clear-IMJob's default now removes waiting jobs without removing failed jobs, instead of the previous empty command.
+
+### Features
+
+* add code coverage reporting to Invoke-ModuleTests function ([4591927](https://github.com/hanpq/PSImmich/commit/4591927f26d427e3be6880fb207e8b0d090928c6))
+
+* **album:** add album map marker lookup ([cbdbecd](https://github.com/hanpq/PSImmich/commit/cbdbecdf5873f77910fdae4219dc20f673fd5d92))
+
+* **api-key:** add API key secret rotation ([9334724](https://github.com/hanpq/PSImmich/commit/9334724321d50e830b6585bf985946ea9a605eb2))
+
+* **api:** generate internal API routes and DTO classes from the spec ([f7f5ba2](https://github.com/hanpq/PSImmich/commit/f7f5ba20b35ac662bd6c6214ca5027219467b0e0))
+
+* **api:** support multipart headers, extra parts and query parameters ([fb97450](https://github.com/hanpq/PSImmich/commit/fb97450beef0bfec80ef820e5c7f601dbcac1999))
+
+* **asset:** add asset edit lifecycle commands ([833e509](https://github.com/hanpq/PSImmich/commit/833e509a85b8af9196bdccb5978c8b1bbf922860))
+
+* **asset:** add asset file lookup and download ([9e3a0f8](https://github.com/hanpq/PSImmich/commit/9e3a0f8e97b0cfdf1141f69556307f997c6ba216))
+
+* **asset:** add asset folder browsing ([772daee](https://github.com/hanpq/PSImmich/commit/772daee6bb486ee8372fda3c088d38f669973e4d))
+
+* **asset:** add bulk key/value asset metadata commands ([2c990e3](https://github.com/hanpq/PSImmich/commit/2c990e36e2919487019bc1d17bba1656e613fb8b))
+
+* **auth-session:** route auth session cmdlets through the generated API layer ([3c14199](https://github.com/hanpq/PSImmich/commit/3c1419998e3f30ffad9726d48bdc4c5779374dae))
+
+* **duplicate:** add duplicate group resolution ([37a9f5d](https://github.com/hanpq/PSImmich/commit/37a9f5dfd225cbc00bfe3f605ee4c7d2e64244c1))
+
+* **face:** route face cmdlets through the generated API layer ([160f40d](https://github.com/hanpq/PSImmich/commit/160f40d22ddbb1f2c3287f46d5a2544c4ecf45a9))
+
+* **format:** add default table views for response DTOs ([83f29a9](https://github.com/hanpq/PSImmich/commit/83f29a95088a7262e6a4e9b6fd6c50d840bb74f5))
+
+* **maintenance:** add database backup commands ([a6e2e4e](https://github.com/hanpq/PSImmich/commit/a6e2e4e314325de48f68038f4380c1975fb70758))
+
+* **maintenance:** add integrity report commands ([c9b1d7b](https://github.com/hanpq/PSImmich/commit/c9b1d7b387554c650b4ad903eca60eccc8d01c62))
+
+* migrate job queue commands to the queues API ([1f5fdcf](https://github.com/hanpq/PSImmich/commit/1f5fdcfa453a73466c58b9548f736e0a81c2da09))
+
+* **notification:** add admin notification creation ([f7cffd6](https://github.com/hanpq/PSImmich/commit/f7cffd6cdec917dd64b0861f5729becab573aba7))
+
+* **person:** add people access sharing commands ([0038811](https://github.com/hanpq/PSImmich/commit/003881155c1c9481276e18858eaf5218989a1af2))
+
+* **person:** send person color as the avatar color enum ([3364e80](https://github.com/hanpq/PSImmich/commit/3364e8099ab58c5407cd5c83e28bc6c38831b953))
+
+* **plugin:** add plugin method and workflow template lookup ([887d239](https://github.com/hanpq/PSImmich/commit/887d239a9b1b88ed5388c0eede57849db4713163))
+
+* **plugin:** route Get-IMPlugin through the generated API layer ([207f799](https://github.com/hanpq/PSImmich/commit/207f799076be13c2145fa2ecb34c5c6e48bc7504))
+
+* **search:** merge metadata and smart asset search into Search-IMAsset ([8be7064](https://github.com/hanpq/PSImmich/commit/8be70647775d12f25d4df7ad1fc6558825256d78))
+
+* **search:** route search cmdlets through the internal API layer ([445df0e](https://github.com/hanpq/PSImmich/commit/445df0e9b557bfbfa5c34549ba1a7ceb0fa37cb4))
+
+* **server:** add maintenance status and version check state lookup ([ee1b34f](https://github.com/hanpq/PSImmich/commit/ee1b34fb98b4edb4848b1dc945b590c70bd9db51))
+
+* **timeline:** add spec filters to Get-IMTimeBucket and route session logout through the API ([2bd752c](https://github.com/hanpq/PSImmich/commit/2bd752c6fc62ca062c72f4dbb45a4ecb138adeaf))
+
+* **workflow:** route workflow cmdlets through the internal API layer ([d910ed1](https://github.com/hanpq/PSImmich/commit/d910ed17827fb3c20c102abd765eec3823c0dbb7))
+
+### Miscellaneous Chores
+
+* request 3.3.7 beta ([ed9c226](https://github.com/hanpq/PSImmich/commit/ed9c22625969dd4cb8f984ec63e5e970f7e4d3d1))
+
+* request release 3.3.7 ([0d6a525](https://github.com/hanpq/PSImmich/commit/0d6a5254bfd12c09afcc4aab4897f2093f8ed57a))
+
+### Code Refactoring
+
+* **map:** use generated map API and return DTOs ([af716f6](https://github.com/hanpq/PSImmich/commit/af716f6e66f23eea787a5fe42e5283b715dd83bb))
+
+* **queue:** route queue cmdlets through the internal API layer ([6a16b30](https://github.com/hanpq/PSImmich/commit/6a16b30e420f0f333baf3c112db21b11cfee49a6))
+
 ## [3.3.7-beta003](https://github.com/hanpq/PSImmich/compare/v3.3.7-beta002...v3.3.7-beta003) (2026-11-09)
 
 
