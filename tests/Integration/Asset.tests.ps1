@@ -23,8 +23,8 @@ BeforeDiscovery {
 
 Describe 'Asset' -Tag 'Integration' {
     # Intentionally excluded from live testing:
-    # Remove-IMAsset, Restore-IMAsset: trash state changes on shared assets and cannot be reliably reverted.
-    # Import-IMAsset: uploads new assets to the shared server; multipart upload is not supported on Windows PowerShell.
+    # Import-IMAsset, Remove-IMAsset and Restore-IMAsset only act on assets uploaded by the test itself. Each test
+    # permanently deletes what it imports, so the shared server is left as it was found.
     # Start-IMVideoTranscode: queues a transcode job on shared assets with no way to revert it.
     # Update-IMAssetThumbnail: regenerates thumbnails on shared assets with no way to revert it.
 
@@ -42,6 +42,32 @@ Describe 'Asset' -Tag 'Integration' {
         {
             param([string]$AssetId)
             & (Get-Module PSImmich) { param($Id) Invoke-ImmichApiGetAssetMetadata -Id $Id } $AssetId
+        }
+
+        # Each call writes a uniquely named copy of the test image with a unique trailing marker,
+        # so the server never treats it as a duplicate of an earlier upload.
+        function New-TestImportFile
+        {
+            $Path = Join-Path ([System.IO.Path]::GetTempPath()) "psimtest-$([guid]::NewGuid().ToString('N')).png"
+            $Image = [System.IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'Immich.png'))
+            $Marker = [System.Text.Encoding]::ASCII.GetBytes("psimtest:$([guid]::NewGuid().ToString('N'))")
+            [System.IO.File]::WriteAllBytes($Path, [byte[]]($Image + $Marker))
+            $script:TempImportFiles.Add($Path)
+            Get-Item -LiteralPath $Path
+        }
+
+        $script:TempImportFiles = [System.Collections.Generic.List[string]]::new()
+        $script:ImportedAssetIds = [System.Collections.Generic.List[string]]::new()
+    }
+
+    AfterAll {
+        foreach ($Id in $script:ImportedAssetIds)
+        {
+            try { Remove-IMAsset -Ids $Id -Force -Confirm:$false } catch { $null = $_ }
+        }
+        foreach ($Path in $script:TempImportFiles)
+        {
+            Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
         }
     }
 
@@ -486,6 +512,75 @@ Describe 'Asset' -Tag 'Integration' {
     Context 'Update-IMAssetMetadata' -Tag 'Update-IMAssetMetadata' {
         It 'Should not throw for a valid asset' {
             { Update-IMAssetMetadata -Id $SourceAssetId } | Should -Not -Throw
+        }
+    }
+
+    Context 'Import-IMAsset' -Tag 'Import-IMAsset' {
+        It 'Should upload a file and return the created asset' {
+            $File = New-TestImportFile
+            $Asset = Import-IMAsset -FilePath $File.FullName
+            $script:ImportedAssetIds.Add($Asset.id)
+            $Asset.id | Should -Match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+            $Asset.originalFileName | Should -Be $File.Name
+            $Asset.type | Should -Be 'IMAGE'
+        }
+
+        It 'Should upload a file piped as a FileInfo object' {
+            $File = New-TestImportFile
+            $Asset = $File | Import-IMAsset
+            $script:ImportedAssetIds.Add($Asset.id)
+            $Asset | Should -HaveCount 1
+            $Asset.originalFileName | Should -Be $File.Name
+        }
+
+        It 'Should mark the imported asset as a favorite when IsFavorite is specified' {
+            $File = New-TestImportFile
+            $Asset = Import-IMAsset -FilePath $File.FullName -isFavorite
+            $script:ImportedAssetIds.Add($Asset.id)
+            (Get-IMAsset -Id $Asset.id).isFavorite | Should -BeTrue
+        }
+
+        It 'Should throw for a file that does not exist' {
+            { Import-IMAsset -FilePath (Join-Path $TestDrive 'missing-file.png') } | Should -Throw
+        }
+    }
+
+    Context 'Remove-IMAsset' -Tag 'Remove-IMAsset' {
+        It 'Should permanently delete an asset when Force is specified' {
+            $File = New-TestImportFile
+            $Asset = Import-IMAsset -FilePath $File.FullName
+            Remove-IMAsset -Ids $Asset.id -Force -Confirm:$false
+            { Get-IMAsset -Id $Asset.id } | Should -Throw
+        }
+
+        It 'Should move an asset to trash when Force is not specified' {
+            $File = New-TestImportFile
+            $Asset = Import-IMAsset -FilePath $File.FullName
+            $script:ImportedAssetIds.Add($Asset.id)
+            Remove-IMAsset -Ids $Asset.id -Confirm:$false
+            (Get-IMAsset -Id $Asset.id).isTrashed | Should -BeTrue
+        }
+
+        It 'Should remove an asset piped by property name' {
+            $File = New-TestImportFile
+            $Asset = Import-IMAsset -FilePath $File.FullName
+            [pscustomobject]@{ id = $Asset.id } | Remove-IMAsset -Force -Confirm:$false
+            { Get-IMAsset -Id $Asset.id } | Should -Throw
+        }
+
+        It 'Should throw for a malformed asset ID' {
+            { Remove-IMAsset -Ids 'not-a-guid' -Force -Confirm:$false } | Should -Throw
+        }
+    }
+
+    Context 'Restore-IMAsset' -Tag 'Restore-IMAsset' {
+        It 'Should restore an asset that was moved to trash' {
+            $File = New-TestImportFile
+            $Asset = Import-IMAsset -FilePath $File.FullName
+            $script:ImportedAssetIds.Add($Asset.id)
+            Remove-IMAsset -Ids $Asset.id -Confirm:$false
+            Restore-IMAsset -Id $Asset.id -Confirm:$false
+            (Get-IMAsset -Id $Asset.id).isTrashed | Should -BeFalse
         }
     }
 }
