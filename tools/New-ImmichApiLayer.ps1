@@ -910,6 +910,75 @@ function New-DtoFileText
     return "# $MarkerText$NewLine" + (@($Classes) -join "$NewLine$NewLine") + $NewLine
 }
 
+# Typed sample for one DTO property; arrays hold two copies of the scalar sample.
+function New-DtoPropertySample($Property, [string]$Context)
+{
+    $Name = $Property.Name
+    if ($Property.Kind -eq 'class')
+    {
+        return [pscustomobject]@{ Value = '[pscustomobject]@{}'; Check = "`$Dto.$Name.GetType().Name | Should -Be '$($Property.Type)'" }
+    }
+    if ($Property.Kind -eq 'classarray')
+    {
+        return [pscustomobject]@{ Value = '@([pscustomobject]@{})'; Check = "@(`$Dto.$Name).Count | Should -Be 1" }
+    }
+    $ScalarType = $Property.Type
+    if ($ScalarType -eq 'object')
+    {
+        $ScalarType = 'string'
+    }
+    $Item = ConvertTo-TestLiteral (Get-TestSampleValue ([pscustomobject]@{ Type = $ScalarType; Array = $false }) $Context)
+    if ($Property.Array)
+    {
+        return [pscustomobject]@{ Value = "@($Item, $Item)"; Check = "@(`$Dto.$Name).Count | Should -Be 2" }
+    }
+    return [pscustomobject]@{ Value = $Item; Check = "`$Dto.$Name | Should -Be $Item" }
+}
+
+# Emits Pester blocks that cover a DTO's default and source-object constructors.
+function New-DtoTests([string]$Name, $Schema, [hashtable]$Done)
+{
+    $Context = "DTO $Name"
+    $Properties = New-Object System.Collections.Generic.List[object]
+    foreach ($Property in $Schema.properties.PSObject.Properties)
+    {
+        $Type = Get-DtoPropertyType $Property.Value $Context $Done
+        $Properties.Add([pscustomobject]@{ Name = $Property.Name; Type = $Type.Type; Array = $Type.Array; Kind = $Type.Kind })
+    }
+
+    $Lines = New-Object System.Collections.Generic.List[string]
+    $Lines.Add("    Describe '$Name' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {")
+    $Lines.Add("        It 'Should create an instance with the default constructor' {")
+    $Lines.Add("            [$Name]::new() | Should -BeOfType ([$Name])")
+    $Lines.Add('        }')
+    if ($Properties.Count -gt 0)
+    {
+        $Values = New-Object System.Collections.Generic.List[string]
+        $Checks = New-Object System.Collections.Generic.List[string]
+        foreach ($Property in $Properties)
+        {
+            $Sample = New-DtoPropertySample $Property $Context
+            $Values.Add("                $($Property.Name) = $($Sample.Value)")
+            $Checks.Add("            $($Sample.Check)")
+        }
+        $Lines.Add("        It 'Should map every property from a source object' {")
+        $Lines.Add('            $Source = [pscustomobject]@{')
+        $Lines.AddRange($Values)
+        $Lines.Add('            }')
+        $Lines.Add("            `$Dto = [$Name]::new(`$Source)")
+        $Lines.AddRange($Checks)
+        $Lines.Add('        }')
+    }
+    if (@($Properties | Where-Object { $_.Name -ceq 'id' -and $_.Kind -eq 'scalar' -and $_.Type -eq 'string' -and -not $_.Array }).Count -gt 0)
+    {
+        $Lines.Add("        It 'Should return the id from ToString' {")
+        $Lines.Add("            [$Name]::new([pscustomobject]@{ id = 'sample' }).ToString() | Should -Be 'sample'")
+        $Lines.Add('        }')
+    }
+    $Lines.Add('    }')
+    return (@($Lines) -join $NewLine)
+}
+
 function Write-GeneratedFile([string]$Path, [string]$Content)
 {
     $Existing = $null
@@ -939,6 +1008,7 @@ $RootSecured = Test-Property $Spec 'security'
 $PrivateApiPath = Join-Path $SourcePath 'private\api'
 $DtoPath = Join-Path $SourcePath 'classes\dto'
 $GeneratedTestPath = Join-Path (Split-Path -Parent $SourcePath) 'tests\Unit\Private\ImmichApi.Generated.Tests.ps1'
+$GeneratedDtoTestPath = Join-Path (Split-Path -Parent $SourcePath) 'tests\Unit\Private\ImmichDto.Generated.Tests.ps1'
 
 $Files = @{}
 $RouteTests = New-Object System.Collections.Generic.List[object]
@@ -972,6 +1042,15 @@ $Files[$GeneratedTestPath] = New-GeneratedTestFileText $RouteTests.ToArray()
 if (@(Get-ClassEmissionOrder).Count -gt 0)
 {
     $Files[(Join-Path $DtoPath $DtoFileName)] = New-DtoFileText
+
+    $DtoTests = New-Object System.Collections.Generic.List[object]
+    $DoneClasses = @{}
+    foreach ($ClassName in (Get-ClassEmissionOrder))
+    {
+        $DtoTests.Add((New-DtoTests $ClassName (Get-SchemaEntry $ClassName) $DoneClasses))
+        $DoneClasses[$ClassName] = $true
+    }
+    $Files[$GeneratedDtoTestPath] = New-GeneratedTestFileText $DtoTests.ToArray()
 }
 
 if (-not $Check)
