@@ -1,7 +1,0 @@
-- Extract multipart form data upload logic to private function for reuse by Import-IMAsset and Add-IMMyProfilePicture
-- Write unit tests for all cmdlets
-- Add and remove tags cmdlets should offer the parameter "WaitForCommit" and "WaitForCommitTimeout". So that the cmdlet waits for the change to actually commit by polling the asset. The cmdlet should retry during the defined timeout period. This can then be used in the integration tests.
-  - Should this be a common pattern? Consider creating a private helper function Wait-IMCommit that multiple cmdlets can use
-  - Default timeout value? What's a reasonable default (15-30 seconds?)
-  - Polling interval? How frequently should it check (every 1-2 seconds?)
-  - Error handling? Should it throw if timeout is reached, or just warn?
