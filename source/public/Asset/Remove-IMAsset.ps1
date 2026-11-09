@@ -56,7 +56,10 @@
         $BodyParameters = @{
             ids = @()
         }
-        $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
+        if ($PSBoundParameters.ContainsKey('Force'))
+        {
+            $BodyParameters.force = [bool]$Force
+        }
     }
 
     process

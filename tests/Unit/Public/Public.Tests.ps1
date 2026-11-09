@@ -2253,15 +2253,6 @@ InModuleScope $ProjectName {
                 return $null
             }
 
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Force)
-                {
-                    $result.force = $BoundParameters.Force
-                }
-                return $result
-            }
         }
 
         Context 'Parameter Validation' {
@@ -2401,19 +2392,7 @@ InModuleScope $ProjectName {
                 $TestAssetId = 'a1b2c3d4-e5f6-4789-a012-123456789abc'
             }
 
-            It 'Should call ConvertTo-ApiParameters with Force parameter' {
-                Remove-IMAsset -Ids $TestAssetId -Force -Confirm:$false
-
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Force -eq $true
-                }
-            }
-
             It 'Should include force in body parameters when Force is specified' {
-                Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                    return @{ force = $true }
-                }
-
                 Remove-IMAsset -Ids $TestAssetId -Force -Confirm:$false
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
