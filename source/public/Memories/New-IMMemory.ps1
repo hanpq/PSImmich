@@ -27,8 +27,8 @@
         creates memories that highlight assets from the same date in previous years.
         Defaults to 'on_this_day' if not specified.
     .PARAMETER Year
-        Specifies the year component for the memory. This helps organize memories by
-        temporal periods and can be used to create year-specific memory collections.
+        Specifies the year component for the memory, sent as the memory data year. The
+        server requires it for 'on_this_day' memories. Defaults to the year of -MemoryAt.
     .PARAMETER AssetIds
         Specifies an array of asset IDs to include in the memory. These assets will be
         associated with the memory and displayed when the memory is viewed. Assets should
@@ -87,10 +87,12 @@
 
     begin
     {
+        $DataYear = if ($PSBoundParameters.ContainsKey('Year')) { $Year } else { $MemoryAt.Year }
         $BodyParameters = @{
             assetIds = @()
+            type     = $Type
             data     = @{
-                year = $Year
+                year = $DataYear
             }
         }
         $ApiParameters = ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name

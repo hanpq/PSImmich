@@ -212,7 +212,7 @@ Describe 'Memories' -Tag 'Integration' {
                 $NewMemoryAt = (Get-Date).AddYears(-3).Date
                 Set-IMMemory -Id $Created.id -MemoryAt $NewMemoryAt -SeenAt (Get-Date) -Confirm:$false
                 $Fetched = Get-IMMemory -Id $Created.id
-                $Fetched.memoryAt.Date | Should -Be $NewMemoryAt
+                $Fetched.memoryAt.ToLocalTime().Date | Should -Be $NewMemoryAt
                 $Fetched.seenAt | Should -Not -BeNullOrEmpty
             }
             finally

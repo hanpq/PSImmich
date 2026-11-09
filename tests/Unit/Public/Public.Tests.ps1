@@ -6735,6 +6735,10 @@ InModuleScope $ProjectName {
                 {
                     $result.type = $BoundParameters.Type
                 }
+                if ($BoundParameters.AssetIds)
+                {
+                    $result.assetIds = $BoundParameters.AssetIds
+                }
                 return $result
             }
         }
