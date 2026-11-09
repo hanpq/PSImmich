@@ -296,9 +296,17 @@ Verified 3.3.6 causes fixed: boolean body values were strings; datetimes lacked 
 `Get-IMServer` config/features and asset single-ID properties changed.
 
 Cleanup: during the first live run the failed `New-IMUser` test left user `test@domain.com`.
-With maintainer approval it was soft-deleted (`DELETE /admin/users/{id}`, 200). It is still in
-the 7-day trash; a permanent purge needs `-Force` or the server trash policy and has not been
-done. Pre-existing demo data (`TestAlbum`, the other two users) was not touched.
+With maintainer approval it was soft-deleted (`DELETE /admin/users/{id}`, 200). On
+2026-11-09 the maintainer approved a permanent purge. `Get-IMUser -IncludeDeleted` no longer
+lists `test@domain.com` (only `hannes.palmquist+testuser@outlook.com` and
+`hannes.palmquist@outlook.com` are present), so no purge was needed or performed. Pre-existing
+demo data (`TestAlbum`, the other two users) was not touched.
+
+Maintainer decisions (2026-11-09):
+- Deprecated `PUT /assets` and `PUT /assets/{id}` stay in use for Set-IMAsset property updates;
+  no clear successor exists for these property fields.
+- The branch stays `upgrade/immich-3.3.6`; the 3.4.0 upgrade is a separate job after 3.4.0 is stable.
+- The `/search/smart` album filter for live album tests is not yet available; those tests stay blocked.
 
 Next actionable items, in order:
 
