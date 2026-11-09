@@ -8189,65 +8189,60 @@ InModuleScope $ProjectName {
 
     Describe 'Get-IMServerLicense' -Tag 'Unit', 'Get-IMServerLicense' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetServerLicense -ModuleName PSImmich {
                 return [PSCustomObject]@{ licenseKey = 'IMCH-XXXX-XXXX-XXXX'; activatedAt = '2024-01-01T00:00:00Z' }
             }
         }
         Context 'Server License' {
-            It 'Should get server license with correct API call' {
-                Get-IMServerLicense
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/license'
-                }
+            It 'Should get server license through the generated wrapper' {
+                $Result = Get-IMServerLicense
+                Should -Invoke Invoke-ImmichApiGetServerLicense -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.licenseKey | Should -Be 'IMCH-XXXX-XXXX-XXXX'
             }
         }
     }
     Describe 'Remove-IMServerLicense' -Tag 'Unit', 'Remove-IMServerLicense' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiDeleteServerLicense -ModuleName PSImmich { return $null }
         }
         Context 'License Removal' {
-            It 'Should remove server license with correct API call' {
-                Remove-IMServerLicense
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/server/license'
-                }
+            It 'Should remove server license through the generated wrapper' {
+                Remove-IMServerLicense -Confirm:$false
+                Should -Invoke Invoke-ImmichApiDeleteServerLicense -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
     }
     Describe 'Set-IMServerLicense' -Tag 'Unit', 'Set-IMServerLicense' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiSetServerLicense -ModuleName PSImmich {
                 return [PSCustomObject]@{ licenseKey = 'IMCH-XXXX-XXXX-XXXX'; activatedAt = '2024-01-01T00:00:00Z' }
             }
         }
         Context 'License Configuration' {
-            It 'Should set server license with correct API call' {
-                Set-IMServerLicense -ActivationKey 'test-activation' -LicenseKey 'IMCL-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/server/license'
+            It 'Should set server license through the generated wrapper with the mapped body' {
+                $Result = Set-IMServerLicense -ActivationKey 'test-activation' -LicenseKey 'IMCL-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiSetServerLicense -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.activationKey -eq 'test-activation' -and
+                    $Body.licenseKey -eq 'IMCL-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX'
                 }
+                $Result.licenseKey | Should -Be 'IMCH-XXXX-XXXX-XXXX'
             }
         }
     }
     Describe 'Get-IMServer' -Tag 'Unit', 'Get-IMServer' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich { return [pscustomobject]@{ test = 'data' } }
         }
         Context '-AppliedSystemConfiguration' {
-            It 'Should get config with correct API call' {
-                Get-IMServer -AppliedSystemConfiguration
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/admin/config'
-                }
+            It 'Should get config through the generated wrapper' {
+                $Result = Get-IMServer -AppliedSystemConfiguration
+                Should -Invoke Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.test | Should -Be 'data'
             }
             It 'Should get applied system config as JSON when ReturnRawJSON is used' {
-                Mock InvokeImmichRestMethod { return @{ test = 'data' } }
                 $result = Get-IMServer -AppliedSystemConfiguration -ReturnRawJSON
                 $result | Should -BeOfType [string]
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/admin/config'
-                }
+                Should -Invoke Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
         Context '-VersionCheckState' {
@@ -8265,22 +8260,25 @@ InModuleScope $ProjectName {
             }
         }
         Context '-Ping' {
-            It 'Should ping server with correct API call' {
-                Get-IMServer -Ping
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/ping'
-                }
+            It 'Should ping server through the generated wrapper and report responds' {
+                Mock Invoke-ImmichApiPingServer -ModuleName PSImmich { return [pscustomobject]@{ res = 'pong' } }
+                $Result = Get-IMServer -Ping
+                Should -Invoke Invoke-ImmichApiPingServer -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.responds | Should -BeTrue
+            }
+            It 'Should report responds false when the ping response is not pong' {
+                Mock Invoke-ImmichApiPingServer -ModuleName PSImmich { return [pscustomobject]@{ res = 'unexpected' } }
+                $Result = Get-IMServer -Ping
+                $Result.responds | Should -BeFalse
             }
         }
         Context '-Theme' {
             BeforeAll {
-                Mock InvokeImmichRestMethod { return [pscustomobject]@{ theme = [pscustomobject]@{ customCss = 'body { color: red; }' } } }
+                Mock Invoke-ImmichApiGetPublicConfig -ModuleName PSImmich { return [pscustomobject]@{ theme = [pscustomobject]@{ customCss = 'body { color: red; }' } } }
             }
-            It 'Should get theme from the public config with correct API call' {
+            It 'Should get theme through the generated public config wrapper' {
                 Get-IMServer -Theme
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/public/config' -and $noauth
-                }
+                Should -Invoke Invoke-ImmichApiGetPublicConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
             It 'Should return the theme object with customCss' {
                 $Result = Get-IMServer -Theme
@@ -8288,109 +8286,98 @@ InModuleScope $ProjectName {
             }
         }
         Context '-MediaTypes' {
-            It 'Should get supported media types with correct API call' {
+            It 'Should get supported media types through the generated wrapper' {
+                Mock Invoke-ImmichApiGetSupportedMediaTypes -ModuleName PSImmich { return [pscustomobject]@{ image = @('.jpg') } }
                 Get-IMServer -MediaTypes
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/media-types'
-                }
+                Should -Invoke Invoke-ImmichApiGetSupportedMediaTypes -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
         Context '-Version' {
-            It 'Should get server version with correct API call' {
-                Get-IMServer -Version
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/version'
-                }
+            It 'Should get server version through the generated wrapper and format it' {
+                Mock Invoke-ImmichApiGetServerVersion -ModuleName PSImmich { return [pscustomobject]@{ Major = 3; Minor = 3; Patch = 6 } }
+                $Result = Get-IMServer -Version
+                Should -Invoke Invoke-ImmichApiGetServerVersion -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.version | Should -Be '3.3.6'
             }
         }
         Context '-Storage' {
-            It 'Should get server storage with correct API call' {
-                Get-IMServer -Storage
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/storage'
-                }
+            It 'Should get server storage through the generated wrapper' {
+                Mock Invoke-ImmichApiGetStorage -ModuleName PSImmich { return [pscustomobject]@{ diskSize = '100GiB' } }
+                $Result = Get-IMServer -Storage
+                Should -Invoke Invoke-ImmichApiGetStorage -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.diskSize | Should -Be '100GiB'
             }
         }
         Context '-Statistics' {
-            It 'Should get server statistics with correct API call' {
-                Get-IMServer -Statistics
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/statistics'
-                }
+            It 'Should get server statistics through the generated wrapper' {
+                Mock Invoke-ImmichApiGetServerStatistics -ModuleName PSImmich { return [pscustomobject]@{ photos = 10 } }
+                $Result = Get-IMServer -Statistics
+                Should -Invoke Invoke-ImmichApiGetServerStatistics -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.photos | Should -Be 10
             }
         }
         Context '-Features' {
-            It 'Should get server features with correct API call' {
-                Get-IMServer -Features
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/features'
-                }
+            It 'Should get server features through the generated wrapper' {
+                Mock Invoke-ImmichApiGetServerFeatures -ModuleName PSImmich { return [pscustomobject]@{ smartSearch = $true } }
+                $Result = Get-IMServer -Features
+                Should -Invoke Invoke-ImmichApiGetServerFeatures -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.smartSearch | Should -BeTrue
             }
         }
         Context '-Configuration' {
-            It 'Should get server config with correct API call' {
+            It 'Should get server config through the generated wrapper' {
+                Mock Invoke-ImmichApiGetServerConfig -ModuleName PSImmich { return [pscustomobject]@{ isInitialized = $true } }
                 Get-IMServer -Configuration
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/config'
-                }
+                Should -Invoke Invoke-ImmichApiGetServerConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
         Context '-About' {
-            It 'Should get server about with correct API call' {
+            It 'Should get server about through the generated wrapper' {
+                Mock Invoke-ImmichApiGetAboutInfo -ModuleName PSImmich { return [pscustomobject]@{ version = 'v3.3.6' } }
                 Get-IMServer -About
-
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/server/about'
-                }
+                Should -Invoke Invoke-ImmichApiGetAboutInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
         Context '-VersionHistory' {
-            It 'Should get version history with correct API call' {
+            It 'Should get version history through the generated wrapper' {
+                Mock Invoke-ImmichApiGetVersionHistory -ModuleName PSImmich { return @() }
                 Get-IMServer -VersionHistory
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/version-history'
-                }
+                Should -Invoke Invoke-ImmichApiGetVersionHistory -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
         Context '-DefaultSystemConfiguration' {
-            It 'Should get default system config with correct API call' {
+            BeforeAll {
+                Mock Invoke-ImmichApiGetAdminConfigDefaults -ModuleName PSImmich { return [pscustomobject]@{ test = 'data' } }
+            }
+            It 'Should get default system config through the generated wrapper' {
                 Get-IMServer -DefaultSystemConfiguration
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/admin/config/defaults'
-                }
+                Should -Invoke Invoke-ImmichApiGetAdminConfigDefaults -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
             It 'Should get default system config as JSON when ReturnRawJSON is used' {
-                Mock InvokeImmichRestMethod { return @{ test = 'data' } }
                 $result = Get-IMServer -DefaultSystemConfiguration -ReturnRawJSON
                 $result | Should -BeOfType [string]
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/admin/config/defaults'
-                }
+                Should -Invoke Invoke-ImmichApiGetAdminConfigDefaults -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
         Context '-StorageTemplateOptions' {
-            It 'Should get storage template options with correct API call' {
+            It 'Should get storage template options through the generated wrapper' {
+                Mock Invoke-ImmichApiGetStorageTemplateOptions -ModuleName PSImmich { return [pscustomobject]@{ dayOptions = @() } }
                 Get-IMServer -StorageTemplateOptions
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/system-config/storage-template-options'
-                }
+                Should -Invoke Invoke-ImmichApiGetStorageTemplateOptions -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
         Context '-APKLinks' {
-            It 'Should get APK links with correct API call' {
+            It 'Should get APK links through the generated wrapper' {
+                Mock Invoke-ImmichApiGetApkLinks -ModuleName PSImmich { return [pscustomobject]@{ arm64v8a = 'https://example.test/arm64.apk' } }
                 Get-IMServer -APKLinks
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/apk-links'
-                }
+                Should -Invoke Invoke-ImmichApiGetApkLinks -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
         Context '-VersionCheck' {
-            It 'Should check version with correct API call' {
+            It 'Should check version through the generated wrapper' {
+                Mock Invoke-ImmichApiGetVersionCheck -ModuleName PSImmich { return [pscustomobject]@{ checkedAt = '2026-01-01T00:00:00Z' } }
                 Get-IMServer -VersionCheck
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/server/version-check'
-                }
+                Should -Invoke Invoke-ImmichApiGetVersionCheck -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
     }
