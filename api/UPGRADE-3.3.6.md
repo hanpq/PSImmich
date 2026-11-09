@@ -237,8 +237,9 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Unreachable | 110 |
 | Total | 279 |
 
-Wired for 120 of 219 non-excluded operations (54.8%) after the APIKey batch
-(was 115, 52.5%, after the Stack batch;
+Wired for 124 of 219 non-excluded operations (56.6%) after the Partner batch
+(was 120, 54.8%, after the APIKey batch;
+was 115, 52.5%, after the Stack batch;
 was 109, 49.8%, after the Search batch;
 was 105, 47.7%, after the SharedLink batch;
 was 97, 44.1%, after the Job batch;
@@ -251,6 +252,11 @@ was 67, 30.5%, after the Server batch;
 metric, not parameter or contract parity. The 129 unreachable operations are the backlog.
 20 unreachable operations are deprecated; each needs the
 replacement-or-retain decision under the maintainer policy before implementation.
+
+Partner batch: `Get-IMPartner` (`getPartners`, `-Direction`), `Add-IMPartner` (`createPartner`), `Set-IMPartner`
+(`updatePartner`, `-EnableTimeline` as `inTimeline`), and `Remove-IMPartner` (`removePartner`) call the generated
+functions and return `PartnerResponseDto`. The deprecated `createPartnerDeprecated` (`POST /partners/{id}`) is not used.
+Targeted tests: 42 passed, 0 failed.
 
 APIKey batch: `Get-IMAPIKey` (`getMyApiKey` is not used; list: `getApiKeys`, id: `getApiKey`),
 `New-IMAPIKey` (`createApiKey`, returns `ApiKeyCreateResponseDto` including the one-time secret),

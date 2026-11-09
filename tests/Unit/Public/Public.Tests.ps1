@@ -6555,7 +6555,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Add-IMPartner' -Tag 'Unit', 'Add-IMPartner' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiCreatePartner {
                 return [PSCustomObject]@{
                     id               = 'partner-user-guid-1234567890abcdef'
                     email            = 'partner@example.com'
@@ -6563,7 +6563,7 @@ InModuleScope $ProjectName {
                     profileImagePath = '/profile/partner.jpg'
                     createdAt        = '2024-01-01T10:00:00Z'
                 }
-            }
+            } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -6582,20 +6582,23 @@ InModuleScope $ProjectName {
         }
 
         Context 'Partner Addition' {
-            It 'Should add partner with correct API call' {
+            It 'Should add partner through the generated createPartner function' {
                 Add-IMPartner -SharedWithId 'a1b2c3d4-e5f6-4789-a012-123456789abc'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and
-                    $RelativePath -eq '/partners' -and
+                Should -Invoke Invoke-ImmichApiCreatePartner -Times 1 -ModuleName PSImmich -ParameterFilter {
                     $Body.sharedWithId -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 }
+            }
+
+            It 'Should return a PartnerResponseDto' {
+                $result = Add-IMPartner -SharedWithId 'a1b2c3d4-e5f6-4789-a012-123456789abc'
+                $result.GetType().Name | Should -Be 'PartnerResponseDto'
             }
         }
     }
     Describe 'Get-IMPartner' -Tag 'Unit', 'Get-IMPartner' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetPartners {
                 return @(
                     [PSCustomObject]@{
                         id               = 'partner1-guid-here-1234567890abcdef'
@@ -6610,17 +6613,7 @@ InModuleScope $ProjectName {
                         profileImagePath = '/profile/partner2.jpg'
                     }
                 )
-            }
-
-            Mock ConvertTo-ApiParameters {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Direction)
-                {
-                    $result.direction = $BoundParameters.Direction
-                }
-                return $result
-            }
+            } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -6640,29 +6633,24 @@ InModuleScope $ProjectName {
         }
 
         Context 'Partner Retrieval' {
-            It 'Should get partners with correct API call' {
+            It 'Should get partners through the generated getPartners function' {
                 Get-IMPartner -Direction 'shared-with'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'GET' -and
-                    $RelativePath -eq '/partners'
+                Should -Invoke Invoke-ImmichApiGetPartners -Times 1 -ModuleName PSImmich -ParameterFilter {
+                    $Direction -eq 'shared-with'
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters with direction' {
-                Get-IMPartner -Direction 'shared-by'
-
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -ParameterFilter {
-                    $BoundParameters.Direction -eq 'shared-by'
-                }
+            It 'Should return PartnerResponseDto objects' {
+                $result = Get-IMPartner -Direction 'shared-by'
+                $result.Count | Should -Be 2
+                $result[0].GetType().Name | Should -Be 'PartnerResponseDto'
             }
         }
     }
     Describe 'Remove-IMPartner' -Tag 'Unit', 'Remove-IMPartner' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return $null
-            }
+            Mock Invoke-ImmichApiRemovePartner {} -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -6681,12 +6669,11 @@ InModuleScope $ProjectName {
         }
 
         Context 'Partner Removal' {
-            It 'Should remove partner with correct API call' {
+            It 'Should remove partner through the generated removePartner function' {
                 Remove-IMPartner -id 'a1b2c3d4-e5f6-4789-a012-123456789abc'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/partners/a1b2c3d4-e5f6-4789-a012-123456789abc'
+                Should -Invoke Invoke-ImmichApiRemovePartner -Times 1 -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc'
                 }
             }
         }
@@ -6796,14 +6783,14 @@ InModuleScope $ProjectName {
     }
     Describe 'Set-IMPartner' -Tag 'Unit', 'Set-IMPartner' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiUpdatePartner {
                 return [PSCustomObject]@{
                     id         = 'updated-partner-guid-1234567890abcdef'
                     email      = 'partner@example.com'
                     name       = 'Updated Partner'
                     inTimeline = $true
                 }
-            }
+            } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -6822,12 +6809,12 @@ InModuleScope $ProjectName {
         }
 
         Context 'Partner Updates' {
-            It 'Should update partner with correct API call' {
+            It 'Should update partner through the generated updatePartner function' {
                 Set-IMPartner -id 'a1b2c3d4-e5f6-4789-a012-123456789abc' -EnableTimeline:$true
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and
-                    $RelativePath -eq '/partners/a1b2c3d4-e5f6-4789-a012-123456789abc'
+                Should -Invoke Invoke-ImmichApiUpdatePartner -Times 1 -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq 'a1b2c3d4-e5f6-4789-a012-123456789abc' -and
+                    $Body.inTimeline -eq $true
                 }
             }
         }
