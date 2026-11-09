@@ -319,6 +319,171 @@
             "Path": "/search/statistics",
             "Method": "POST",
             "Reason": "Unclear usefulness in our scenario, just returns a count, probably useful for web UI"
+        },
+        {
+            "Path": "/admin/database-backups/start-restore",
+            "Method": "POST",
+            "Reason": "Destructive database restore flow; not exposed without dedicated, disposable-target testing and explicit maintainer approval"
+        },
+        {
+            "Path": "/admin/database-backups/upload",
+            "Method": "POST",
+            "Reason": "Uploads a database dump to restore from; part of the destructive restore flow and not exposed without dedicated testing"
+        },
+        {
+            "Path": "/admin/maintenance/detect-install",
+            "Method": "GET",
+            "Reason": "One-time install and onboarding detection used by the web setup wizard; not relevant after installation"
+        },
+        {
+            "Path": "/admin/notifications/templates/{name}",
+            "Method": "POST",
+            "Reason": "Renders email notification template previews for the web admin UI"
+        },
+        {
+            "Path": "/admin/users/{id}/calendar-heatmap",
+            "Method": "GET",
+            "Reason": "Dashboard visualisation data (calendar heatmap) for the web UI"
+        },
+        {
+            "Path": "/users/me/calendar-heatmap",
+            "Method": "GET",
+            "Reason": "Dashboard visualisation data (calendar heatmap) for the web UI"
+        },
+        {
+            "Path": "/asset-files/{id}",
+            "Method": "DELETE",
+            "Reason": "Deleting generated asset derivatives (previews, thumbnails, sidecars) can break the server's media state; not exposed by the module"
+        },
+        {
+            "Path": "/assets/{id}/video/stream/main.m3u8",
+            "Method": "GET",
+            "Reason": "HLS video streaming for the web player; not applicable to a PowerShell module"
+        },
+        {
+            "Path": "/assets/{id}/video/stream/{sessionId}",
+            "Method": "DELETE",
+            "Reason": "Ends an HLS streaming session for the web player; not applicable to a PowerShell module"
+        },
+        {
+            "Path": "/assets/{id}/video/stream/{sessionId}/{variantIndex}/playlist.m3u8",
+            "Method": "GET",
+            "Reason": "HLS playlist for the web player; not applicable to a PowerShell module"
+        },
+        {
+            "Path": "/assets/{id}/video/stream/{sessionId}/{variantIndex}/{filename}",
+            "Method": "GET",
+            "Reason": "HLS segment delivery for the web player; not applicable to a PowerShell module"
+        },
+        {
+            "Path": "/cluster-groups/requests",
+            "Method": "GET",
+            "Reason": "Server federation (cluster groups) is administered from the web UI; out of scope for the module"
+        },
+        {
+            "Path": "/cluster-groups/requests/{id}",
+            "Method": "DELETE",
+            "Reason": "Server federation (cluster groups) is administered from the web UI; out of scope for the module"
+        },
+        {
+            "Path": "/cluster-groups/requests/{id}/accept",
+            "Method": "POST",
+            "Reason": "Server federation (cluster groups) is administered from the web UI; out of scope for the module"
+        },
+        {
+            "Path": "/cluster-groups/{id}/leave",
+            "Method": "POST",
+            "Reason": "Server federation (cluster groups) is administered from the web UI; out of scope for the module"
+        },
+        {
+            "Path": "/cluster-groups/{id}/regenerate-people",
+            "Method": "POST",
+            "Reason": "Server federation (cluster groups) is administered from the web UI; out of scope for the module"
+        },
+        {
+            "Path": "/cluster-groups/{id}/requests",
+            "Method": "GET",
+            "Reason": "Server federation (cluster groups) is administered from the web UI; out of scope for the module"
+        },
+        {
+            "Path": "/cluster-groups/{id}/requests",
+            "Method": "PUT",
+            "Reason": "Server federation (cluster groups) is administered from the web UI; out of scope for the module"
+        },
+        {
+            "Path": "/cluster-groups/{id}/users",
+            "Method": "GET",
+            "Reason": "Server federation (cluster groups) is administered from the web UI; out of scope for the module"
+        },
+        {
+            "Path": "/auth/login",
+            "Method": "POST",
+            "Reason": "Login is handled by the ImmichSession class via Connect-Immich (source/classes/ImmichSession.class.ps1); not a user-facing endpoint"
+        },
+        {
+            "Path": "/shared-links/login",
+            "Method": "POST",
+            "Reason": "Creates an anonymous, password-protected shared-link session for the web viewer; outside the module's authenticated session model"
+        },
+        {
+            "Path": "/oauth/backchannel-logout",
+            "Method": "POST",
+            "Reason": "Identity provider back-channel logout callback; invoked by the IdP, not by a client"
+        },
+        {
+            "Path": "/jobs",
+            "Method": "GET",
+            "Reason": "Deprecated; superseded by the queue endpoints covered by Get-IMQueue"
+        },
+        {
+            "Path": "/partners/{id}",
+            "Method": "POST",
+            "Reason": "Deprecated; superseded by POST /partners, covered by Add-IMPartner"
+        },
+        {
+            "Path": "/people/{id}/merge",
+            "Method": "POST",
+            "Reason": "Deprecated; superseded by POST /people/merge, covered by the person merge cmdlet"
+        },
+        {
+            "Path": "/system-config",
+            "Method": "GET",
+            "Reason": "Deprecated; superseded by /admin/config, covered by Get-IMServer -AppliedSystemConfiguration"
+        },
+        {
+            "Path": "/system-config",
+            "Method": "PUT",
+            "Reason": "Deprecated; superseded by /admin/config, covered by Set-IMServer"
+        },
+        {
+            "Path": "/system-config/defaults",
+            "Method": "GET",
+            "Reason": "Deprecated; superseded by /admin/config/defaults, covered by Get-IMServer -DefaultSystemConfiguration"
+        },
+        {
+            "Path": "/config",
+            "Method": "GET",
+            "Reason": "User-facing web UI feature flags and login configuration; server settings are covered by Get-IMServer"
+        },
+        {
+            "Path": "/config/defaults",
+            "Method": "GET",
+            "Reason": "Web UI default feature configuration; server settings are covered by Get-IMServer"
+        },
+        {
+            "Path": "/public/config/defaults",
+            "Method": "GET",
+            "Reason": "Public login-page defaults for the web UI; covered by Get-IMServer -Theme and public configuration"
+        },
+        {
+            "Path": "/stacks/{id}",
+            "Method": "DELETE",
+            "Reason": "Redundant with bulk DELETE /stacks, which Remove-IMStack already uses"
+        },
+        {
+            "Path": "/users/{id}",
+            "Method": "GET",
+            "Reason": "Single-user admin lookup; Get-IMUser (list) returns the same user data. Revisit if a direct lookup is needed for non-admin users"
         }
     ]
 }
