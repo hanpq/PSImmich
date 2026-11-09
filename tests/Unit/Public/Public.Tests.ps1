@@ -2714,6 +2714,14 @@ InModuleScope $ProjectName {
         BeforeAll {
             Mock ConvertTo-ApiParameters { return @{} } -ModuleName PSImmich
             Mock InvokeImmichRestMethod { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiUpdateAsset { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiUpdateAssets { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiAddAssetsToAlbum { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRemoveAssetFromAlbum { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiTagAssets { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiUntagAssets { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiAddMemoryAssets { return @{ Status = 'Success' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRemoveMemoryAssets { return @{ Status = 'Success' } } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -2778,7 +2786,7 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Set-IMAsset -Id $TestId -IsFavorite $true -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateAssets -ModuleName PSImmich -Exactly 1 -Scope It
             }
         }
 
@@ -2842,8 +2850,8 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestId -AddToAlbum $AlbumId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq "/albums/$AlbumId/assets"
+                Should -Invoke Invoke-ImmichApiAddAssetsToAlbum -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $AlbumId
                 }
             }
 
@@ -2853,8 +2861,8 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestId -RemoveFromAlbum $AlbumId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq "/albums/$AlbumId/assets"
+                Should -Invoke Invoke-ImmichApiRemoveAssetFromAlbum -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $AlbumId
                 }
             }
         }
@@ -2866,8 +2874,8 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestId -AddTag $TagId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq "/tags/$TagId/assets"
+                Should -Invoke Invoke-ImmichApiTagAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TagId
                 }
             }
 
@@ -2877,8 +2885,8 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestId -RemoveTag $TagId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq "/tags/$TagId/assets"
+                Should -Invoke Invoke-ImmichApiUntagAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TagId
                 }
             }
         }
@@ -2890,8 +2898,8 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestId -AddToMemory $MemoryId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq "/memories/$MemoryId/assets"
+                Should -Invoke Invoke-ImmichApiAddMemoryAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $MemoryId
                 }
             }
 
@@ -2901,8 +2909,8 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestId -RemoveFromMemory $MemoryId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq "/memories/$MemoryId/assets"
+                Should -Invoke Invoke-ImmichApiRemoveMemoryAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $MemoryId
                 }
             }
         }
@@ -2916,9 +2924,7 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestIds -IsFavorite $true -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/assets'
-                }
+                Should -Invoke Invoke-ImmichApiUpdateAssets -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
             It 'Should use individual endpoint for id parameter set' {
@@ -2926,8 +2932,8 @@ InModuleScope $ProjectName {
 
                 Set-IMAsset -Id $TestId -Description 'Test description' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq "/assets/$TestId"
+                Should -Invoke Invoke-ImmichApiUpdateAsset -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestId
                 }
             }
         }
@@ -2947,7 +2953,7 @@ InModuleScope $ProjectName {
                 $TestId = 'f4c91e8b-7b4d-4b8a-9c6e-2f5a8b7c3d9e'
                 Set-IMAsset -Id $TestId -IsFavorite $true -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiUpdateAssets -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }

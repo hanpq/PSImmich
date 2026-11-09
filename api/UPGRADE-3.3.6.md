@@ -232,15 +232,15 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Status | Count |
 | --- | ---: |
 | Excluded (`exclusions.json`, method and path) | 59 |
-| Tested (generated function named under `tests/Unit`) | 9 |
-| Reachable (generated function used by module source) | 28 |
-| Unreachable | 183 |
+| Tested (generated function named under `tests/Unit`) | 17 |
+| Reachable (generated function used by module source) | 24 |
+| Unreachable | 179 |
 | Total | 279 |
 
-Wired for 37 of 220 non-excluded operations (16.8%) after the restore batch
-(was 35, 15.9%, after the asset batch; 25, 11.4%, before it). This is a route
-metric, not parameter or contract parity. The 183 unreachable operations are the backlog.
-The largest unreachable domains are admin (30), assets (19), server (14), people
+Wired for 41 of 220 non-excluded operations (18.6%) after the Set-IMAsset batch
+(was 37, 16.8%, after the restore batch; 35, 15.9%, after the asset batch; 25, 11.4%, before it). This is a route
+metric, not parameter or contract parity. The 179 unreachable operations are the backlog.
+The largest unreachable domains include admin (30), server (14) and people
 (12) and shared links or libraries (8 each). 20 unreachable operations are deprecated; each needs the
 replacement-or-retain decision under the maintainer policy before implementation.
 

@@ -159,30 +159,30 @@
                 {
                     if ($PSCmdlet.ShouldProcess($object, 'PUT'))
                     {
-                        InvokeImmichRestMethod -Method Put -RelativePath "/assets/$object" -ImmichSession:$Session -Body:$BodyParameters
+                        Invoke-ImmichApiUpdateAsset -Id $object -Body $BodyParameters -ImmichSession $Session
                         if ($PSBoundParameters.ContainsKey('AddToAlbum'))
                         {
-                            $null = InvokeImmichRestMethod -Method PUT -RelativePath "/albums/$AddToAlbum/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$object }
+                            $null = Invoke-ImmichApiAddAssetsToAlbum -Id $AddToAlbum -Body @{ids = [string[]]$object } -ImmichSession $Session
                         }
                         if ($PSBoundParameters.ContainsKey('RemoveFromAlbum'))
                         {
-                            $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/albums/$RemoveFromAlbum/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$object }
+                            $null = Invoke-ImmichApiRemoveAssetFromAlbum -Id $RemoveFromAlbum -Body @{ids = [string[]]$object } -ImmichSession $Session
                         }
                         if ($PSBoundParameters.ContainsKey('AddTag'))
                         {
-                            $null = InvokeImmichRestMethod -Method PUT -RelativePath "/tags/$AddTag/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$object }
+                            $null = Invoke-ImmichApiTagAssets -Id $AddTag -Body @{ids = [string[]]$object } -ImmichSession $Session
                         }
                         if ($PSBoundParameters.ContainsKey('RemoveTag'))
                         {
-                            $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/tags/$AddTag/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$object }
+                            $null = Invoke-ImmichApiUntagAssets -Id $RemoveTag -Body @{ids = [string[]]$object } -ImmichSession $Session
                         }
                         if ($PSBoundParameters.ContainsKey('AddToMemory'))
                         {
-                            $null = InvokeImmichRestMethod -Method PUT -RelativePath "/memories/$AddToMemory/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$object }
+                            $null = Invoke-ImmichApiAddMemoryAssets -Id $AddToMemory -Body @{ids = [string[]]$object } -ImmichSession $Session
                         }
                         if ($PSBoundParameters.ContainsKey('RemoveFromMemory'))
                         {
-                            $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/memories/$RemoveFromMemory/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$object }
+                            $null = Invoke-ImmichApiRemoveMemoryAssets -Id $RemoveFromMemory -Body @{ids = [string[]]$object } -ImmichSession $Session
                         }
                     }
                 }
@@ -198,30 +198,30 @@
             {
                 if ($PSCmdlet.ShouldProcess(($BodyParameters.ids -join ','), 'PUT'))
                 {
-                    InvokeImmichRestMethod -Method Put -RelativePath '/assets' -ImmichSession:$Session -Body:$BodyParameters
+                    Invoke-ImmichApiUpdateAssets -Body $BodyParameters -ImmichSession $Session
                     if ($PSBoundParameters.ContainsKey('AddToAlbum'))
                     {
-                        $null = InvokeImmichRestMethod -Method PUT -RelativePath "/albums/$AddToAlbum/assets" -ImmichSession:$Session -Body:@{ids = [string[]]($BodyParameters.ids) }
+                        $null = Invoke-ImmichApiAddAssetsToAlbum -Id $AddToAlbum -Body @{ids = [string[]]($BodyParameters.ids) } -ImmichSession $Session
                     }
                     if ($PSBoundParameters.ContainsKey('RemoveFromAlbum'))
                     {
-                        $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/albums/$RemoveFromAlbum/assets" -ImmichSession:$Session -Body:@{ids = [string[]]($BodyParameters.ids) }
+                        $null = Invoke-ImmichApiRemoveAssetFromAlbum -Id $RemoveFromAlbum -Body @{ids = [string[]]($BodyParameters.ids) } -ImmichSession $Session
                     }
                     if ($PSBoundParameters.ContainsKey('AddTag'))
                     {
-                        $null = InvokeImmichRestMethod -Method PUT -RelativePath "/tags/$AddTag/assets" -ImmichSession:$Session -Body:@{ids = [string[]]($BodyParameters.ids) }
+                        $null = Invoke-ImmichApiTagAssets -Id $AddTag -Body @{ids = [string[]]($BodyParameters.ids) } -ImmichSession $Session
                     }
                     if ($PSBoundParameters.ContainsKey('RemoveTag'))
                     {
-                        $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/tags/$RemoveTag/assets" -ImmichSession:$Session -Body:@{ids = [string[]]($BodyParameters.ids) }
+                        $null = Invoke-ImmichApiUntagAssets -Id $RemoveTag -Body @{ids = [string[]]($BodyParameters.ids) } -ImmichSession $Session
                     }
                     if ($PSBoundParameters.ContainsKey('AddToMemory'))
                     {
-                        $null = InvokeImmichRestMethod -Method PUT -RelativePath "/memories/$AddToMemory/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$object }
+                        $null = Invoke-ImmichApiAddMemoryAssets -Id $AddToMemory -Body @{ids = [string[]]($BodyParameters.ids) } -ImmichSession $Session
                     }
                     if ($PSBoundParameters.ContainsKey('RemoveFromMemory'))
                     {
-                        $null = InvokeImmichRestMethod -Method DELETE -RelativePath "/memories/$RemoveFromMemory/assets" -ImmichSession:$Session -Body:@{ids = [string[]]$object }
+                        $null = Invoke-ImmichApiRemoveMemoryAssets -Id $RemoveFromMemory -Body @{ids = [string[]]($BodyParameters.ids) } -ImmichSession $Session
                     }
 
                 }
