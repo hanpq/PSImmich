@@ -86,24 +86,36 @@ Describe 'Memories' -Tag 'Integration' {
             { $Result = Get-IMMemory -Statistics -NumberOfMemories 5 } | Should -Not -Throw
         }
         It -Name 'Should return a memory by id' {
-            $First = Get-IMMemory | Select-Object -First 1
-            if (-not $First)
+            $Created = $null
+            try
             {
-                Set-ItResult -Skipped -Because 'no memories exist on the server'
-                return
+                $Created = New-TestMemory
+                $Result = Get-IMMemory -Id $Created.id
+                $Result.id | Should -Be $Created.id
             }
-            $Result = Get-IMMemory -Id $First.id
-            $Result.id | Should -Be $First.id
+            finally
+            {
+                if ($Created)
+                {
+                    Remove-IMMemory -Id $Created.id -Confirm:$false
+                }
+            }
         }
         It -Name 'Should accept memory ids from the pipeline' {
-            $Memories = Get-IMMemory | Select-Object -First 1
-            if (-not $Memories)
+            $Created = $null
+            try
             {
-                Set-ItResult -Skipped -Because 'no memories exist on the server'
-                return
+                $Created = New-TestMemory
+                $Result = $Created | Get-IMMemory
+                $Result.id | Should -Be $Created.id
             }
-            $Result = $Memories | Get-IMMemory
-            $Result.id | Should -Be $Memories.id
+            finally
+            {
+                if ($Created)
+                {
+                    Remove-IMMemory -Id $Created.id -Confirm:$false
+                }
+            }
         }
         It -Name 'Should throw for a memory that does not exist' {
             { Get-IMMemory -Id '00000000-0000-0000-0000-000000000000' } | Should -Throw
