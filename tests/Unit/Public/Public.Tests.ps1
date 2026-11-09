@@ -4483,10 +4483,10 @@ InModuleScope $ProjectName {
                     {
                         # Mock response for library statistics
                         return @{
-                            assetCount = 150
-                            videoCount = 25
-                            imageCount = 125
-                            totalSize  = 1073741824
+                            total  = 150
+                            videos = 25
+                            photos = 125
+                            usage  = 1073741824
                         }
                     }
                 }
@@ -4568,8 +4568,8 @@ InModuleScope $ProjectName {
 
                 $result.id | Should -Be '11111111-1111-1111-1111-111111111111'
                 $result.Statistics | Should -Not -BeNullOrEmpty
-                $result.Statistics.assetCount | Should -Be 150
-                $result.Statistics.totalSize | Should -Be 1073741824
+                $result.Statistics.total | Should -Be 150
+                $result.Statistics.usage | Should -Be 1073741824
 
                 # Should call both library and statistics endpoints
                 Should -Invoke InvokeImmichRestMethod -Times 2
@@ -4794,7 +4794,7 @@ InModuleScope $ProjectName {
                 $result | Should -Not -BeNullOrEmpty
                 $result.id | Should -Be 'new-library-guid-1234567890abcdef'
                 $result.name | Should -Be 'Test Library'
-                $result.type | Should -Be 'EXTERNAL'
+                $result.assetCount | Should -Be 0
             }
         }
 

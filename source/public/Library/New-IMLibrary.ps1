@@ -88,7 +88,7 @@
 
     process
     {
-        InvokeImmichRestMethod -Method Post -RelativePath '/libraries' -ImmichSession:$Session -Body $BodyParameters
+        Invoke-ImmichApiCreateLibrary -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [LibraryResponseDto]::new($PSItem) }
     }
 
 }
