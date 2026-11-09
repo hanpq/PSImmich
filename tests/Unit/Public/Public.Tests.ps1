@@ -24,7 +24,7 @@ BeforeDiscovery {
 InModuleScope $ProjectName {
     Describe 'Add-IMActivity' -Tag 'Unit', 'Add-IMActivity' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiCreateActivity -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     id        = 'activity-123'
                     albumId   = 'album-456'
@@ -49,7 +49,7 @@ InModuleScope $ProjectName {
         }
 
         Context 'When adding a comment to an album' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiCreateActivity with correct parameters' {
                 $params = @{
                     AlbumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
                     Comment = 'Amazing sunset!'
@@ -58,9 +58,7 @@ InModuleScope $ProjectName {
 
                 Add-IMActivity @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Post' -and
-                    $RelativePath -eq '/activities' -and
+                Should -Invoke Invoke-ImmichApiCreateActivity -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.albumId -eq $params.AlbumId -and
                     $Body.comment -eq $params.Comment -and
                     $Body.type -eq $params.Type
@@ -69,7 +67,7 @@ InModuleScope $ProjectName {
         }
 
         Context 'When adding a like to a specific asset' {
-            It 'Should call InvokeImmichRestMethod with asset ID' {
+            It 'Should call Invoke-ImmichApiCreateActivity with asset ID' {
                 $params = @{
                     AlbumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
                     AssetId = 'a4908e1f-697f-4d7b-9330-93b5eabe3baf'
@@ -78,9 +76,7 @@ InModuleScope $ProjectName {
 
                 Add-IMActivity @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Post' -and
-                    $RelativePath -eq '/activities' -and
+                Should -Invoke Invoke-ImmichApiCreateActivity -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.albumId -eq $params.AlbumId -and
                     $Body.assetId -eq $params.AssetId -and
                     $Body.type -eq $params.Type
@@ -96,8 +92,7 @@ InModuleScope $ProjectName {
                 # Test that function works when called with parameter from object property
                 Add-IMActivity -AlbumId $pipelineObject.AlbumId -Type 'like'
 
-                # Simply verify the function was called - implementation details tested elsewhere
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly
+                Should -Invoke Invoke-ImmichApiCreateActivity -ModuleName PSImmich -Times 1 -Exactly
             }
         }
 
@@ -117,7 +112,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMActivity' -Tag 'Unit', 'Get-IMActivity' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetActivities -ModuleName PSImmich {
                 return @(
                     [PSCustomObject]@{
                         id        = 'activity-1'
@@ -174,15 +169,13 @@ InModuleScope $ProjectName {
         }
 
         Context 'When retrieving all activities for an album' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiGetActivities with correct parameters' {
                 $albumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
 
                 $result = Get-IMActivity -AlbumId $albumId
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/activities' -and
-                    $QueryParameters.albumId -eq $albumId
+                Should -Invoke Invoke-ImmichApiGetActivities -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $AlbumId -eq $albumId
                 }
                 $result | Should -HaveCount 2
             }
@@ -197,9 +190,9 @@ InModuleScope $ProjectName {
 
                 Get-IMActivity @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $QueryParameters.albumId -eq $params.AlbumId -and
-                    $QueryParameters.assetId -eq $params.AssetId
+                Should -Invoke Invoke-ImmichApiGetActivities -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $AlbumId -eq $params.AlbumId -and
+                    $AssetId -eq $params.AssetId
                 }
             }
         }
@@ -214,10 +207,10 @@ InModuleScope $ProjectName {
 
                 Get-IMActivity @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $QueryParameters.albumId -eq $params.AlbumId -and
-                    $QueryParameters.type -eq $params.Type -and
-                    $QueryParameters.level -eq $params.Level
+                Should -Invoke Invoke-ImmichApiGetActivities -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $AlbumId -eq $params.AlbumId -and
+                    $Type -eq $params.Type -and
+                    $Level -eq $params.Level
                 }
             }
         }
@@ -231,9 +224,9 @@ InModuleScope $ProjectName {
 
                 Get-IMActivity @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $QueryParameters.albumId -eq $params.AlbumId -and
-                    $QueryParameters.userId -eq $params.UserId
+                Should -Invoke Invoke-ImmichApiGetActivities -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $AlbumId -eq $params.AlbumId -and
+                    $UserId -eq $params.UserId
                 }
             }
         }
@@ -246,8 +239,7 @@ InModuleScope $ProjectName {
                 # Test that function works when called with parameter from object property
                 Get-IMActivity -AlbumId $pipelineObject.AlbumId
 
-                # Simply verify the function was called - implementation details tested elsewhere
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly
+                Should -Invoke Invoke-ImmichApiGetActivities -ModuleName PSImmich -Times 1 -Exactly
             }
         }
 
@@ -284,7 +276,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMActivityStatistic' -Tag 'Unit', 'Get-IMActivityStatistic' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetActivityStatistics -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     albumId         = 'album-456'
                     assetId         = 'asset-789'
@@ -308,15 +300,13 @@ InModuleScope $ProjectName {
         }
 
         Context 'When retrieving album statistics' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiGetActivityStatistics with correct parameters' {
                 $albumId = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
 
                 $result = Get-IMActivityStatistic -AlbumId $albumId
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/activities/statistics' -and
-                    $QueryParameters.albumId -eq $albumId
+                Should -Invoke Invoke-ImmichApiGetActivityStatistics -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $AlbumId -eq $albumId
                 }
                 $result | Should -Not -BeNullOrEmpty
                 $result.comments | Should -Be 5
@@ -333,11 +323,9 @@ InModuleScope $ProjectName {
 
                 Get-IMActivityStatistic @params
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/activities/statistics' -and
-                    $QueryParameters.albumId -eq $params.AlbumId -and
-                    $QueryParameters.assetId -eq $params.AssetId
+                Should -Invoke Invoke-ImmichApiGetActivityStatistics -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $AlbumId -eq $params.AlbumId -and
+                    $AssetId -eq $params.AssetId
                 }
             }
         }
@@ -350,8 +338,7 @@ InModuleScope $ProjectName {
                 # Test that function works when called with parameter from object property
                 Get-IMActivityStatistic -AlbumId $pipelineObject.AlbumId
 
-                # Simply verify the function was called - implementation details tested elsewhere
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly
+                Should -Invoke Invoke-ImmichApiGetActivityStatistics -ModuleName PSImmich -Times 1 -Exactly
             }
         }
 
@@ -372,22 +359,21 @@ InModuleScope $ProjectName {
 
                 Get-IMActivityStatistic -AlbumId $albumId
 
-                # Verify the REST method was called (session handling tested in integration tests)
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly
+                Should -Invoke Invoke-ImmichApiGetActivityStatistics -ModuleName PSImmich -Times 1 -Exactly
             }
         }
     }
     Describe 'Remove-IMActivity' -Tag 'Unit', 'Remove-IMActivity' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiDeleteActivity -ModuleName PSImmich { return $null }
         }
 
         Context 'When removing a single activity' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiDeleteActivity with correct parameters' {
                 Remove-IMActivity -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq '/activities/bde7ceba-f301-4e9e-87a2-163937a2a3db'
+                Should -Invoke Invoke-ImmichApiDeleteActivity -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
                 }
             }
         }
@@ -397,7 +383,7 @@ InModuleScope $ProjectName {
                 $activityIds = @('bde7ceba-f301-4e9e-87a2-163937a2a3db', '550e8400-e29b-41d4-a716-446655440000')
                 $activityIds | Remove-IMActivity -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteActivity -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -405,17 +391,17 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 'bde7ceba-f301-4e9e-87a2-163937a2a3db' | Remove-IMActivity -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/activities/bde7ceba-f301-4e9e-87a2-163937a2a3db'
+                Should -Invoke Invoke-ImmichApiDeleteActivity -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{Id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db' } | Remove-IMActivity -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq '/activities/bde7ceba-f301-4e9e-87a2-163937a2a3db'
-                } -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiDeleteActivity -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+                }
             }
         }
 
@@ -433,7 +419,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Remove-IMActivity -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteActivity -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -9006,61 +8992,71 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMTag' -Tag 'Unit', 'Get-IMTag' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetAllTags {
                 return @(
                     [PSCustomObject]@{ id = 'tag1-guid'; name = 'vacation'; value = 'summer2024'; type = 'OBJECT' },
                     [PSCustomObject]@{ id = 'tag2-guid'; name = 'location'; value = 'beach'; type = 'FACE' }
                 )
-            }
+            } -ModuleName PSImmich
+            Mock Invoke-ImmichApiGetTagById {
+                return [PSCustomObject]@{ id = '12345678-1234-5678-9012-123456789abc'; name = 'vacation'; value = 'summer2024'; type = 'OBJECT' }
+            } -ModuleName PSImmich
         }
         Context 'Tag Retrieval' {
-            It 'Should get tags with correct API call' {
-                Get-IMTag
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/tags'
+            It 'Should list all tags via the generated API wrapper' {
+                $Result = Get-IMTag
+                Should -Invoke Invoke-ImmichApiGetAllTags -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                $Result.Count | Should -Be 2
+            }
+
+            It 'Should get a single tag by id via the generated API wrapper' {
+                $Result = Get-IMTag -Id '12345678-1234-5678-9012-123456789abc'
+                Should -Invoke Invoke-ImmichApiGetTagById -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
                 }
+                $Result.name | Should -Be 'vacation'
             }
         }
     }
     Describe 'New-IMTag' -Tag 'Unit', 'New-IMTag' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiCreateTag {
                 return [PSCustomObject]@{ id = 'new-tag-guid'; name = 'family'; value = 'reunion2024' }
-            }
+            } -ModuleName PSImmich
         }
         Context 'Tag Creation' {
-            It 'Should create tag with correct API call' {
+            It 'Should create tag with the name in the request body' {
                 New-IMTag -Name 'family'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Post' -and $RelativePath -eq '/tags'
+                Should -Invoke Invoke-ImmichApiCreateTag -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'family'
                 }
             }
         }
     }
     Describe 'Remove-IMTag' -Tag 'Unit', 'Remove-IMTag' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiDeleteTag { return $null } -ModuleName PSImmich
         }
         Context 'Tag Removal' {
-            It 'Should remove tag with correct API call' {
-                Remove-IMTag -id '12345678-1234-5678-9012-123456789abc'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/tags/12345678-1234-5678-9012-123456789abc'
+            It 'Should delete the tag by id via the generated API wrapper' {
+                Remove-IMTag -id '12345678-1234-5678-9012-123456789abc' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiDeleteTag -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc'
                 }
             }
         }
     }
     Describe 'Set-IMTag' -Tag 'Unit', 'Set-IMTag' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiUpdateTag {
                 return [PSCustomObject]@{ id = 'updated-tag-guid'; name = 'updated-name'; value = 'updated-value' }
-            }
+            } -ModuleName PSImmich
         }
         Context 'Tag Updates' {
-            It 'Should update tag with correct API call' {
-                Set-IMTag -Id '12345678-1234-5678-9012-123456789abc' -Color '#FF0000'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/tags/12345678-1234-5678-9012-123456789abc'
+            It 'Should update the tag colour via the generated API wrapper' {
+                Set-IMTag -Id '12345678-1234-5678-9012-123456789abc' -Color '#FF0000' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiUpdateTag -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-5678-9012-123456789abc' -and $Body.color -eq '#FF0000'
                 }
             }
         }
