@@ -2682,6 +2682,101 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'Get-IMAssetFile' -Tag 'Unit', 'Get-IMAssetFile' {
+        BeforeAll {
+            Mock Invoke-ImmichApiSearchAssetFiles -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'; type = 'preview'; path = '/data/thumbs/a.jpg'; isEdited = $false; isProgressive = $false; isTransparent = $false; createdAt = '2024-01-01T00:00:00Z'; updatedAt = '2024-01-01T00:00:00Z' }
+                )
+            }
+            Mock Invoke-ImmichApiGetAssetFile -ModuleName PSImmich {
+                return [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'; type = 'preview'; path = '/data/thumbs/a.jpg'; isEdited = $false; isProgressive = $false; isTransparent = $false; createdAt = '2024-01-01T00:00:00Z'; updatedAt = '2024-01-01T00:00:00Z' }
+            }
+        }
+
+        It 'Should call Invoke-ImmichApiSearchAssetFiles with the asset ID' {
+            Get-IMAssetFile -AssetId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+
+            Should -Invoke Invoke-ImmichApiSearchAssetFiles -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $AssetId -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and -not $PSBoundParameters.ContainsKey('Type')
+            }
+        }
+
+        It 'Should forward the Type filter when specified' {
+            Get-IMAssetFile -AssetId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Type preview
+
+            Should -Invoke Invoke-ImmichApiSearchAssetFiles -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Type -eq 'preview'
+            }
+        }
+
+        It 'Should forward explicit false boolean filters' {
+            Get-IMAssetFile -AssetId 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -IsEdited $false
+
+            Should -Invoke Invoke-ImmichApiSearchAssetFiles -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $IsEdited -eq $false
+            }
+        }
+
+        It 'Should return AssetFileResponseDto objects for a search' {
+            $result = Get-IMAssetFile -AssetId 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
+
+            $result.GetType().Name | Should -Be 'AssetFileResponseDto'
+            $result.type | Should -Be 'preview'
+        }
+
+        It 'Should call Invoke-ImmichApiGetAssetFile with -Id' {
+            $result = Get-IMAssetFile -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+
+            Should -Invoke Invoke-ImmichApiGetAssetFile -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+            }
+            $result.GetType().Name | Should -Be 'AssetFileResponseDto'
+        }
+
+        It 'Should accept Id from pipeline by property name' {
+            [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' } | Get-IMAssetFile
+
+            Should -Invoke Invoke-ImmichApiGetAssetFile -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+            }
+        }
+
+        It 'Should reject an invalid asset GUID' {
+            { Get-IMAssetFile -AssetId 'not-a-guid' } | Should -Throw
+        }
+    }
+
+    Describe 'Save-IMAssetFile' -Tag 'Unit', 'Save-IMAssetFile' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetAssetFile -ModuleName PSImmich {
+                return [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'; path = '/data/encoded-video/clip.mp4' }
+            }
+            Mock Invoke-ImmichApiDownloadAssetFile -ModuleName PSImmich {}
+        }
+
+        It 'Should download the file to the target directory using the stored file name' {
+            Save-IMAssetFile -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -Path $TestDrive
+
+            Should -Invoke Invoke-ImmichApiDownloadAssetFile -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -and
+                $OutFilePath.FullName -eq (Join-Path -Path $TestDrive -ChildPath 'clip.mp4')
+            }
+        }
+
+        It 'Should accept Id from pipeline by property name' {
+            [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' } | Save-IMAssetFile -Path $TestDrive
+
+            Should -Invoke Invoke-ImmichApiDownloadAssetFile -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+            }
+        }
+
+        It 'Should reject an invalid GUID' {
+            { Save-IMAssetFile -Id 'not-a-guid' -Path $TestDrive } | Should -Throw
+        }
+    }
+
     Describe 'Save-IMAsset' -Tag 'Unit', 'Save-IMAsset' {
         BeforeAll {
             Mock Invoke-ImmichApiDownloadAsset { } -ModuleName PSImmich
