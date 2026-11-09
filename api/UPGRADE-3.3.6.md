@@ -237,8 +237,9 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Unreachable | 110 |
 | Total | 279 |
 
-Wired for 130 of 219 non-excluded operations (59.4%) after the Memories batch
-(was 124, 56.6%, after the Partner batch;
+Wired for 138 of 219 non-excluded operations (63.0%) after the Workflow batch
+(was 130, 59.4%, after the Memories batch;
+was 124, 56.6%, after the Partner batch;
 was 120, 54.8%, after the APIKey batch;
 was 115, 52.5%, after the Stack batch;
 was 109, 49.8%, after the Search batch;
@@ -262,6 +263,15 @@ Targeted tests: 42 passed, 0 failed.
 Memories batch: `Get-IMMemory` (`getMemory`, `searchMemories`, `getMemoriesStatistics`), `New-IMMemory`
 (`createMemory`), `Set-IMMemory` (`updateMemory`), and `Remove-IMMemory` (`deleteMemory`) call the generated
 functions and return `MemoryResponseDto` or `MemoryStatisticsResponseDto`. Targeted tests: 70 passed, 0 failed.
+
+Workflow batch: `Get-IMWorkflow` (list: `searchWorkflows`; id: `getWorkflow`; `-Share`: `getWorkflowForShare`),
+`New-IMWorkflow` (`createWorkflow`), `Remove-IMWorkflow` (`deleteWorkflow`), and `Set-IMWorkflow` (`updateWorkflow`)
+call the generated functions. Breaking: `New-IMWorkflow` and `Set-IMWorkflow` replace `-TriggerType`, `-Actions`,
+and `-Filters` with `-Trigger` (`AssetCreate`, `AssetMetadataExtraction`, `AssetTagged`), `-Logging`, and `-Steps`
+(`WorkflowStepDto` hashtables, `method` and `config` required). `Set-IMWorkflow` still calls the deprecated
+`PUT /workflows/{id}`, retained under the maintainer policy. New cmdlets: `Get-IMWorkflowTrigger`
+(`getWorkflowTriggers`) and `Get-IMWorkflowLog` (`getWorkflowLogs`, `-Before`, `-Limit`, `-Result`). Targeted tests:
+87 passed, 0 failed (`-Tag` run). Full-suite result pending.
 
 APIKey batch: `Get-IMAPIKey` (`getMyApiKey` is not used; list: `getApiKeys`, id: `getApiKey`),
 `New-IMAPIKey` (`createApiKey`, returns `ApiKeyCreateResponseDto` including the one-time secret),

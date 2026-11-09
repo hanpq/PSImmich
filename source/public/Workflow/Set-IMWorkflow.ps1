@@ -14,14 +14,15 @@
         The new name for the workflow.
     .PARAMETER Description
         The new description for the workflow.
-    .PARAMETER TriggerType
-        The trigger type for the workflow. This determines when the workflow will be executed.
+    .PARAMETER Trigger
+        The trigger for the workflow. This determines when the workflow will be executed.
     .PARAMETER Enabled
         Specifies whether the workflow should be enabled or disabled.
-    .PARAMETER Actions
-        An array of workflow action objects that define what the workflow will do when triggered.
-    .PARAMETER Filters
-        An array of workflow filter objects that define the conditions for workflow execution.
+    .PARAMETER Logging
+        Specifies whether run results of the workflow are logged.
+    .PARAMETER Steps
+        An array of step hashtables. Each step requires a 'method' and a 'config' hashtable, and may include 'enabled'.
+        Replaces all existing steps of the workflow.
     .EXAMPLE
         Set-IMWorkflow -Id 'workflow-uuid' -Description 'Updated workflow for processing new photos'
 
@@ -31,12 +32,13 @@
 
         Disables the workflow.
     .EXAMPLE
-        Set-IMWorkflow -Id 'workflow-uuid' -Name 'New Workflow Name' -TriggerType 'schedule'
+        Set-IMWorkflow -Id 'workflow-uuid' -Name 'New Workflow Name' -Trigger 'AssetTagged'
 
-        Renames the workflow and changes its trigger type.
+        Renames the workflow and changes its trigger.
     .NOTES
         This cmdlet supports ShouldProcess and will prompt for confirmation before making changes.
         This feature is in Alpha state and may be subject to changes in future Immich versions.
+        Uses the PUT /workflows/{id} endpoint, which is marked deprecated by the Immich API without a replacement in 3.3.6.
     #>
 
     [CmdletBinding(SupportsShouldProcess)]
@@ -51,50 +53,47 @@
         $Id,
 
         [Parameter()]
-        [ApiParameter('name')]
         [string]
         $Name,
 
         [Parameter()]
-        [ApiParameter('description')]
         [string]
         $Description,
 
         [Parameter()]
-        [ApiParameter('triggerType')]
+        [ValidateSet('AssetCreate', 'AssetMetadataExtraction', 'AssetTagged')]
         [string]
-        $TriggerType,
+        $Trigger,
 
         [Parameter()]
-        [ApiParameter('enabled')]
-        [boolean]
+        [bool]
         $Enabled,
 
         [Parameter()]
-        [ApiParameter('actions')]
-        [hashtable[]]
-        $Actions,
+        [bool]
+        $Logging,
 
         [Parameter()]
-        [ApiParameter('filters')]
         [hashtable[]]
-        $Filters
+        $Steps
     )
-
-    begin
-    {
-        $BodyParameters = @{}
-        $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-    }
 
     process
     {
+        $Body = @{}
+        if ($PSBoundParameters.ContainsKey('Name')) { $Body.name = $Name }
+        if ($PSBoundParameters.ContainsKey('Description')) { $Body.description = $Description }
+        if ($PSBoundParameters.ContainsKey('Trigger')) { $Body.trigger = $Trigger }
+        if ($PSBoundParameters.ContainsKey('Enabled')) { $Body.enabled = $Enabled }
+        if ($PSBoundParameters.ContainsKey('Logging')) { $Body.logging = $Logging }
+        if ($PSBoundParameters.ContainsKey('Steps')) { $Body.steps = @($Steps) }
+
         # We loop through IDs because ids can be provided as an array to the parameter in which case the process block only gets called once.
         $Id | ForEach-Object {
             $CurrentID = $PSItem
             if ($PSCmdlet.ShouldProcess($CurrentID, 'UPDATE'))
             {
-                InvokeImmichRestMethod -Method Put -RelativePath "/workflows/$CurrentID" -ImmichSession:$Session -Body $BodyParameters | AddCustomType IMWorkflow
+                Invoke-ImmichApiUpdateWorkflow -Id $CurrentID -Body $Body -ImmichSession $Session | ForEach-Object { [WorkflowResponseDto]::new($PSItem) }
             }
         }
     }

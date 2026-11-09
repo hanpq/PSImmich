@@ -8783,60 +8783,85 @@ InModuleScope $ProjectName {
         }
     }
 
-    # Workflow tests excluded for now. Workflows API is still under development. Some request parameters have undefined types.
-    Describe 'Get-IMWorkflow' -Tag 'Unit', 'Get-IMWorkflow' -Skip:$true {
+    Describe 'Get-IMWorkflow' -Tag 'Unit', 'Get-IMWorkflow' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                if ($RelativePath -eq '/workflows')
-                {
-                    return @(
-                        @{id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Workflow 1'; enabled = $true },
-                        @{id = '223e4567-e89b-12d3-a456-426614174001'; name = 'Test Workflow 2'; enabled = $false }
-                    )
-                }
-                elseif ($RelativePath -match '/workflows/[a-f0-9-]+')
-                {
-                    return @{id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Workflow 1'; enabled = $true; actions = @(); filters = @() }
-                }
+            $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+            Mock Invoke-ImmichApiSearchWorkflows -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ id = '123e4567-e89b-12d3-a456-426614174000'; name = 'Test Workflow 1'; trigger = 'AssetCreate'; enabled = $true; logging = $false; steps = @() },
+                    [pscustomobject]@{ id = '223e4567-e89b-12d3-a456-426614174001'; name = 'Test Workflow 2'; trigger = 'AssetTagged'; enabled = $false; logging = $true; steps = @() }
+                )
             }
-            Mock AddCustomType {
-                param($InputObject, $Type)
-                return $InputObject
-            } -ModuleName 'PSImmich'
+            Mock Invoke-ImmichApiGetWorkflow -ModuleName PSImmich {
+                return [pscustomobject]@{ id = $Id; name = 'Test Workflow 1'; trigger = 'AssetCreate'; enabled = $true; logging = $false; steps = @() }
+            }
+            Mock Invoke-ImmichApiGetWorkflowForShare -ModuleName PSImmich {
+                return [pscustomobject]@{ name = 'Test Workflow 1'; trigger = 'AssetCreate'; steps = @() }
+            }
         }
 
         Context 'When retrieving all workflows (list parameter set)' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiSearchWorkflows without filters by default' {
                 Get-IMWorkflow
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/workflows'
+                Should -Invoke Invoke-ImmichApiSearchWorkflows -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $null -eq $Name -and $null -eq $Description -and $null -eq $Enabled -and $null -eq $Logging -and $null -eq $Trigger
                 }
             }
 
-            It 'Should add custom type to results' {
-                Get-IMWorkflow
+            It 'Should pass filter parameters through to the API' {
+                Get-IMWorkflow -Name 'Test' -Description 'Desc' -Trigger 'AssetCreate' -Enabled:$false -Logging:$true
 
-                Should -Invoke AddCustomType -Times 2 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
-                    $Type -eq 'IMWorkflow'
+                Should -Invoke Invoke-ImmichApiSearchWorkflows -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Name -eq 'Test' -and $Description -eq 'Desc' -and $Trigger -eq 'AssetCreate' -and $Enabled -eq $false -and $Logging -eq $true
                 }
+            }
+
+            It 'Should return WorkflowResponseDto objects' {
+                $result = @(Get-IMWorkflow)
+
+                $result.Count | Should -Be 2
+                $result[0].GetType().Name | Should -Be 'WorkflowResponseDto'
+                $result[1].trigger | Should -Be 'AssetTagged'
+            }
+
+            It 'Should reject an invalid trigger' {
+                { Get-IMWorkflow -Trigger 'upload' } | Should -Throw
             }
         }
 
-        Context 'When retrieving specific workflow by ID (id parameter set)' {
-            It 'Should call InvokeImmichRestMethod with workflow ID path' {
+        Context 'When retrieving a specific workflow (id parameter set)' {
+            It 'Should call Invoke-ImmichApiGetWorkflow with the workflow ID' {
                 Get-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
+                Should -Invoke Invoke-ImmichApiGetWorkflowForShare -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
 
-            It 'Should add custom type to single result' {
-                Get-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000'
+            It 'Should return a WorkflowResponseDto' {
+                $result = Get-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke AddCustomType -Times 1 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
-                    $Type -eq 'IMWorkflow'
+                $result.GetType().Name | Should -Be 'WorkflowResponseDto'
+                $result.id | Should -Be '123e4567-e89b-12d3-a456-426614174000'
+            }
+
+            It 'Should call the share endpoint and return a WorkflowShareResponseDto when -Share is specified' {
+                $result = Get-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Share
+
+                Should -Invoke Invoke-ImmichApiGetWorkflowForShare -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
+                Should -Invoke Invoke-ImmichApiGetWorkflow -ModuleName PSImmich -Times 0 -Exactly -Scope It
+                $result.GetType().Name | Should -Be 'WorkflowShareResponseDto'
+            }
+
+            It 'Should forward the session' {
+                Get-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Session $Session
+
+                Should -Invoke Invoke-ImmichApiGetWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
                 }
             }
         }
@@ -8845,16 +8870,16 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Get-IMWorkflow
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Get-IMWorkflow
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
         }
@@ -8866,111 +8891,104 @@ InModuleScope $ProjectName {
         }
 
         Context 'Session parameter' {
-            It 'Should pass Session parameter when provided' {
+            It 'Should expose the Session parameter as ImmichSession' {
                 $function = Get-Command Get-IMWorkflow
                 $sessionParam = $function.Parameters['Session']
                 $sessionParam.ParameterType.Name | Should -Be 'ImmichSession'
             }
         }
     }
-    Describe 'New-IMWorkflow' -Tag 'Unit', 'New-IMWorkflow' -Skip:$true {
+    Describe 'New-IMWorkflow' -Tag 'Unit', 'New-IMWorkflow' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @{
-                    id          = '123e4567-e89b-12d3-a456-426614174000'
-                    name        = 'Test Workflow'
-                    description = 'Test Description'
-                    enabled     = $true
-                    actions     = @()
-                    filters     = @()
-                }
+            Mock Invoke-ImmichApiCreateWorkflow -ModuleName PSImmich {
+                return [pscustomobject]@{ id = '123e4567-e89b-12d3-a456-426614174000'; name = $Body.name; trigger = $Body.trigger; enabled = $Body.enabled; logging = $false; steps = @() }
             }
-            Mock ConvertTo-ApiParameters {
-                return @{
-                    name        = $BoundParameters.Name
-                    description = $BoundParameters.Description
-                    enabled     = $BoundParameters.Enabled
-                    actions     = $BoundParameters.Actions
-                    filters     = $BoundParameters.Filters
-                    triggerType = $BoundParameters.TriggerType
-                }
-            }
-            Mock AddCustomType {
-                param($InputObject, $Type)
-                return $InputObject
-            } -ModuleName 'PSImmich'
         }
 
         Context 'When creating a new workflow' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
-                New-IMWorkflow -Name 'Test Workflow'
+            It 'Should call Invoke-ImmichApiCreateWorkflow with name, trigger and default enabled state' {
+                New-IMWorkflow -Name 'Test Workflow' -Trigger 'AssetCreate'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Post' -and $RelativePath -eq '/workflows'
+                Should -Invoke Invoke-ImmichApiCreateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'Test Workflow' -and $Body.trigger -eq 'AssetCreate' -and $Body.enabled -eq $true
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters for body parameters' {
-                New-IMWorkflow -Name 'Test Workflow' -Description 'Test Description'
+            It 'Should omit optional fields when they are not specified' {
+                New-IMWorkflow -Name 'Test Workflow' -Trigger 'AssetCreate'
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
-            }
-
-            It 'Should add custom type to result' {
-                New-IMWorkflow -Name 'Test Workflow'
-
-                Should -Invoke AddCustomType -Times 1 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
-                    $Type -eq 'IMWorkflow'
+                Should -Invoke Invoke-ImmichApiCreateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    -not $Body.ContainsKey('description') -and -not $Body.ContainsKey('logging') -and -not $Body.ContainsKey('steps')
                 }
             }
 
-            It 'Should handle all optional parameters' {
-                New-IMWorkflow -Name 'Test' -Description 'Desc' -TriggerType 'upload' -Enabled:$false -Actions @() -Filters @()
+            It 'Should send description, logging and steps when specified' {
+                $steps = @(@{ method = 'TagAsset'; config = @{ tagId = 'tag' }; enabled = $true })
+                New-IMWorkflow -Name 'Test' -Trigger 'AssetTagged' -Description 'Desc' -Logging:$true -Steps $steps
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiCreateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.description -eq 'Desc' -and $Body.logging -eq $true -and $Body.steps.Count -eq 1 -and $Body.steps[0].method -eq 'TagAsset'
+                }
+            }
+
+            It 'Should send enabled false when -Enabled:$false is specified' {
+                New-IMWorkflow -Name 'Test' -Trigger 'AssetCreate' -Enabled:$false
+
+                Should -Invoke Invoke-ImmichApiCreateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.enabled -eq $false
+                }
+            }
+
+            It 'Should return a WorkflowResponseDto' {
+                $result = New-IMWorkflow -Name 'Test Workflow' -Trigger 'AssetCreate'
+
+                $result.GetType().Name | Should -Be 'WorkflowResponseDto'
+                $result.name | Should -Be 'Test Workflow'
+            }
+        }
+
+        Context 'Parameter validation' {
+            It 'Should require Name and Trigger' {
+                $command = Get-Command New-IMWorkflow
+                $command.Parameters['Name'].Attributes.Where({ $_ -is [Parameter] }).Mandatory | Should -Contain $true
+                $command.Parameters['Trigger'].Attributes.Where({ $_ -is [Parameter] }).Mandatory | Should -Contain $true
+            }
+
+            It 'Should reject an unknown trigger' {
+                { New-IMWorkflow -Name 'Test' -Trigger 'upload' } | Should -Throw
             }
         }
     }
-    Describe 'Set-IMWorkflow' -Tag 'Unit', 'Set-IMWorkflow' -Skip:$true {
+    Describe 'Set-IMWorkflow' -Tag 'Unit', 'Set-IMWorkflow' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
-            Mock ConvertTo-ApiParameters {
-                return @{
-                    name        = $BoundParameters.Name
-                    description = $BoundParameters.Description
-                    enabled     = $BoundParameters.Enabled
-                    actions     = $BoundParameters.Actions
-                    filters     = $BoundParameters.Filters
-                    triggerType = $BoundParameters.TriggerType
-                }
+            Mock Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich {
+                return [pscustomobject]@{ id = $Id; name = 'Updated'; trigger = 'AssetCreate'; enabled = $true; logging = $false; steps = @() }
             }
-            Mock AddCustomType {
-                param($InputObject, $Type)
-                return $InputObject
-            } -ModuleName 'PSImmich'
         }
 
         Context 'When updating a workflow' {
-            It 'Should call InvokeImmichRestMethod with correct parameters for single ID' {
+            It 'Should call Invoke-ImmichApiUpdateWorkflow with the workflow ID' {
                 Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Name 'Updated' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Put' -and $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $Body.name -eq 'Updated'
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters for body parameters' {
-                Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Name 'Updated' -Confirm:$false
+            It 'Should only send bound parameters in the body' {
+                Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Enabled:$false -Confirm:$false
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.enabled -eq $false -and -not $Body.ContainsKey('name') -and -not $Body.ContainsKey('trigger') -and -not $Body.ContainsKey('steps')
+                }
             }
 
-            It 'Should add custom type to result' {
-                Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Name 'Updated' -Confirm:$false
+            It 'Should send trigger, logging and steps when specified' {
+                $steps = @(@{ method = 'TagAsset'; config = @{} })
+                Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Trigger 'AssetTagged' -Logging:$true -Steps $steps -Confirm:$false
 
-                Should -Invoke AddCustomType -Times 1 -Exactly -Scope It -ModuleName 'PSImmich' -ParameterFilter {
-                    $Type -eq 'IMWorkflow'
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.trigger -eq 'AssetTagged' -and $Body.logging -eq $true -and $Body.steps.Count -eq 1
                 }
             }
 
@@ -8978,7 +8996,19 @@ InModuleScope $ProjectName {
                 $Ids = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
                 Set-IMWorkflow -Id $Ids -Name 'Updated' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 2 -Exactly -Scope It
+            }
+
+            It 'Should not call the API when -WhatIf is specified' {
+                Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Name 'Updated' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 0 -Exactly -Scope It
+            }
+
+            It 'Should return a WorkflowResponseDto' {
+                $result = Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Name 'Updated' -Confirm:$false
+
+                $result.GetType().Name | Should -Be 'WorkflowResponseDto'
             }
         }
 
@@ -8986,16 +9016,16 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Set-IMWorkflow -Name 'Updated' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Set-IMWorkflow -Name 'Updated' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
         }
@@ -9004,40 +9034,39 @@ InModuleScope $ProjectName {
             It 'Should validate Id GUID format' {
                 { Set-IMWorkflow -Id 'invalid-guid' -Name 'Test' } | Should -Throw
             }
+
+            It 'Should reject an unknown trigger' {
+                { Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Trigger 'upload' -Confirm:$false } | Should -Throw
+            }
         }
     }
-    Describe 'Remove-IMWorkflow' -Tag 'Unit', 'Remove-IMWorkflow' -Skip:$true {
+    Describe 'Remove-IMWorkflow' -Tag 'Unit', 'Remove-IMWorkflow' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return $null
-            }
+            Mock Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich {}
         }
 
         Context 'When removing workflows' {
-            It 'Should call InvokeImmichRestMethod with correct parameters for single ID' {
+            It 'Should call Invoke-ImmichApiDeleteWorkflow with the workflow ID' {
                 Remove-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
+            }
+
+            It 'Should not call the API when -WhatIf is specified' {
+                Remove-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
 
             It 'Should handle multiple IDs' {
                 $Ids = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
                 Remove-IMWorkflow -Id $Ids -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
-            }
-
-            It 'Should call InvokeImmichRestMethod for each ID in array' {
-                $Ids = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
-                Remove-IMWorkflow -Id $Ids -Confirm:$false
-
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
-                }
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/223e4567-e89b-12d3-a456-426614174001'
+                Should -Invoke Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '223e4567-e89b-12d3-a456-426614174001'
                 }
             }
         }
@@ -9046,24 +9075,24 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Remove-IMWorkflow -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Remove-IMWorkflow -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept WorkflowId alias from pipeline by property name' {
                 [PSCustomObject]@{WorkflowId = '123e4567-e89b-12d3-a456-426614174000' } | Remove-IMWorkflow -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/workflows/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiDeleteWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
         }
@@ -9071,6 +9100,95 @@ InModuleScope $ProjectName {
         Context 'Parameter validation' {
             It 'Should validate Id GUID format' {
                 { Remove-IMWorkflow -Id 'invalid-guid' } | Should -Throw
+            }
+        }
+    }
+
+    Describe 'Get-IMWorkflowTrigger' -Tag 'Unit', 'Get-IMWorkflowTrigger' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetWorkflowTriggers -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ trigger = 'AssetCreate'; types = @('asset.create') },
+                    [pscustomobject]@{ trigger = 'AssetTagged'; types = @('asset.tag') }
+                )
+            }
+        }
+
+        It 'Should call Invoke-ImmichApiGetWorkflowTriggers' {
+            Get-IMWorkflowTrigger
+
+            Should -Invoke Invoke-ImmichApiGetWorkflowTriggers -ModuleName PSImmich -Times 1 -Exactly -Scope It
+        }
+
+        It 'Should return WorkflowTriggerResponseDto objects' {
+            $result = @(Get-IMWorkflowTrigger)
+
+            $result.Count | Should -Be 2
+            $result[0].GetType().Name | Should -Be 'WorkflowTriggerResponseDto'
+            $result[0].trigger | Should -Be 'AssetCreate'
+            $result[0].types | Should -Contain 'asset.create'
+        }
+    }
+
+    Describe 'Get-IMWorkflowLog' -Tag 'Unit', 'Get-IMWorkflowLog' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetWorkflowLogs -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ id = 'log-1'; at = '2025-01-01T00:00:00Z'; result = 'completed'; lastStep = 0; triggerDataId = 'asset-1' }
+                )
+            }
+        }
+
+        Context 'When retrieving logs' {
+            It 'Should only send the workflow ID by default' {
+                Get-IMWorkflowLog -Id '123e4567-e89b-12d3-a456-426614174000'
+
+                Should -Invoke Invoke-ImmichApiGetWorkflowLogs -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $null -eq $Before -and $null -eq $Limit -and $null -eq $Result
+                }
+            }
+
+            It 'Should pass Before, Limit and Result through to the API' {
+                Get-IMWorkflowLog -Id '123e4567-e89b-12d3-a456-426614174000' -Before ([datetime]'2025-06-01') -Limit 10 -Result 'error'
+
+                Should -Invoke Invoke-ImmichApiGetWorkflowLogs -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Before -eq [datetime]'2025-06-01' -and $Limit -eq 10 -and $Result -eq 'error'
+                }
+            }
+
+            It 'Should return WorkflowLogEntryDto objects' {
+                $result = Get-IMWorkflowLog -Id '123e4567-e89b-12d3-a456-426614174000'
+
+                $result.GetType().Name | Should -Be 'WorkflowLogEntryDto'
+                $result.result | Should -Be 'completed'
+            }
+        }
+
+        Context 'Pipeline support' {
+            It 'Should accept Id from pipeline by value' {
+                '123e4567-e89b-12d3-a456-426614174000' | Get-IMWorkflowLog
+
+                Should -Invoke Invoke-ImmichApiGetWorkflowLogs -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+
+            It 'Should accept Id from pipeline by property name' {
+                [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Get-IMWorkflowLog
+
+                Should -Invoke Invoke-ImmichApiGetWorkflowLogs -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
+            }
+        }
+
+        Context 'Parameter validation' {
+            It 'Should validate Id GUID format' {
+                { Get-IMWorkflowLog -Id 'invalid-guid' } | Should -Throw
+            }
+
+            It 'Should reject an unknown result' {
+                { Get-IMWorkflowLog -Id '123e4567-e89b-12d3-a456-426614174000' -Result 'failed' } | Should -Throw
             }
         }
     }

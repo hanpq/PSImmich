@@ -47,7 +47,7 @@
             $CurrentID = $PSItem
             if ($PSCmdlet.ShouldProcess($CurrentID, 'DELETE'))
             {
-                InvokeImmichRestMethod -Method Delete -RelativePath "/workflows/$CurrentID" -ImmichSession:$Session
+                Invoke-ImmichApiDeleteWorkflow -Id $CurrentID -ImmichSession $Session
             }
         }
     }

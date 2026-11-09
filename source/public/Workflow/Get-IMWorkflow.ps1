@@ -10,10 +10,30 @@
         Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
     .PARAMETER Id
         The UUID of a specific workflow to retrieve. Accepts pipeline input.
+    .PARAMETER Name
+        Filters the workflow list by name. Only applies to the list parameter set.
+    .PARAMETER Description
+        Filters the workflow list by description. Only applies to the list parameter set.
+    .PARAMETER Enabled
+        Filters the workflow list by enabled state. Only applies to the list parameter set.
+    .PARAMETER Logging
+        Filters the workflow list by whether run results are logged. Only applies to the list parameter set.
+    .PARAMETER Trigger
+        Filters the workflow list by trigger type. Only applies to the list parameter set.
+    .PARAMETER Share
+        Retrieves the shareable representation of the workflow specified by Id instead of the workflow itself.
     .EXAMPLE
         Get-IMWorkflow
 
         Retrieves all workflows available to the current user.
+    .EXAMPLE
+        Get-IMWorkflow -Trigger 'AssetCreate' -Enabled:$true
+
+        Retrieves enabled workflows that run when an asset is created.
+    .EXAMPLE
+        Get-IMWorkflow -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -Share
+
+        Retrieves the shareable representation of a workflow.
     .EXAMPLE
         Get-IMWorkflow -Id 'bde7ceba-f301-4e9e-87a2-163937a2a3db'
 
@@ -32,10 +52,35 @@
         [ImmichSession]
         $Session = $null,
 
+        [Parameter(ParameterSetName = 'list')]
+        [string]
+        $Name,
+
+        [Parameter(ParameterSetName = 'list')]
+        [string]
+        $Description,
+
+        [Parameter(ParameterSetName = 'list')]
+        [bool]
+        $Enabled,
+
+        [Parameter(ParameterSetName = 'list')]
+        [bool]
+        $Logging,
+
+        [Parameter(ParameterSetName = 'list')]
+        [ValidateSet('AssetCreate', 'AssetMetadataExtraction', 'AssetTagged')]
+        [string]
+        $Trigger,
+
         [Parameter(Mandatory, ParameterSetName = 'id', ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $Id
+        $Id,
+
+        [Parameter(ParameterSetName = 'id')]
+        [switch]
+        $Share
     )
 
     process
@@ -44,11 +89,24 @@
         {
             'list'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/workflows' -ImmichSession:$Session | AddCustomType IMWorkflow
+                $ApiParams = @{ ImmichSession = $Session }
+                if ($PSBoundParameters.ContainsKey('Name')) { $ApiParams.Name = $Name }
+                if ($PSBoundParameters.ContainsKey('Description')) { $ApiParams.Description = $Description }
+                if ($PSBoundParameters.ContainsKey('Enabled')) { $ApiParams.Enabled = $Enabled }
+                if ($PSBoundParameters.ContainsKey('Logging')) { $ApiParams.Logging = $Logging }
+                if ($PSBoundParameters.ContainsKey('Trigger')) { $ApiParams.Trigger = $Trigger }
+                Invoke-ImmichApiSearchWorkflows @ApiParams | ForEach-Object { [WorkflowResponseDto]::new($PSItem) }
             }
             'id'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath "/workflows/$Id" -ImmichSession:$Session | AddCustomType IMWorkflow
+                if ($Share)
+                {
+                    Invoke-ImmichApiGetWorkflowForShare -Id $Id -ImmichSession $Session | ForEach-Object { [WorkflowShareResponseDto]::new($PSItem) }
+                }
+                else
+                {
+                    Invoke-ImmichApiGetWorkflow -Id $Id -ImmichSession $Session | ForEach-Object { [WorkflowResponseDto]::new($PSItem) }
+                }
             }
         }
     }
