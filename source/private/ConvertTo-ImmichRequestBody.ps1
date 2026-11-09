@@ -7,6 +7,10 @@ function ConvertTo-ImmichRequestBody
         filter.takenAt.lte. Booleans, switches and secure strings are converted at any depth.
     .PARAMETER InputObject
         The hashtable body to normalize.
+    .EXAMPLE
+        ConvertTo-ImmichRequestBody -InputObject @{ isFavorite = [switch]$true }
+
+        Returns a hashtable whose isFavorite value is the boolean $true.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '', Justification = 'Ignored, internal function')]
     [CmdletBinding()]

@@ -428,6 +428,56 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'ConvertTo-ImmichRequestBody' -Tag 'Unit', 'ConvertTo-ImmichRequestBody' {
+        It 'Should pass plain values through unchanged' {
+            $Result = ConvertTo-ImmichRequestBody -InputObject @{ name = 'PSImmich'; count = 42; missing = $null }
+            $Result.name | Should -BeExactly 'PSImmich'
+            $Result.count | Should -Be 42
+            $Result.Keys | Should -Contain 'missing'
+            $Result.missing | Should -BeNullOrEmpty
+        }
+
+        It 'Should convert booleans and switches to booleans' {
+            $Result = ConvertTo-ImmichRequestBody -InputObject @{
+                flag     = $true
+                off      = $false
+                switchOn = [System.Management.Automation.SwitchParameter]$true
+            }
+            $Result.flag | Should -BeTrue
+            $Result.off | Should -BeFalse
+            $Result.switchOn | Should -BeTrue
+            $Result.switchOn.GetType().Name | Should -BeExactly 'Boolean'
+        }
+
+        It 'Should convert datetimes to UTC round-trip strings' {
+            $Result = ConvertTo-ImmichRequestBody -InputObject @{
+                when = [datetime]::SpecifyKind([datetime]'2026-11-06T10:00:00', 'Utc')
+            }
+            $Result.when | Should -Match '^2026-11-06T10:00:00'
+            $Result.when | Should -Match 'Z$|\+00:00$'
+        }
+
+        It 'Should normalize values nested in hashtables and ordered dictionaries' {
+            $Result = ConvertTo-ImmichRequestBody -InputObject @{
+                filter = @{
+                    takenAt = [ordered]@{
+                        lte     = [datetime]::SpecifyKind([datetime]'2026-11-06T10:00:00', 'Utc')
+                        enabled = [switch]$true
+                    }
+                }
+            }
+            $Result.filter.takenAt.lte | Should -Match '^2026-11-06T10:00:00'
+            $Result.filter.takenAt.enabled | Should -BeTrue
+            $Result.filter | Should -BeOfType ([hashtable])
+        }
+
+        It 'Should return an empty hashtable for an empty input' {
+            $Result = ConvertTo-ImmichRequestBody -InputObject @{}
+            $Result | Should -BeOfType ([hashtable])
+            $Result.Count | Should -Be 0
+        }
+    }
+
     Describe 'ConvertTo-ApiParameters' -Tag 'Unit', 'ConvertTo-ApiParameters' {
         BeforeAll {
             # Mock Get-Command to simulate cmdlet parameter information

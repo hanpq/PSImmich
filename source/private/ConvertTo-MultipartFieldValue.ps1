@@ -7,6 +7,10 @@ function ConvertTo-MultipartFieldValue
         PowerShell's 'True' and 'False'.
     .PARAMETER Value
         The form field value.
+    .EXAMPLE
+        ConvertTo-MultipartFieldValue -Value $true
+
+        Returns the string 'true' rather than PowerShell's 'True'.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '', Justification = 'Ignored, internal function')]
     [CmdletBinding()]
