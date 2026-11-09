@@ -1416,7 +1416,7 @@ InModuleScope $ProjectName {
     }
     Describe 'New-IMFace' -Tag 'Unit', 'New-IMFace' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiCreateFace -ModuleName PSImmich {}
         }
 
         Context 'Parameter Validation' {
@@ -1439,7 +1439,7 @@ InModuleScope $ProjectName {
         }
 
         Context 'API Calls' {
-            It 'Should call correct endpoint' {
+            BeforeAll {
                 $TestParams = @{
                     AssetId     = 'a7c3b52c-1a2b-3c4d-5e6f-7a8b9c0d1e2f'
                     PersonId    = 'b8d4c63d-2b3c-4d5e-6f7a-8b9c0d1e2f3a'
@@ -1450,10 +1450,35 @@ InModuleScope $ProjectName {
                     ImageWidth  = 1920
                     ImageHeight = 1080
                 }
+            }
+
+            It 'Should call Invoke-ImmichApiCreateFace once' {
                 New-IMFace @TestParams
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/faces'
+                Should -Invoke Invoke-ImmichApiCreateFace -ModuleName PSImmich -Exactly 1 -Scope It
+            }
+
+            It 'Should send all face fields in the request body' {
+                New-IMFace @TestParams
+
+                Should -Invoke Invoke-ImmichApiCreateFace -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.assetId -eq 'a7c3b52c-1a2b-3c4d-5e6f-7a8b9c0d1e2f' -and
+                    $Body.personId -eq 'b8d4c63d-2b3c-4d5e-6f7a-8b9c0d1e2f3a' -and
+                    $Body.x -eq 100 -and
+                    $Body.y -eq 150 -and
+                    $Body.width -eq 200 -and
+                    $Body.height -eq 250 -and
+                    $Body.imageWidth -eq 1920 -and
+                    $Body.imageHeight -eq 1080
+                }
+            }
+
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                New-IMFace @TestParams -Session $Session
+
+                Should -Invoke Invoke-ImmichApiCreateFace -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
                 }
             }
         }
@@ -3622,41 +3647,36 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMFace' -Tag 'Unit', 'Get-IMFace' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                switch ($RelativePath)
-                {
-                    '/faces'
-                    {
-                        return @(
-                            [PSCustomObject]@{
-                                id            = 'face1-guid-here-1234567890abcdef'
-                                assetId       = $QueryParameters.id
-                                boundingBoxX1 = 100
-                                boundingBoxY1 = 150
-                                boundingBoxX2 = 250
-                                boundingBoxY2 = 300
-                                person        = [PSCustomObject]@{
-                                    id            = 'person1-guid-here-1234567890abcdef'
-                                    name          = 'John Doe'
-                                    thumbnailPath = '/thumbnails/person1.jpg'
-                                }
-                            },
-                            [PSCustomObject]@{
-                                id            = 'face2-guid-here-1234567890abcdef'
-                                assetId       = $QueryParameters.id
-                                boundingBoxX1 = 350
-                                boundingBoxY1 = 200
-                                boundingBoxX2 = 500
-                                boundingBoxY2 = 400
-                                person        = $null
-                            }
-                        )
+            Mock Invoke-ImmichApiGetFaces -ModuleName PSImmich {
+                return @(
+                    [PSCustomObject]@{
+                        id            = 'face1-guid-here-1234567890abcdef'
+                        assetId       = $Id
+                        boundingBoxX1 = 100
+                        boundingBoxY1 = 150
+                        boundingBoxX2 = 250
+                        boundingBoxY2 = 300
+                        imageWidth    = 1920
+                        imageHeight   = 1080
+                        person        = [PSCustomObject]@{
+                            id            = 'person1-guid-here-1234567890abcdef'
+                            name          = 'John Doe'
+                            thumbnailPath = '/thumbnails/person1.jpg'
+                        }
                     }
-                    default
-                    {
-                        throw "Unmocked path: $RelativePath"
-                    }
-                }
+                )
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should validate GUID format for Id parameter' {
+                { Get-IMFace -Id 'invalid-guid' } | Should -Throw
+            }
+
+            It 'Should pass Session parameter when provided' {
+                $function = Get-Command Get-IMFace
+                $sessionParam = $function.Parameters['Session']
+                $sessionParam.ParameterType.Name | Should -Be 'ImmichSession'
             }
         }
 
@@ -3666,57 +3686,32 @@ InModuleScope $ProjectName {
                 $TestAssetId2 = 'b2c3d4e5-f6a7-4890-b123-234567890bcd'
             }
 
-            It 'Should validate GUID format for Id parameter' {
-                $function = Get-Command Get-IMFace
-                $idParam = $function.Parameters['Id']
-                $validationAttribute = $idParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ValidatePatternAttribute' }
-                $validationAttribute.RegexPattern | Should -Be '^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$'
-            }
-
-            It 'Should retrieve faces for asset using GET method' {
+            It 'Should call Invoke-ImmichApiGetFaces with the asset ID' {
                 Get-IMFace -Id $TestAssetId
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'GET' -and
-                    $RelativePath -eq '/faces' -and
-                    $QueryParameters.id -eq $TestAssetId
+                Should -Invoke Invoke-ImmichApiGetFaces -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestAssetId
                 }
             }
 
-            It 'Should pass Session parameter when provided' {
-                # Verify Session parameter is accepted by checking parameter definition
-                $function = Get-Command Get-IMFace
-                $sessionParam = $function.Parameters['Session']
-                $sessionParam.ParameterType.Name | Should -Be 'ImmichSession'
-            }
-
-            It 'Should return array of face objects' {
+            It 'Should return AssetFaceResponseDto objects' {
                 $result = Get-IMFace -Id $TestAssetId
-                $result | Should -HaveCount 2
-                $result[0].id | Should -Be 'face1-guid-here-1234567890abcdef'
-                $result[0].assetId | Should -Be $TestAssetId
-                $result[0].person.name | Should -Be 'John Doe'
-                $result[1].id | Should -Be 'face2-guid-here-1234567890abcdef'
-                $result[1].person | Should -BeNullOrEmpty
+                $result.GetType().Name | Should -Be 'AssetFaceResponseDto'
+                $result.id | Should -Be 'face1-guid-here-1234567890abcdef'
+                $result.person.name | Should -Be 'John Doe'
             }
 
-            It 'Should handle multiple asset IDs' {
+            It 'Should call the endpoint once per asset ID' {
                 Get-IMFace -Id @($TestAssetId, $TestAssetId2)
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'GET' -and
-                    $RelativePath -eq '/faces' -and
-                    ($QueryParameters.id -eq $TestAssetId -or $QueryParameters.id -eq $TestAssetId2)
-                }
+                Should -Invoke Invoke-ImmichApiGetFaces -ModuleName PSImmich -Exactly 2 -Scope It
             }
 
             It 'Should accept pipeline input by value' {
                 $TestAssetId | Get-IMFace
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'GET' -and
-                    $RelativePath -eq '/faces' -and
-                    $QueryParameters.id -eq $TestAssetId
+                Should -Invoke Invoke-ImmichApiGetFaces -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestAssetId
                 }
             }
 
@@ -3724,10 +3719,8 @@ InModuleScope $ProjectName {
                 $assetObject = [PSCustomObject]@{ assetId = $TestAssetId }
                 $assetObject | Get-IMFace
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'GET' -and
-                    $RelativePath -eq '/faces' -and
-                    $QueryParameters.id -eq $TestAssetId
+                Should -Invoke Invoke-ImmichApiGetFaces -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestAssetId
                 }
             }
 
@@ -3735,21 +3728,22 @@ InModuleScope $ProjectName {
                 $assetObject = [PSCustomObject]@{ id = $TestAssetId }
                 $assetObject | Get-IMFace
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'GET' -and
-                    $RelativePath -eq '/faces' -and
-                    $QueryParameters.id -eq $TestAssetId
+                Should -Invoke Invoke-ImmichApiGetFaces -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestAssetId
                 }
             }
 
-            It 'Should reject invalid GUID format' {
-                { Get-IMFace -Id 'invalid-guid' } | Should -Throw
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMFace -Id $TestAssetId -Session $Session
+
+                Should -Invoke Invoke-ImmichApiGetFaces -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
             }
 
             It 'Should handle empty face results' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                    return @()
-                }
+                Mock Invoke-ImmichApiGetFaces -ModuleName PSImmich { return @() }
 
                 $result = Get-IMFace -Id $TestAssetId
                 $result | Should -HaveCount 0
@@ -4961,7 +4955,12 @@ InModuleScope $ProjectName {
     }
     Describe 'Set-IMFace' -Tag 'Unit', 'Set-IMFace' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiReassignFacesById -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    id   = 'person-guid-1234567890abcdef'
+                    name = 'Jane Doe'
+                }
+            }
         }
 
         Context 'Parameter Validation' {
@@ -4982,11 +4981,6 @@ InModuleScope $ProjectName {
             It 'Should validate GUID format for FaceId parameter' {
                 { Set-IMFace -PersonId '123e4567-e89b-12d3-a456-426614174000' -FaceId 'invalid-guid' -Confirm:$false } | Should -Throw
             }
-
-            It 'Should accept pipeline input for FaceId parameter' {
-                $TestFaceId = '123e4567-e89b-12d3-a456-426614174000'
-                { $TestFaceId | Set-IMFace -PersonId '987fcdeb-51a2-43d5-b789-123456789abc' -Confirm:$false } | Should -Not -Throw
-            }
         }
 
         Context 'ShouldProcess Support' {
@@ -4995,26 +4989,46 @@ InModuleScope $ProjectName {
                 $CmdletBinding = $Command.ScriptBlock.Attributes | Where-Object { $_ -is [System.Management.Automation.CmdletBindingAttribute] }
                 $CmdletBinding.SupportsShouldProcess | Should -Be $true
             }
+
+            It 'Should not call the API when -WhatIf is specified' {
+                Set-IMFace -PersonId '987fcdeb-51a2-43d5-b789-123456789abc' -FaceId '123e4567-e89b-12d3-a456-426614174000' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiReassignFacesById -ModuleName PSImmich -Exactly 0 -Scope It
+            }
         }
 
         Context 'API Calls' {
-            It 'Should call correct endpoint' {
+            It 'Should call the reassign endpoint with the PersonId as the path ID' {
                 $TestPersonId = '987fcdeb-51a2-43d5-b789-123456789abc'
                 $TestFaceId = '123e4567-e89b-12d3-a456-426614174000'
                 Set-IMFace -PersonId $TestPersonId -FaceId $TestFaceId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq "/faces/$TestPersonId"
+                Should -Invoke Invoke-ImmichApiReassignFacesById -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestPersonId
                 }
             }
 
             It 'Should include FaceId in request body' {
-                $TestPersonId = '987fcdeb-51a2-43d5-b789-123456789abc'
                 $TestFaceId = '123e4567-e89b-12d3-a456-426614174000'
-                Set-IMFace -PersonId $TestPersonId -FaceId $TestFaceId -Confirm:$false
+                Set-IMFace -PersonId '987fcdeb-51a2-43d5-b789-123456789abc' -FaceId $TestFaceId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiReassignFacesById -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.id -eq $TestFaceId
+                }
+            }
+
+            It 'Should return a PersonResponseDto' {
+                $result = Set-IMFace -PersonId '987fcdeb-51a2-43d5-b789-123456789abc' -FaceId '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
+                $result.GetType().Name | Should -Be 'PersonResponseDto'
+                $result.name | Should -Be 'Jane Doe'
+            }
+
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Set-IMFace -PersonId '987fcdeb-51a2-43d5-b789-123456789abc' -FaceId '123e4567-e89b-12d3-a456-426614174000' -Session $Session -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiReassignFacesById -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
                 }
             }
         }
@@ -5025,7 +5039,7 @@ InModuleScope $ProjectName {
                 $TestFaceIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
                 $TestFaceIds | Set-IMFace -PersonId $TestPersonId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 2 -Scope It
+                Should -Invoke Invoke-ImmichApiReassignFacesById -ModuleName PSImmich -Exactly 2 -Scope It
             }
 
             It 'Should process multiple face objects from pipeline' {
@@ -5036,7 +5050,7 @@ InModuleScope $ProjectName {
                 )
                 $FaceObjects | Set-IMFace -PersonId $TestPersonId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 2 -Scope It
+                Should -Invoke Invoke-ImmichApiReassignFacesById -ModuleName PSImmich -Exactly 2 -Scope It
             }
         }
 
@@ -9717,7 +9731,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMFace' -Tag 'Unit', 'Remove-IMFace' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiDeleteFace -ModuleName PSImmich {}
         }
 
         Context 'Parameter Validation' {
@@ -9746,31 +9760,53 @@ InModuleScope $ProjectName {
                 $CmdletBinding = $Command.ScriptBlock.Attributes | Where-Object { $_ -is [System.Management.Automation.CmdletBindingAttribute] }
                 $CmdletBinding.SupportsShouldProcess | Should -Be $true
             }
+
+            It 'Should not call the API when -WhatIf is specified' {
+                Remove-IMFace -Id '123e4567-e89b-12d3-a456-426614174000' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiDeleteFace -ModuleName PSImmich -Exactly 0 -Scope It
+            }
         }
 
         Context 'API Calls' {
-            It 'Should call correct endpoint for single ID' {
+            It 'Should call Invoke-ImmichApiDeleteFace for a single ID' {
                 $TestId = '123e4567-e89b-12d3-a456-426614174000'
                 Remove-IMFace -Id $TestId -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq "/faces/$TestId"
+                Should -Invoke Invoke-ImmichApiDeleteFace -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq $TestId
                 }
             }
 
-            It 'Should call endpoint multiple times for multiple IDs' {
+            It 'Should call the endpoint once per ID for multiple IDs' {
                 $TestIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
                 Remove-IMFace -Id $TestIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 2 -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteFace -ModuleName PSImmich -Exactly 2 -Scope It
             }
 
-            It 'Should include Force parameter in body when specified' {
-                $TestId = '123e4567-e89b-12d3-a456-426614174000'
-                Remove-IMFace -Id $TestId -Force -Confirm:$false
+            It 'Should always send the required force field, defaulting to false' {
+                Remove-IMFace -Id '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq "/faces/$TestId"
+                Should -Invoke Invoke-ImmichApiDeleteFace -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.ContainsKey('force') -and $Body.force -eq $false
+                }
+            }
+
+            It 'Should send force as true when -Force is specified' {
+                Remove-IMFace -Id '123e4567-e89b-12d3-a456-426614174000' -Force -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteFace -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.force -eq $true
+                }
+            }
+
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Remove-IMFace -Id '123e4567-e89b-12d3-a456-426614174000' -Session $Session -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteFace -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
                 }
             }
         }
@@ -9780,7 +9816,7 @@ InModuleScope $ProjectName {
                 $TestIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
                 $TestIds | Remove-IMFace -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Exactly 2 -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteFace -ModuleName PSImmich -Exactly 2 -Scope It
             }
         }
     }

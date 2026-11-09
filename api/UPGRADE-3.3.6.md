@@ -237,8 +237,9 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Unreachable | 110 |
 | Total | 279 |
 
-Wired for 138 of 219 non-excluded operations (63.0%) after the Workflow batch
-(was 130, 59.4%, after the Memories batch;
+Wired for 142 of 219 non-excluded operations (64.8%) after the Face batch
+(was 138, 63.0%, after the Workflow batch;
+was 130, 59.4%, after the Memories batch;
 was 124, 56.6%, after the Partner batch;
 was 120, 54.8%, after the APIKey batch;
 was 115, 52.5%, after the Stack batch;
@@ -254,6 +255,14 @@ was 67, 30.5%, after the Server batch;
 metric, not parameter or contract parity. The 129 unreachable operations are the backlog.
 20 unreachable operations are deprecated; each needs the
 replacement-or-retain decision under the maintainer policy before implementation.
+
+Face batch: `Get-IMFace` (`getFaces`), `New-IMFace` (`createFace`, no response body), `Set-IMFace`
+(`reassignFacesById`, path id = person, body id = face; returns `PersonResponseDto`), and `Remove-IMFace`
+(`deleteFace`) call the generated functions. `Remove-IMFace` now always sends the required `force` field
+(default `$false`); the previous cmdlet omitted it unless `-Force` was given. Observation: the spec documents
+the `getFaces` query `id` as "Face ID", but the operation returns faces for an asset. The cmdlet treats the
+value as an asset ID, matching the operation's behavior, and this should be confirmed against a live server.
+Targeted tests: 68 passed, 0 failed.
 
 Partner batch: `Get-IMPartner` (`getPartners`, `-Direction`), `Add-IMPartner` (`createPartner`), `Set-IMPartner`
 (`updatePartner`, `-EnableTimeline` as `inTimeline`), and `Remove-IMPartner` (`removePartner`) call the generated
