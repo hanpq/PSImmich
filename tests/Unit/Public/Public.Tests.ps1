@@ -1293,6 +1293,14 @@ InModuleScope $ProjectName {
                     $Body.name -eq 'Default Permissions'
                 }
             }
+
+            It 'Should send the default all permission when none is specified' {
+                New-IMAPIKey -Name 'Default Permissions'
+
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.permissions -contains 'all'
+                }
+            }
         }
 
         Context 'When creating API key with specific permissions' {

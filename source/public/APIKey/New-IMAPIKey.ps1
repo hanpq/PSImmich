@@ -45,6 +45,8 @@
 
     begin
     {
+        # The API requires permissions, so send the default even when it is not bound.
+        $PSBoundParameters['Permission'] = $Permission
         $BodyParameters = @{}
         $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
     }

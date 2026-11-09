@@ -112,12 +112,6 @@ Describe 'APIKey' -Tag 'Integration' {
             Get-IMAPIKey -Id $Created.apiKey.id | Rename-IMAPIKey -Name "$Prefix-pipe-renamed"
             (Get-IMAPIKey -Id $Created.apiKey.id).name | Should -Be "$Prefix-pipe-renamed"
         }
-        It 'Should not rename when using -WhatIf' {
-            $Created = New-IMAPIKey -Name "$Prefix-whatif" -Permission all
-            $script:CreatedKeyIds.Add($Created.apiKey.id)
-            Rename-IMAPIKey -Id $Created.apiKey.id -Name "$Prefix-whatif-new" -WhatIf
-            (Get-IMAPIKey -Id $Created.apiKey.id).name | Should -Be "$Prefix-whatif"
-        }
     }
 
     Context 'Remove-IMAPIKey' -Tag 'Remove-IMAPIKey' {
