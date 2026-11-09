@@ -3748,31 +3748,18 @@ InModuleScope $ProjectName {
     }
     Describe 'Test-IMAccessToken' -Tag 'Unit', 'Test-IMAccessToken' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                switch ($RelativePath)
-                {
-                    '/auth/validateToken'
-                    {
-                        return [PSCustomObject]@{
-                            AuthStatus = $true
-                        }
-                    }
-                    default
-                    {
-                        throw "Unmocked path: $RelativePath"
-                    }
+            Mock Invoke-ImmichApiValidateAccessToken -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    AuthStatus = $true
                 }
             }
         }
 
         Context 'Token Validation' {
-            It 'Should validate access token using POST method' {
+            It 'Should validate access token via the generated wrapper' {
                 Test-IMAccessToken
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/auth/validateToken'
-                }
+                Should -Invoke Invoke-ImmichApiValidateAccessToken -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
 
             It 'Should pass Session parameter when provided' {
@@ -3789,7 +3776,7 @@ InModuleScope $ProjectName {
             }
 
             It 'Should handle false authentication status' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich {
+                Mock Invoke-ImmichApiValidateAccessToken -ModuleName PSImmich {
                     return [PSCustomObject]@{
                         AuthStatus = $false
                     }
@@ -3800,7 +3787,7 @@ InModuleScope $ProjectName {
             }
 
             It 'Should handle null result' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich {
+                Mock Invoke-ImmichApiValidateAccessToken -ModuleName PSImmich {
                     return $null
                 }
 
@@ -3976,12 +3963,8 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMDuplicate' -Tag 'Unit', 'Get-IMDuplicate' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                switch ($RelativePath)
-                {
-                    '/duplicates'
-                    {
-                        return @(
+            Mock Invoke-ImmichApiGetAssetDuplicates -ModuleName PSImmich {
+                return @(
                             [PSCustomObject]@{
                                 duplicateId = 'duplicate1-guid-here-1234567890abcdef'
                                 assets      = @(
@@ -4025,24 +4008,15 @@ InModuleScope $ProjectName {
                                 )
                             }
                         )
-                    }
-                    default
-                    {
-                        throw "Unmocked path: $RelativePath"
-                    }
-                }
             }
         }
 
         Context 'Duplicate Retrieval' {
 
-            It 'Should retrieve duplicates using GET method' {
+            It 'Should retrieve duplicates via the generated wrapper' {
                 Get-IMDuplicate
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/duplicates'
-                }
+                Should -Invoke Invoke-ImmichApiGetAssetDuplicates -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
 
             It 'Should pass Session parameter when provided' {
@@ -4071,10 +4045,9 @@ InModuleScope $ProjectName {
             }
 
             It 'Should handle empty duplicate results' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich {
+                Mock Invoke-ImmichApiGetAssetDuplicates -ModuleName PSImmich {
                     return @()
                 }
-
                 $result = Get-IMDuplicate
                 $result | Should -HaveCount 0
             }
@@ -4187,8 +4160,10 @@ InModuleScope $ProjectName {
     }
     Describe 'Clear-IMJob' -Tag 'Unit', 'Clear-IMJob' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                # Mock returns nothing for PUT operations
+            Mock Invoke-ImmichApiEmptyQueue -ModuleName PSImmich {
+                return $null
+            }
+            Mock Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich {
                 return $null
             }
         }
@@ -4235,9 +4210,8 @@ InModuleScope $ProjectName {
             It 'Should clear all jobs by default' {
                 Clear-IMJob -Job $TestJob
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq "/queues/$TestJob/jobs" -and
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq $TestJob -and
                     $Body.failed -eq $false
                 }
             }
@@ -4245,9 +4219,8 @@ InModuleScope $ProjectName {
             It 'Should clear only failed jobs when FailedOnly is specified' {
                 Clear-IMJob -Job $TestJob -FailedOnly
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq "/jobs/$TestJob" -and
+                Should -Invoke Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq $TestJob -and
                     $Body.command -eq 'clear-failed'
                 }
             }
@@ -4255,9 +4228,8 @@ InModuleScope $ProjectName {
             It 'Should handle multiple job types' {
                 Clear-IMJob -Job @($TestJob, $TestJob2)
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    ($RelativePath -eq "/queues/$TestJob/jobs" -or $RelativePath -eq "/queues/$TestJob2/jobs")
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 2 -Scope It -ParameterFilter {
+                    $Name -eq $TestJob -or $Name -eq $TestJob2
                 }
             }
 
@@ -4265,8 +4237,7 @@ InModuleScope $ProjectName {
                 Clear-IMJob -Job $TestJob -Force -WarningVariable warnings -WarningAction SilentlyContinue
 
                 $warnings | Should -Not -BeNullOrEmpty
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'DELETE' -and
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     -not $Body.ContainsKey('force')
                 }
             }
@@ -4284,7 +4255,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Clear-IMJob -Job 'thumbnailGeneration'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -4505,8 +4476,15 @@ InModuleScope $ProjectName {
     }
     Describe 'Start-IMJob' -Tag 'Unit', 'Start-IMJob' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                # Mock returns nothing for PUT/POST operations
+            Mock Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich {
+                return $null
+            }
+
+            Mock Invoke-ImmichApiEmptyTrash -ModuleName PSImmich {
+                return $null
+            }
+
+            Mock Invoke-ImmichApiCreateJob -ModuleName PSImmich {
                 return $null
             }
 
@@ -4572,9 +4550,8 @@ InModuleScope $ProjectName {
             It 'Should start standard job with correct API call' {
                 Start-IMJob -Job $TestJob -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq "/jobs/$TestJob" -and
+                Should -Invoke Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq $TestJob -and
                     $Body.command -eq 'start'
                 }
             }
@@ -4582,29 +4559,16 @@ InModuleScope $ProjectName {
             It 'Should handle multiple standard job types' {
                 Start-IMJob -Job @($TestJob, $TestJob2) -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    ($RelativePath -eq "/jobs/$TestJob" -or $RelativePath -eq "/jobs/$TestJob2") -and
-                    ($Body.command -eq 'start')
-                }
-            }
-
-            It 'Should call ConvertTo-ApiParameters with Force parameter' {
-                Start-IMJob -Job $TestJob -Force -Confirm:$false
-
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Force -eq $true
+                Should -Invoke Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich -Exactly 2 -Scope It -ParameterFilter {
+                    ($Name -eq $TestJob -or $Name -eq $TestJob2) -and
+                    $Body.command -eq 'start'
                 }
             }
 
             It 'Should include force in body when Force is specified' {
-                Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                    return @{ force = $true }
-                }
-
                 Start-IMJob -Job $TestJob -Force -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.force -eq $true -and
                     $Body.command -eq 'start'
                 }
@@ -4615,19 +4579,14 @@ InModuleScope $ProjectName {
             It 'Should handle emptyTrash job with special endpoint' {
                 Start-IMJob -Job 'emptyTrash' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/trash/empty'
-                }
+                Should -Invoke Invoke-ImmichApiEmptyTrash -ModuleName PSImmich -Exactly 1 -Scope It
             }
 
-            It 'Should handle cleanup jobs with /jobs endpoint' {
+            It 'Should handle cleanup jobs with the create job endpoint' {
                 $cleanupJobs = @('person-cleanup', 'tag-cleanup', 'user-cleanup')
                 Start-IMJob -Job $cleanupJobs -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 3 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/jobs' -and
+                Should -Invoke Invoke-ImmichApiCreateJob -ModuleName PSImmich -Exactly 3 -Scope It -ParameterFilter {
                     $Body.ContainsKey('name')
                 }
             }
@@ -4635,9 +4594,7 @@ InModuleScope $ProjectName {
             It 'Should set correct job name for cleanup jobs' {
                 Start-IMJob -Job 'person-cleanup' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/jobs' -and
+                Should -Invoke Invoke-ImmichApiCreateJob -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.name -eq 'person-cleanup'
                 }
             }
@@ -4645,16 +4602,12 @@ InModuleScope $ProjectName {
             It 'Should handle mixed job types correctly' {
                 Start-IMJob -Job @('thumbnailGeneration', 'emptyTrash', 'person-cleanup') -Confirm:$false
 
-                # Should make 3 different API calls with different patterns
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 3
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq '/jobs/thumbnailGeneration'
+                Should -Invoke Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq 'thumbnailGeneration'
                 }
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/trash/empty'
-                }
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/jobs' -and $Body.name -eq 'person-cleanup'
+                Should -Invoke Invoke-ImmichApiEmptyTrash -ModuleName PSImmich -Exactly 1 -Scope It
+                Should -Invoke Invoke-ImmichApiCreateJob -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Body.name -eq 'person-cleanup'
                 }
             }
         }
@@ -4670,8 +4623,10 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Start-IMJob -Job 'thumbnailGeneration' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $null -eq $ImmichSession
+                Should -Invoke Invoke-ImmichApiRunQueueCommandLegacy -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $null -eq $ImmichSession -and
+                    $Name -eq 'thumbnailGeneration' -and
+                    $Body.command -eq 'start'
                 }
             }
         }
@@ -10557,7 +10512,7 @@ InModuleScope $ProjectName {
 
     Describe 'Remove-IMDuplicate' -Tag 'Remove-IMDuplicate' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {}
+            Mock Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich {}
         }
 
         Context 'Parameter Validation' {
@@ -10584,22 +10539,18 @@ InModuleScope $ProjectName {
                 (Get-Command Remove-IMDuplicate).Parameters.ContainsKey('Confirm') | Should -Be $true
             }
 
-            It 'Should call InvokeImmichRestMethod when confirmed for single duplicate' {
+            It 'Should call Invoke-ImmichApiDeleteDuplicates when confirmed for single duplicate' {
                 Remove-IMDuplicate -Ids '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/duplicates' -and
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
-            It 'Should call InvokeImmichRestMethod when confirmed for multiple duplicates' {
+            It 'Should call Invoke-ImmichApiDeleteDuplicates when confirmed for multiple duplicates' {
                 $duplicateIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc')
                 Remove-IMDuplicate -Ids $duplicateIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Delete' -and
-                    $RelativePath -eq '/duplicates' -and
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids.Count -eq 2 -and
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000' -and
                     $Body.ids -contains '987fcdeb-51a2-43d5-b789-123456789abc'
@@ -10611,7 +10562,7 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Remove-IMDuplicate -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
@@ -10620,7 +10571,7 @@ InModuleScope $ProjectName {
                 $duplicateObject = [PSCustomObject]@{ Ids = '123e4567-e89b-12d3-a456-426614174000' }
                 $duplicateObject | Remove-IMDuplicate -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
@@ -10629,7 +10580,7 @@ InModuleScope $ProjectName {
                 $duplicateObject = [PSCustomObject]@{ id = '123e4567-e89b-12d3-a456-426614174000' }
                 $duplicateObject | Remove-IMDuplicate -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
@@ -10641,7 +10592,7 @@ InModuleScope $ProjectName {
                 )
                 $duplicates | Remove-IMDuplicate -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids.Count -eq 2 -and
                     $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000' -and
                     $Body.ids -contains '987fcdeb-51a2-43d5-b789-123456789abc'
@@ -10652,7 +10603,7 @@ InModuleScope $ProjectName {
                 $duplicateIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc', 'abcdef01-2345-6789-abcd-ef0123456789')
                 $duplicateIds | Remove-IMDuplicate -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids.Count -eq 3
                 }
             }
@@ -10669,18 +10620,18 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Remove-IMDuplicate -Ids '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
         }
 
         Context 'API Integration' {
-            It 'Should call correct REST endpoint' {
+            It 'Should call the generated DeleteDuplicates wrapper with the duplicate IDs' {
                 Remove-IMDuplicate -Ids '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/duplicates'
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $Body.ids -contains '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
@@ -10688,7 +10639,7 @@ InModuleScope $ProjectName {
                 $duplicateIds = @('123e4567-e89b-12d3-a456-426614174000', '987fcdeb-51a2-43d5-b789-123456789abc', 'abcdef01-2345-6789-abcd-ef0123456789')
                 Remove-IMDuplicate -Ids $duplicateIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteDuplicates -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
                     $Body.ids.Count -eq 3 -and
                     ($duplicateIds | ForEach-Object { $Body.ids -contains $_ }) -notcontains $false
                 }
