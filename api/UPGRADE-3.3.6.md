@@ -237,8 +237,9 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Unreachable | 110 |
 | Total | 279 |
 
-Wired for 151 of 219 non-excluded operations (68.9%) after the Notification batch
-(was 150, 68.5%, after the Auth batch;
+Wired for 153 of 219 non-excluded operations (69.9%) after the Map batch
+(was 151, 68.9%, after the Notification batch;
+was 150, 68.5%, after the Auth batch;
 was 149, 68.0%, after the Plugin batch;
 was 147, 67.1%, after the Duplicates batch;
 was 145, 66.2%, after the AuthSession batch;
@@ -284,6 +285,12 @@ Notification batch: `Send-IMTestMessage` calls `sendTestEmailAdmin` (`POST /admi
 previous cmdlet omitted `transport.secure`; a new `-Secure` parameter (default `$false`) now sends it. The password was
 converted with `ConvertFromSecureString` without `-AsPlainText`, which produces an encrypted string rather than the
 password; it is now sent as plain text. Targeted tests: 15 passed, 0 failed.
+
+Map batch: `Get-IMMapMarker` calls `getMapMarkers` (`GET /map/markers`) and forwards only the bound filters
+(`-CreatedAfter`/`-CreatedBefore` map to `fileCreatedAfter`/`fileCreatedBefore`). `Convert-IMCoordinatesToLocation`
+calls `reverseGeocode` (`GET /map/reverse-geocode`). Breaking: outputs are now `MapMarkerResponseDto` and
+`MapReverseGeocodeResponseDto`. The 3.3.6 DTOs have no `assetCount` (markers) or `name` (reverse geocode), so those
+properties are no longer returned. Targeted tests: 36 passed, 0 failed.
 
 AuthSession batch: `Get-IMAuthSession` (`getSessions`) returns `SessionResponseDto`; `Remove-IMAuthSession` calls
 `deleteAllSessions` (no `-Id`) or `deleteSession` (per `-Id`). Breaking: the 3.3.6 `SessionResponseDto` has no

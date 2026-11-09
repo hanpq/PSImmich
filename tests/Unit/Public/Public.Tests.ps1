@@ -5583,27 +5583,14 @@ InModuleScope $ProjectName {
     }
     Describe 'Convert-IMCoordinatesToLocation' -Tag 'Unit', 'Convert-IMCoordinatesToLocation' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                return [PSCustomObject]@{
-                    name    = 'Big Ben, Westminster, London SW1A 0AA, UK'
-                    city    = 'London'
-                    state   = 'England'
-                    country = 'United Kingdom'
-                }
-            }
-
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Latitude)
-                {
-                    $result.lat = $BoundParameters.Latitude
-                }
-                if ($BoundParameters.Longitude)
-                {
-                    $result.lon = $BoundParameters.Longitude
-                }
-                return $result
+            Mock Invoke-ImmichApiReverseGeocode -ModuleName PSImmich {
+                return @(
+                    [PSCustomObject]@{
+                        city    = 'London'
+                        state   = 'England'
+                        country = 'United Kingdom'
+                    }
+                )
             }
         }
 
@@ -5620,18 +5607,6 @@ InModuleScope $ProjectName {
                 $lonParam.ParameterSets.Values.IsMandatory | Should -Contain $true
             }
 
-            It 'Should have ApiParameter attributes for coordinate parameters' {
-                $function = Get-Command Convert-IMCoordinatesToLocation
-                $latParam = $function.Parameters['Latitude']
-                $lonParam = $function.Parameters['Longitude']
-
-                $latApiAttr = $latParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-                $lonApiAttr = $lonParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-
-                $latApiAttr.Name | Should -Be 'lat'
-                $lonApiAttr.Name | Should -Be 'lon'
-            }
-
             It 'Should accept double values for coordinates' {
                 $function = Get-Command Convert-IMCoordinatesToLocation
                 $latParam = $function.Parameters['Latitude']
@@ -5643,59 +5618,49 @@ InModuleScope $ProjectName {
         }
 
         Context 'Coordinate Conversion Operations' {
-            It 'Should convert coordinates with correct API call' {
+            It 'Should call the reverse geocode API with the coordinates' {
                 Convert-IMCoordinatesToLocation -Latitude 51.496637 -Longitude -0.176370
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/map/reverse-geocode' -and
-                    $QueryParameters.lat -eq 51.496637 -and
-                    $QueryParameters.lon -eq -0.176370
-                }
-            }
-
-            It 'Should call ConvertTo-ApiParameters with coordinate parameters' {
-                Convert-IMCoordinatesToLocation -Latitude 40.7128 -Longitude -74.0060
-
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Latitude -eq 40.7128 -and
-                    $BoundParameters.Longitude -eq -74.0060
+                Should -Invoke Invoke-ImmichApiReverseGeocode -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Lat -eq 51.496637 -and
+                    $Lon -eq -0.176370
                 }
             }
 
             It 'Should handle positive coordinates' {
                 Convert-IMCoordinatesToLocation -Latitude 37.7749 -Longitude 122.4194
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $QueryParameters.lat -eq 37.7749 -and
-                    $QueryParameters.lon -eq 122.4194
+                Should -Invoke Invoke-ImmichApiReverseGeocode -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Lat -eq 37.7749 -and
+                    $Lon -eq 122.4194
                 }
             }
 
             It 'Should handle negative coordinates' {
                 Convert-IMCoordinatesToLocation -Latitude -33.8688 -Longitude -151.2093
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $QueryParameters.lat -eq -33.8688 -and
-                    $QueryParameters.lon -eq -151.2093
+                Should -Invoke Invoke-ImmichApiReverseGeocode -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Lat -eq -33.8688 -and
+                    $Lon -eq -151.2093
                 }
             }
 
             It 'Should handle coordinate edge values' {
                 Convert-IMCoordinatesToLocation -Latitude -90.0 -Longitude -180.0
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $QueryParameters.lat -eq -90.0 -and
-                    $QueryParameters.lon -eq -180.0
+                Should -Invoke Invoke-ImmichApiReverseGeocode -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Lat -eq -90.0 -and
+                    $Lon -eq -180.0
                 }
             }
 
-            It 'Should return location information' {
+            It 'Should return location information as MapReverseGeocodeResponseDto' {
                 $result = Convert-IMCoordinatesToLocation -Latitude 51.496637 -Longitude -0.176370
 
-                $result | Should -Not -BeNullOrEmpty
-                $result.name | Should -Be 'Big Ben, Westminster, London SW1A 0AA, UK'
+                $result | Should -HaveCount 1
+                $result.GetType().Name | Should -Be 'MapReverseGeocodeResponseDto'
                 $result.city | Should -Be 'London'
+                $result.state | Should -Be 'England'
                 $result.country | Should -Be 'United Kingdom'
             }
         }
@@ -5711,7 +5676,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Convert-IMCoordinatesToLocation -Latitude 51.496637 -Longitude -0.176370
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiReverseGeocode -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -5719,57 +5684,25 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMMapMarker' -Tag 'Unit', 'Get-IMMapMarker' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
+            Mock Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich {
                 return @(
                     [PSCustomObject]@{
-                        id         = 'marker1-guid-here-1234567890abcdef'
-                        lat        = 51.496637
-                        lon        = -0.176370
-                        city       = 'London'
-                        state      = 'England'
-                        country    = 'United Kingdom'
-                        assetCount = 25
+                        id      = 'marker1-guid-here-1234567890abcdef'
+                        lat     = 51.496637
+                        lon     = -0.176370
+                        city    = 'London'
+                        state   = 'England'
+                        country = 'United Kingdom'
                     },
                     [PSCustomObject]@{
-                        id         = 'marker2-guid-here-2345678901bcdefg'
-                        lat        = 40.7128
-                        lon        = -74.0060
-                        city       = 'New York'
-                        state      = 'New York'
-                        country    = 'United States'
-                        assetCount = 12
+                        id      = 'marker2-guid-here-2345678901bcdefg'
+                        lat     = 40.7128
+                        lon     = -74.0060
+                        city    = 'New York'
+                        state   = 'New York'
+                        country = 'United States'
                     }
                 )
-            }
-
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.CreatedAfter)
-                {
-                    $result.fileCreatedAfter = $BoundParameters.CreatedAfter
-                }
-                if ($BoundParameters.CreatedBefore)
-                {
-                    $result.fileCreatedBefore = $BoundParameters.CreatedBefore
-                }
-                if ($BoundParameters.IsArchived -ne $null)
-                {
-                    $result.isArchived = $BoundParameters.IsArchived
-                }
-                if ($BoundParameters.IsFavorite -ne $null)
-                {
-                    $result.isFavorite = $BoundParameters.IsFavorite
-                }
-                if ($BoundParameters.WithPartners -ne $null)
-                {
-                    $result.withPartners = $BoundParameters.WithPartners
-                }
-                if ($BoundParameters.WithSharedAlbums -ne $null)
-                {
-                    $result.withSharedAlbums = $BoundParameters.WithSharedAlbums
-                }
-                return $result
             }
         }
 
@@ -5784,30 +5717,6 @@ InModuleScope $ProjectName {
                 $function.Parameters.Keys | Should -Contain 'WithSharedAlbums'
             }
 
-            It 'Should have ApiParameter attributes for filter parameters' {
-                $function = Get-Command Get-IMMapMarker
-                $createdAfterParam = $function.Parameters['CreatedAfter']
-                $createdBeforeParam = $function.Parameters['CreatedBefore']
-                $isArchivedParam = $function.Parameters['IsArchived']
-                $isFavoriteParam = $function.Parameters['IsFavorite']
-                $withPartnersParam = $function.Parameters['WithPartners']
-                $withSharedAlbumsParam = $function.Parameters['WithSharedAlbums']
-
-                $createdAfterApiAttr = $createdAfterParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-                $createdBeforeApiAttr = $createdBeforeParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-                $isArchivedApiAttr = $isArchivedParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-                $isFavoriteApiAttr = $isFavoriteParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-                $withPartnersApiAttr = $withPartnersParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-                $withSharedAlbumsApiAttr = $withSharedAlbumsParam.Attributes | Where-Object { $_.TypeId.Name -eq 'ApiParameterAttribute' }
-
-                $createdAfterApiAttr.Name | Should -Be 'fileCreatedAfter'
-                $createdBeforeApiAttr.Name | Should -Be 'fileCreatedBefore'
-                $isArchivedApiAttr.Name | Should -Be 'isArchived'
-                $isFavoriteApiAttr.Name | Should -Be 'isFavorite'
-                $withPartnersApiAttr.Name | Should -Be 'withPartners'
-                $withSharedAlbumsApiAttr.Name | Should -Be 'withSharedAlbums'
-            }
-
             It 'Should have boolean type for flag parameters' {
                 $function = Get-Command Get-IMMapMarker
                 $function.Parameters['IsArchived'].ParameterType.Name | Should -Be 'Boolean'
@@ -5818,14 +5727,18 @@ InModuleScope $ProjectName {
         }
 
         Context 'Map Marker Retrieval Operations' {
-            It 'Should get all map markers with no parameters' {
+            It 'Should get all map markers with no filters' {
                 $result = Get-IMMapMarker
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/map/markers'
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $null -eq $FileCreatedAfter -and
+                    $null -eq $FileCreatedBefore -and
+                    $null -eq $IsArchived -and
+                    $null -eq $IsFavorite -and
+                    $null -eq $WithPartners -and
+                    $null -eq $WithSharedAlbums -and
+                    $null -eq $ImmichSession
                 }
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1
                 $result | Should -HaveCount 2
             }
 
@@ -5834,67 +5747,66 @@ InModuleScope $ProjectName {
                 $createdBefore = (Get-Date).AddDays(-1)
                 Get-IMMapMarker -CreatedAfter $createdAfter -CreatedBefore $createdBefore
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.CreatedAfter -eq $createdAfter -and
-                    $BoundParameters.CreatedBefore -eq $createdBefore
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $FileCreatedAfter -eq $createdAfter -and
+                    $FileCreatedBefore -eq $createdBefore
                 }
             }
 
             It 'Should filter by archive status' {
                 Get-IMMapMarker -IsArchived $false
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.IsArchived -eq $false
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $IsArchived -eq $false
                 }
             }
 
             It 'Should filter by favorite status' {
                 Get-IMMapMarker -IsFavorite $true
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.IsFavorite -eq $true
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $IsFavorite -eq $true
                 }
             }
 
             It 'Should include partner assets when specified' {
                 Get-IMMapMarker -WithPartners $true
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.WithPartners -eq $true
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $WithPartners -eq $true
                 }
             }
 
             It 'Should include shared album assets when specified' {
                 Get-IMMapMarker -WithSharedAlbums $true
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.WithSharedAlbums -eq $true
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $WithSharedAlbums -eq $true
                 }
             }
 
             It 'Should handle multiple filter parameters' {
                 Get-IMMapMarker -IsFavorite $true -IsArchived $false -WithPartners $false -WithSharedAlbums $true
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.IsFavorite -eq $true -and
-                    $BoundParameters.IsArchived -eq $false -and
-                    $BoundParameters.WithPartners -eq $false -and
-                    $BoundParameters.WithSharedAlbums -eq $true
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $IsFavorite -eq $true -and
+                    $IsArchived -eq $false -and
+                    $WithPartners -eq $false -and
+                    $WithSharedAlbums -eq $true
                 }
             }
 
-            It 'Should return marker objects with location data' {
+            It 'Should return marker objects as MapMarkerResponseDto' {
                 $result = Get-IMMapMarker
 
+                $result[0].GetType().Name | Should -Be 'MapMarkerResponseDto'
                 $result[0].id | Should -Be 'marker1-guid-here-1234567890abcdef'
                 $result[0].lat | Should -Be 51.496637
                 $result[0].lon | Should -Be -0.17637
                 $result[0].city | Should -Be 'London'
-                $result[0].assetCount | Should -Be 25
 
                 $result[1].id | Should -Be 'marker2-guid-here-2345678901bcdefg'
                 $result[1].city | Should -Be 'New York'
-                $result[1].assetCount | Should -Be 12
             }
         }
 
@@ -5909,7 +5821,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Get-IMMapMarker
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiGetMapMarkers -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }

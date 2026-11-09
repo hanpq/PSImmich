@@ -63,45 +63,47 @@
         $Session = $null,
 
         [Parameter()]
-        [ApiParameter('fileCreatedAfter')]
         [datetime]
         $CreatedAfter,
 
         [Parameter()]
-        [ApiParameter('fileCreatedBefore')]
         [datetime]
         $CreatedBefore,
 
         [Parameter()]
-        [ApiParameter('isArchived')]
         [boolean]
         $IsArchived,
 
         [Parameter()]
-        [ApiParameter('isFavorite')]
         [boolean]
         $IsFavorite,
 
         [Parameter()]
-        [ApiParameter('withPartners')]
         [boolean]
         $WithPartners,
 
         [Parameter()]
-        [ApiParameter('withSharedAlbums')]
         [boolean]
         $WithSharedAlbums
     )
 
-    begin
-    {
-        $QueryParameters = @{}
-        $QueryParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-    }
-
     process
     {
-        InvokeImmichRestMethod -Method Get -RelativePath '/map/markers' -ImmichSession:$Session -QueryParameters $QueryParameters
+        $ApiParams = @{ ImmichSession = $Session }
+        $ParameterMap = [ordered]@{
+            CreatedAfter     = 'FileCreatedAfter'
+            CreatedBefore    = 'FileCreatedBefore'
+            IsArchived       = 'IsArchived'
+            IsFavorite       = 'IsFavorite'
+            WithPartners     = 'WithPartners'
+            WithSharedAlbums = 'WithSharedAlbums'
+        }
+        foreach ($Name in $ParameterMap.Keys)
+        {
+            if ($PSBoundParameters.ContainsKey($Name)) { $ApiParams[$ParameterMap[$Name]] = $PSBoundParameters[$Name] }
+        }
+
+        Invoke-ImmichApiGetMapMarkers @ApiParams | ForEach-Object { [MapMarkerResponseDto]::new($PSItem) }
     }
 }
 #endregion
