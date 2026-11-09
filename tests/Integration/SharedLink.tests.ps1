@@ -43,9 +43,18 @@ Describe 'SharedLink' -Tag 'Integration' {
     }
 
     AfterAll {
+        # Some tests remove their own link, so skip IDs that no longer exist.
         foreach ($Id in $script:CreatedLinkIds)
         {
-            Remove-IMSharedLink -id $Id -ErrorAction SilentlyContinue
+            try
+            {
+                Get-IMSharedLink -Id $Id -ErrorAction Stop | Out-Null
+            }
+            catch
+            {
+                continue
+            }
+            Remove-IMSharedLink -id $Id
         }
     }
 
@@ -59,7 +68,8 @@ Describe 'SharedLink' -Tag 'Integration' {
             $Link = New-IMSharedLink -AlbumId $script:AlbumId -Description 'PSImmich-Test-Album'
             $script:CreatedLinkIds.Add($Link.id)
             $Link.type | Should -Be 'ALBUM'
-            $Link.album.id | Should -Be $script:AlbumId
+            $Result = Get-IMSharedLink -Id $Link.id
+            $Result.album.id | Should -Be $script:AlbumId
         }
         It 'Should apply description, download, metadata and expiry settings' {
             $Link = New-IMSharedLink -AssetId $script:AssetId1 -Description 'PSImmich-Test-Settings' -AllowDownload -ShowMetadata -ExpiresAt ((Get-Date).AddDays(3))
