@@ -21,8 +21,8 @@ BeforeDiscovery {
     Import-Module $ProjectName -Force
 }
 
-# Read-only. Intentionally excluded: Set-IMServer, Set-IMServerLicense and Remove-IMServerLicense, because they change
-# configuration or licensing on the shared live server, which is not reset.
+# Read-only. Intentionally excluded: Set-IMServerLicense and Remove-IMServerLicense, because they change
+# licensing on the shared live server, which is not reset and requires a real license key.
 Describe 'Server' -Tag 'Integration' {
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
@@ -158,6 +158,50 @@ Describe 'Server' -Tag 'Integration' {
                 }
                 throw
             }
+        }
+    }
+
+    # Changes are limited to loginPageMessage and always restored to the exact JSON read before the test.
+    Context 'Set-IMServer' -Tag 'Set-IMServer' {
+        BeforeAll {
+            $script:OriginalConfig = Get-IMServer -AppliedSystemConfiguration -ReturnRawJSON
+            $script:OriginalLoginMessage = ($script:OriginalConfig | ConvertFrom-Json).server.loginPageMessage
+        }
+
+        AfterAll {
+            Set-IMServer -RawJSONConfig $script:OriginalConfig -Confirm:$false
+        }
+
+        It -Name 'Should accept the current configuration unchanged' {
+            { Set-IMServer -RawJSONConfig $script:OriginalConfig -Confirm:$false } | Should -Not -Throw
+            (Get-IMServer -AppliedSystemConfiguration -ReturnRawJSON | ConvertFrom-Json).server.loginPageMessage | Should -BeExactly $script:OriginalLoginMessage
+        }
+
+        It -Name 'Should update a setting and restore the original configuration' {
+            $Marker = "PSImmich-Test-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+            $Config = $script:OriginalConfig | ConvertFrom-Json
+            $Config.server.loginPageMessage = $Marker
+            try
+            {
+                Set-IMServer -RawJSONConfig ($Config | ConvertTo-Json -Depth 10) -Confirm:$false
+                (Get-IMServer -AppliedSystemConfiguration -ReturnRawJSON | ConvertFrom-Json).server.loginPageMessage | Should -BeExactly $Marker
+            }
+            finally
+            {
+                Set-IMServer -RawJSONConfig $script:OriginalConfig -Confirm:$false
+            }
+            (Get-IMServer -AppliedSystemConfiguration -ReturnRawJSON | ConvertFrom-Json).server.loginPageMessage | Should -BeExactly $script:OriginalLoginMessage
+        }
+
+        It -Name 'Should not change the configuration with -WhatIf' {
+            $Config = $script:OriginalConfig | ConvertFrom-Json
+            $Config.server.loginPageMessage = 'PSImmich-WhatIf-Marker'
+            Set-IMServer -RawJSONConfig ($Config | ConvertTo-Json -Depth 10) -WhatIf
+            (Get-IMServer -AppliedSystemConfiguration -ReturnRawJSON | ConvertFrom-Json).server.loginPageMessage | Should -BeExactly $script:OriginalLoginMessage
+        }
+
+        It -Name 'Should throw for invalid JSON' {
+            { Set-IMServer -RawJSONConfig '{ not json' -Confirm:$false } | Should -Throw
         }
     }
 }
