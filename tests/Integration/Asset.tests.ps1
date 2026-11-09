@@ -270,7 +270,7 @@ Describe 'Asset' -Tag 'Integration' {
         It 'Should return the edit collection for an asset' {
             $Result = Get-IMAssetEdit -Id $SourceAssetId
             $Result.PSObject.Properties.Name | Should -Contain 'edits'
-            $Result.id | Should -Be $SourceAssetId
+            $Result.assetId | Should -Be $SourceAssetId
         }
 
         It 'Should accept an asset ID from the pipeline' {
