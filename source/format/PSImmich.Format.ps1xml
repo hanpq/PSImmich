@@ -142,9 +142,10 @@
             </TableControl>
         </View>
         <View>
-            <Name>PSImmich.ObjectType.IMAPIKey</Name>
+            <Name>ApiKeyResponseDto</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMAPIKey</TypeName>
+                <TypeName>ApiKeyResponseDto</TypeName>
+                <TypeName>ApiKeyCreateResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>

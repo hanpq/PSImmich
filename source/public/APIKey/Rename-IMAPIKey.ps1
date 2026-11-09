@@ -48,7 +48,7 @@
 
     process
     {
-        InvokeImmichRestMethod -Method PUT -RelativePath "/api-keys/$Id" -ImmichSession:$Session -Body $BodyParameters
+        Invoke-ImmichApiUpdateApiKey -Id $Id -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [ApiKeyResponseDto]::new($PSItem) }
     }
 
 }

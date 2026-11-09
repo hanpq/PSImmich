@@ -1198,62 +1198,58 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMAPIKey' -Tag 'Unit', 'Get-IMAPIKey' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                if ($RelativePath -eq '/api-keys')
-                {
-                    return @(
-                        @{
-                            id          = '123e4567-e89b-12d3-a456-426614174000'
-                            name        = 'Production API Key'
-                            permissions = @('all')
-                            createdAt   = '2024-01-01T12:00:00Z'
-                        },
-                        @{
-                            id          = '223e4567-e89b-12d3-a456-426614174001'
-                            name        = 'Read Only Key'
-                            permissions = @('asset.read', 'album.read')
-                            createdAt   = '2024-01-02T12:00:00Z'
-                        }
-                    )
-                }
-                elseif ($RelativePath -match '/api-keys/[a-f0-9-]+')
-                {
-                    return @{
+            Mock Invoke-ImmichApiGetApiKeys -ModuleName PSImmich {
+                return @(
+                    [PSCustomObject]@{
                         id          = '123e4567-e89b-12d3-a456-426614174000'
                         name        = 'Production API Key'
                         permissions = @('all')
                         createdAt   = '2024-01-01T12:00:00Z'
+                        updatedAt   = '2024-01-01T12:00:00Z'
+                    },
+                    [PSCustomObject]@{
+                        id          = '223e4567-e89b-12d3-a456-426614174001'
+                        name        = 'Read Only Key'
+                        permissions = @('asset.read', 'album.read')
+                        createdAt   = '2024-01-02T12:00:00Z'
+                        updatedAt   = '2024-01-02T12:00:00Z'
                     }
-                }
+                )
             }
-            Mock AddCustomType {
-                param($InputObject)
-                return $InputObject
+            Mock Invoke-ImmichApiGetApiKey -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    id          = $Id
+                    name        = 'Production API Key'
+                    permissions = @('all')
+                    createdAt   = '2024-01-01T12:00:00Z'
+                    updatedAt   = '2024-01-01T12:00:00Z'
+                }
             }
         }
 
         Context 'When retrieving all API keys (list parameter set)' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiGetApiKeys' {
                 Get-IMAPIKey
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/api-keys'
-                }
+                Should -Invoke Invoke-ImmichApiGetApiKeys -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetApiKey -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
 
-            It 'Should add custom type to results' {
-                Get-IMAPIKey
+            It 'Should return ApiKeyResponseDto objects' {
+                $result = @(Get-IMAPIKey)
 
-                Should -Invoke AddCustomType -Times 2 -Exactly -Scope It
+                $result.Count | Should -Be 2
+                $result[0].GetType().Name | Should -Be 'ApiKeyResponseDto'
+                $result[1].name | Should -Be 'Read Only Key'
             }
         }
 
         Context 'When retrieving specific API key by ID (id parameter set)' {
-            It 'Should call InvokeImmichRestMethod with key ID path' {
+            It 'Should call Invoke-ImmichApiGetApiKey with the key ID' {
                 Get-IMAPIKey -Id '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/api-keys/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
@@ -1261,7 +1257,7 @@ InModuleScope $ProjectName {
                 $keyIds = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
                 Get-IMAPIKey -Id $keyIds
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetApiKey -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -1269,17 +1265,17 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Get-IMAPIKey
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/api-keys/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Get-IMAPIKey
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/api-keys/123e4567-e89b-12d3-a456-426614174000'
-                } -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiGetApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
             }
         }
 
@@ -1287,21 +1283,13 @@ InModuleScope $ProjectName {
             It 'Should validate Id GUID format' {
                 { Get-IMAPIKey -Id 'invalid-guid' } | Should -Throw
             }
-
-            It 'Should use list parameter set when no Id provided' {
-                Get-IMAPIKey
-
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/api-keys'
-                }
-            }
         }
 
         Context 'Session parameter' {
-            It 'Should use default session when no session parameter provided' {
+            It 'Should forward the session to the API function' {
                 Get-IMAPIKey
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiGetApiKeys -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -1309,13 +1297,21 @@ InModuleScope $ProjectName {
     }
     Describe 'New-IMAPIKey' -Tag 'Unit', 'New-IMAPIKey' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @{
+            Mock Invoke-ImmichApiCreateApiKey -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    apiKey      = [PSCustomObject]@{
+                        id          = '123e4567-e89b-12d3-a456-426614174000'
+                        name        = 'Test API Key'
+                        permissions = $Body.permissions
+                        createdAt   = '2024-01-01T12:00:00Z'
+                        updatedAt   = '2024-01-01T12:00:00Z'
+                    }
                     id          = '123e4567-e89b-12d3-a456-426614174000'
                     name        = 'Test API Key'
                     permissions = $Body.permissions
                     secret      = 'api_key_secret_12345'
                     createdAt   = '2024-01-01T12:00:00Z'
+                    updatedAt   = '2024-01-01T12:00:00Z'
                 }
             }
             Mock ConvertTo-ApiParameters {
@@ -1333,24 +1329,24 @@ InModuleScope $ProjectName {
         }
 
         Context 'When creating API key with default permissions' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiCreateApiKey' {
                 New-IMAPIKey -Name 'Test Key'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/api-keys'
-                }
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
 
             It 'Should call ConvertTo-ApiParameters for body parameters' {
                 New-IMAPIKey -Name 'Production Key'
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
+                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
 
-            It 'Should use default permission of all when not specified' {
-                $result = New-IMAPIKey -Name 'Default Permissions'
+            It 'Should pass the name in the request body' {
+                New-IMAPIKey -Name 'Default Permissions'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.name -eq 'Default Permissions'
+                }
             }
         }
 
@@ -1358,23 +1354,25 @@ InModuleScope $ProjectName {
             It 'Should handle single permission' {
                 New-IMAPIKey -Name 'Read Only Key' -Permission 'asset.read'
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    @($Body.permissions) -contains 'asset.read'
+                }
             }
 
             It 'Should handle multiple permissions' {
                 $permissions = @('asset.read', 'album.read', 'library.read')
                 New-IMAPIKey -Name 'Multi Permission Key' -Permission $permissions
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    @($Body.permissions).Count -eq 3
+                }
             }
 
             It 'Should handle admin permissions' {
                 $adminPermissions = @('admin.user.create', 'admin.user.read', 'admin.user.update')
                 New-IMAPIKey -Name 'Admin Key' -Permission $adminPermissions
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
 
@@ -1402,6 +1400,7 @@ InModuleScope $ProjectName {
                 $result.id | Should -Be '123e4567-e89b-12d3-a456-426614174000'
                 $result.name | Should -Be 'Test API Key'
                 $result.secret | Should -Be 'api_key_secret_12345'
+                $result.GetType().Name | Should -Be 'ApiKeyCreateResponseDto'
             }
         }
 
@@ -1409,7 +1408,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 New-IMAPIKey -Name 'Session Test'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -1461,7 +1460,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMAPIKey' -Tag 'Unit', 'Remove-IMAPIKey' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich { return $null }
+            Mock Invoke-ImmichApiDeleteApiKey -ModuleName PSImmich { return $null }
         }
 
         Context 'Parameter Validation' {
@@ -1478,59 +1477,52 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 '12345678-1234-1234-1234-123456789abc' | Remove-IMAPIKey -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq '/api-keys/12345678-1234-1234-1234-123456789abc'
+                Should -Invoke Invoke-ImmichApiDeleteApiKey -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
 
             It 'Should accept pipeline input by property name' {
                 [PSCustomObject]@{Id = '12345678-1234-1234-1234-123456789abc' } | Remove-IMAPIKey -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq '/api-keys/12345678-1234-1234-1234-123456789abc'
+                Should -Invoke Invoke-ImmichApiDeleteApiKey -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
 
             It 'Should process multiple IDs from pipeline' {
                 @('12345678-1234-1234-1234-123456789abc', '87654321-4321-4321-4321-cba987654321') | Remove-IMAPIKey -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 2 -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteApiKey -ModuleName PSImmich -Exactly 2 -Scope It
             }
         }
 
         Context 'API Calls' {
-            It 'Should call correct REST method' {
+            It 'Should call the delete endpoint wrapper with the key ID' {
                 Remove-IMAPIKey -Id '12345678-1234-1234-1234-123456789abc' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq '/api-keys/12345678-1234-1234-1234-123456789abc'
+                Should -Invoke Invoke-ImmichApiDeleteApiKey -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
         }
 
         Context 'ShouldProcess Support' {
-            It 'Should call InvokeImmichRestMethod when confirmed' {
-                Mock InvokeImmichRestMethod -ModuleName PSImmich { return $null }
+            It 'Should not call the API when -WhatIf is specified' {
+                Remove-IMAPIKey -Id '12345678-1234-1234-1234-123456789abc' -WhatIf
 
-                Remove-IMAPIKey -Id '12345678-1234-1234-1234-123456789abc' -Confirm:$false
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and
-                    $RelativePath -eq '/api-keys/12345678-1234-1234-1234-123456789abc'
-                }
+                Should -Invoke Invoke-ImmichApiDeleteApiKey -ModuleName PSImmich -Exactly 0 -Scope It
             }
         }
     }
     Describe 'Rename-IMAPIKey' -Tag 'Unit', 'Rename-IMAPIKey' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
-                return @{
-                    id        = '12345678-1234-1234-1234-123456789abc'
-                    name      = 'updated-name'
+            Mock Invoke-ImmichApiUpdateApiKey -ModuleName PSImmich {
+                return [PSCustomObject]@{
+                    id        = $Id
+                    name      = $Body.name
                     createdAt = '2024-01-01T00:00:00Z'
+                    updatedAt = '2024-01-01T00:00:00Z'
                 }
             }
             Mock ConvertTo-ApiParameters -ModuleName PSImmich { return @{ name = $BoundParameters.Name } }
@@ -1554,25 +1546,23 @@ InModuleScope $ProjectName {
             It 'Should accept pipeline input by value' {
                 '12345678-1234-1234-1234-123456789abc' | Rename-IMAPIKey -Name 'new-name'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq '/api-keys/12345678-1234-1234-1234-123456789abc'
+                Should -Invoke Invoke-ImmichApiUpdateApiKey -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
 
             It 'Should accept pipeline input by property name' {
                 [PSCustomObject]@{Id = '12345678-1234-1234-1234-123456789abc' } | Rename-IMAPIKey -Name 'new-name'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq '/api-keys/12345678-1234-1234-1234-123456789abc'
+                Should -Invoke Invoke-ImmichApiUpdateApiKey -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Id -eq '12345678-1234-1234-1234-123456789abc'
                 }
             }
 
             It 'Should process multiple IDs from pipeline' {
                 @('12345678-1234-1234-1234-123456789abc', '87654321-4321-4321-4321-cba987654321') | Rename-IMAPIKey -Name 'batch-name'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 2 -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateApiKey -ModuleName PSImmich -Exactly 2 -Scope It
             }
         }
 
@@ -1585,10 +1575,10 @@ InModuleScope $ProjectName {
                 }
             }
 
-            It 'Should pass converted parameters to REST method' {
+            It 'Should pass converted parameters to the update wrapper' {
                 Rename-IMAPIKey -Id '12345678-1234-1234-1234-123456789abc' -Name 'test-name'
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiUpdateApiKey -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
                     $Body.name -eq 'test-name'
                 }
             }
@@ -1600,6 +1590,7 @@ InModuleScope $ProjectName {
 
                 $result.id | Should -Be '12345678-1234-1234-1234-123456789abc'
                 $result.name | Should -Be 'updated-name'
+                $result.GetType().Name | Should -Be 'ApiKeyResponseDto'
             }
         }
     }

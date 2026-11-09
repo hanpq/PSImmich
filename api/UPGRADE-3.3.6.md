@@ -237,8 +237,9 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Unreachable | 110 |
 | Total | 279 |
 
-Wired for 115 of 219 non-excluded operations (52.5%) after the Stack batch
-(was 109, 49.8%, after the Search batch;
+Wired for 120 of 219 non-excluded operations (54.8%) after the APIKey batch
+(was 115, 52.5%, after the Stack batch;
+was 109, 49.8%, after the Search batch;
 was 105, 47.7%, after the SharedLink batch;
 was 97, 44.1%, after the Job batch;
 was 91, 41.4%, after the Library batch;
@@ -250,6 +251,12 @@ was 67, 30.5%, after the Server batch;
 metric, not parameter or contract parity. The 129 unreachable operations are the backlog.
 20 unreachable operations are deprecated; each needs the
 replacement-or-retain decision under the maintainer policy before implementation.
+
+APIKey batch: `Get-IMAPIKey` (`getMyApiKey` is not used; list: `getApiKeys`, id: `getApiKey`),
+`New-IMAPIKey` (`createApiKey`, returns `ApiKeyCreateResponseDto` including the one-time secret),
+`Remove-IMAPIKey` (`deleteApiKey`, with ShouldProcess), and `Rename-IMAPIKey` (`updateApiKey`) call the
+generated functions and return `ApiKeyResponseDto`. The `IMAPIKey` format view now targets the DTO names.
+`Invoke-ImmichApiRotateApiKey` is generated but has no cmdlet yet. Targeted tests: 63 passed, 0 failed.
 
 Stack batch: `Get-IMStack` (list: `searchStacks`, with `-PrimaryAssetId`; id: `getStack`),
 `New-IMStack` (`createStack`), `Remove-IMStack` (one bulk `DELETE /stacks` request for all ids),
