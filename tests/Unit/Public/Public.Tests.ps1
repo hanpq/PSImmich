@@ -2788,6 +2788,51 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'Get-IMAlbumMapMarker' -Tag 'Unit', 'Get-IMAlbumMapMarker' {
+        BeforeAll {
+            Mock Invoke-ImmichApiGetAlbumMapMarkers -ModuleName PSImmich {
+                return @(
+                    [pscustomobject]@{ id = 'bde7ceba-f301-4e9e-87a2-163937a2a3db'; lat = 59.33; lon = 18.06; city = 'Stockholm'; state = 'Stockholm County'; country = 'Sweden' }
+                )
+            }
+        }
+
+        It 'Should call Invoke-ImmichApiGetAlbumMapMarkers with the album ID' {
+            Get-IMAlbumMapMarker -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+
+            Should -Invoke Invoke-ImmichApiGetAlbumMapMarkers -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -and -not $PSBoundParameters.ContainsKey('Key') -and -not $PSBoundParameters.ContainsKey('Slug')
+            }
+        }
+
+        It 'Should forward the shared link key and slug when specified' {
+            Get-IMAlbumMapMarker -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -Key 'abc123' -Slug 'holiday'
+
+            Should -Invoke Invoke-ImmichApiGetAlbumMapMarkers -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Key -eq 'abc123' -and $Slug -eq 'holiday'
+            }
+        }
+
+        It 'Should return MapMarkerResponseDto objects' {
+            $result = Get-IMAlbumMapMarker -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+
+            $result.GetType().Name | Should -Be 'MapMarkerResponseDto'
+            $result.city | Should -Be 'Stockholm'
+        }
+
+        It 'Should accept Id from pipeline by property name' {
+            [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' } | Get-IMAlbumMapMarker
+
+            Should -Invoke Invoke-ImmichApiGetAlbumMapMarkers -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+            }
+        }
+
+        It 'Should reject an invalid album GUID' {
+            { Get-IMAlbumMapMarker -Id 'not-a-guid' } | Should -Throw
+        }
+    }
+
     Describe 'Save-IMAssetFile' -Tag 'Unit', 'Save-IMAssetFile' {
         BeforeAll {
             Mock Invoke-ImmichApiGetAssetFile -ModuleName PSImmich {
