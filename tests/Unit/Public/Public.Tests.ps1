@@ -7474,22 +7474,26 @@ InModuleScope $ProjectName {
     Describe 'Get-IMPerson' -Tag 'Unit', 'Get-IMPerson' {
         BeforeAll {
             Mock Invoke-ImmichApiGetAllPeople -ModuleName PSImmich {
-                return @(
-                    [PSCustomObject]@{
-                        id            = 'person1-guid-here-1234567890abcdef'
-                        name          = 'John Doe'
-                        birthDate     = '1990-01-01'
-                        thumbnailPath = '/thumbs/person1.jpg'
-                        isHidden      = $false
-                    },
-                    [PSCustomObject]@{
-                        id            = 'person2-guid-here-2345678901bcdefg'
-                        name          = 'Jane Smith'
-                        birthDate     = '1985-05-15'
-                        thumbnailPath = '/thumbs/person2.jpg'
-                        isHidden      = $false
-                    }
-                )
+                return [PSCustomObject]@{
+                    people = @(
+                        [PSCustomObject]@{
+                            id            = 'person1-guid-here-1234567890abcdef'
+                            name          = 'John Doe'
+                            birthDate     = '1990-01-01'
+                            thumbnailPath = '/thumbs/person1.jpg'
+                            isHidden      = $false
+                        },
+                        [PSCustomObject]@{
+                            id            = 'person2-guid-here-2345678901bcdefg'
+                            name          = 'Jane Smith'
+                            birthDate     = '1985-05-15'
+                            thumbnailPath = '/thumbs/person2.jpg'
+                            isHidden      = $false
+                        }
+                    )
+                    total  = 2
+                    hidden = 0
+                }
             }
             Mock Invoke-ImmichApiGetPerson -ModuleName PSImmich {
                 return [PSCustomObject]@{

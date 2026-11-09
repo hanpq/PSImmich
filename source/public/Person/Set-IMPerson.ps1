@@ -82,6 +82,11 @@
             $CurrentID = $PSItem
             $BodyParameters = @{}
             $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
+            if ($PSBoundParameters.ContainsKey('BirthDate'))
+            {
+                # Date-only value: a serialized DateTime is shifted to UTC and can land on the previous day.
+                $BodyParameters.birthDate = $BirthDate.ToString('yyyy-MM-dd')
+            }
             $BodyParameters.id = $CurrentID
             $ObjectArray += $BodyParameters
         }

@@ -52,7 +52,7 @@
             {
                 $ApiArguments = @{ ImmichSession = $Session }
                 if ($PSBoundParameters.ContainsKey('WithHidden')) { $ApiArguments.WithHidden = $WithHidden.IsPresent }
-                Invoke-ImmichApiGetAllPeople @ApiArguments | ForEach-Object { [PersonResponseDto]::new($PSItem) }
+                Invoke-ImmichApiGetAllPeople @ApiArguments | ForEach-Object { [PeopleResponseDto]::new($PSItem).people }
             }
             'id'
             {
