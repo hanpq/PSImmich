@@ -7729,6 +7729,19 @@ InModuleScope $ProjectName {
                     $Body.people[0].isHidden -eq $true
                 }
             }
+
+            It 'Should send Color as the avatarColor enum' {
+                Set-IMPerson -Id '12345678-1234-1234-1234-123456789abc' -Color 'amber' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiUpdatePeople -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.people[0].avatarColor -eq 'amber' -and
+                    -not $Body.people[0].ContainsKey('color')
+                }
+            }
+
+            It 'Should reject a color outside the avatar enum' {
+                { Set-IMPerson -Id '12345678-1234-1234-1234-123456789abc' -Color '#FF0000' -Confirm:$false } | Should -Throw
+            }
         }
     }
     Describe 'Search-IMAsset' -Tag 'Unit', 'Search-IMAsset' {

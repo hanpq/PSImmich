@@ -18,7 +18,7 @@
     .PARAMETER Name
         Display name for the person.
     .PARAMETER Color
-        Defines the color associated with the person
+        Avatar color for the person. One of: primary, pink, red, yellow, blue, green, purple, orange, gray, amber.
     .PARAMETER IsFavorite
         Defines if the person is marked as favorite
     .EXAMPLE
@@ -44,7 +44,8 @@
         $BirthDate,
 
         [Parameter()]
-        [ApiParameter('color')]
+        [ApiParameter('avatarColor')]
+        [ValidateSet('primary', 'pink', 'red', 'yellow', 'blue', 'green', 'purple', 'orange', 'gray', 'amber')]
         [string]
         $Color,
 
