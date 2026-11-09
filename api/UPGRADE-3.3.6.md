@@ -533,7 +533,57 @@ Dated learnings (2026-11):
   The timeline integration test is skipped until a partner that shares with the test account exists.
 - `Rename-IMAPIKey` is not destructive, so it does not get `ShouldProcess`; its `-WhatIf` test is removed.
 
+Commits made after the 621-test run, newest first:
+
+- `142f70f` test(memory): create a temporary memory for get-by-id tests instead of skipping
+- `c782ee2` test(user): cover user CRUD with persistent test accounts and reverting restores
+- `eae5716` test(user): cover profile picture upload and removal with reverting restore
+- `e9b1697` test(server): cover Set-IMServer with a reverting configuration round-trip
+- `b50af84` test(library): cover Sync-IMLibrary on excluded libraries
+- `bbda2ba` test(stack): build stacks from freshly imported assets
+- `534a1ad` test(asset): cover Import, Remove and Restore with reverting fixtures
+- `5eda64e` fix(asset): send boolean multipart form fields as lowercase true and false
+
+Final sequential runs of `tests/Integration` (one process at a time, 678 discovered):
+
+- Run 1: 668 passed, 0 failed, 10 skipped.
+- Run 2: 667 passed, **1 failed**, 10 skipped. The failing test was not captured.
+- Runs 3 and 4: 668 passed, 0 failed, 10 skipped.
+
+The intermittent failure is unexplained. Re-run before treating the live suite as stable.
+
+Remaining skips, each with a reason in its file:
+
+- `Get-IMAsset` by person ID and by tag ID: no people or tags exist on the server.
+- `Set-IMPartner` timeline: the server only accepts timeline updates for partners that share with
+  this account (see above).
+- `Export-IMPersonThumbnail` (2): no existing person has a thumbnail to export.
+- `Get-IMQueueJob`: the thumbnailGeneration queue has no jobs.
+- `Get-IMServerLicense`: no licence installed.
+- `Export-IMProfilePicture` (2): the test account has no profile picture. The upload test covers
+  the export path with a temporary picture.
+- `Get-IMWorkflowLog`: the test workflow has no log entries yet.
+
+Learnings from this pass:
+
+- Multipart booleans must be lowercase `true`/`false`. `ConvertTo-MultipartFieldValue` handles this;
+  `Import-IMAsset -IsFavorite` returned HTTP 400 before the fix.
+- The admin system config keeps `loginPageMessage` under `server.loginPageMessage`, not at the top
+  level. `Set-IMServer` accepts the raw JSON from `Get-IMServer -AppliedSystemConfiguration -ReturnRawJSON`
+  unchanged.
+- After `Restore-IMUser`, `deletedAt` is `0001-01-01` rather than null for active accounts. Tests
+  must treat the minimum date as "not trashed".
+- Asset fixtures use a unique `psimtest:<guid>` marker in the PNG bytes, because Immich deduplicates
+  uploads by checksum. Imported fixtures are removed with `Remove-IMAsset -Force` in `AfterAll`.
+- A server-generated `on_this_day` memory (empty `year`, 2024 date) exists on the demo server. The
+  memory tests do not create or remove it.
+
+Persistent test accounts: `PSImmich-Persistent-1` and `PSImmich-Persistent-2` (emails
+`<owner>+psimtest-persistent-{1,2}@...`) are created once and reused. Passwords are random and not
+stored. The User tests change their name, `ShouldChangePassword` flag and trash state, and restore
+each one afterwards. After the final run both are active.
+
 Not yet verified: `Should -Throw` expectations for unknown GUIDs are assumed; `Set-IMPerson` colour
-read-back on 3.3.6 is unconfirmed; persistent test users were allowed but not created.
+read-back on 3.3.6 is unconfirmed.
 
 Manual PR creation, review, merge and release remain with the maintainer.
