@@ -26,19 +26,18 @@
 
     process
     {
-        InvokeImmichRestMethod -Method Post -RelativePath '/auth/logout' -ImmichSession:$Session
+        Invoke-ImmichApiLogout -ImmichSession $Session
 
-        # Remove ImmichSession variable
-        if ($Session)
+        # Remove ImmichSession variable when it exists and matches the disconnected session
+        $defaultSession = Get-Variable -Name ImmichSession -Scope Script -ValueOnly -ErrorAction SilentlyContinue
+        if ($null -eq $defaultSession)
         {
-            if ($script:ImmichSession.SessionID -eq $Session.SessionID)
-            {
-                Remove-Variable ImmichSession -Scope Script
-            }
+            return
         }
-        else
+
+        if (-not $Session -or $defaultSession.SessionID -eq $Session.SessionID)
         {
-            Remove-Variable ImmichSession -Scope Script
+            Remove-Variable -Name ImmichSession -Scope Script -ErrorAction SilentlyContinue
         }
     }
 

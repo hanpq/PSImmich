@@ -7634,8 +7634,35 @@ InModuleScope $ProjectName {
         }
     }
     Describe 'Disconnect-Immich' -Tag 'Unit', 'Disconnect-Immich' {
-        It 'Should be true' {
-            $true | Should -Be $true
+        BeforeAll {
+            Mock Invoke-ImmichApiLogout { } -ModuleName PSImmich
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should accept Session from the pipeline' {
+                $function = Get-Command Disconnect-Immich
+                $sessionParam = $function.Parameters['Session']
+                $sessionParam.Attributes.ValueFromPipeline | Should -Contain $true
+            }
+        }
+
+        Context 'Logout Operations' {
+            It 'Should call the logout API with the provided session' {
+                $fakeSession = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Disconnect-Immich -Session $fakeSession
+
+                Should -Invoke Invoke-ImmichApiLogout -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $ImmichSession -eq $fakeSession
+                }
+            }
+
+            It 'Should call the logout API with no session when none is provided' {
+                Disconnect-Immich
+
+                Should -Invoke Invoke-ImmichApiLogout -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $null -eq $ImmichSession
+                }
+            }
         }
     }
     Describe 'Get-IMSession' -Tag 'Unit', 'Get-IMSession' {
@@ -8118,18 +8145,83 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMTimeBucket' -Tag 'Unit', 'Get-IMTimeBucket' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetTimeBuckets {
                 return @(
-                    [PSCustomObject]@{ timeBucket = '2024-01'; count = 156 },
-                    [PSCustomObject]@{ timeBucket = '2024-02'; count = 89 }
+                    [PSCustomObject]@{ timeBucket = '2024-01-01T00:00:00.000Z'; count = 156 },
+                    [PSCustomObject]@{ timeBucket = '2024-02-01T00:00:00.000Z'; count = 89 }
                 )
+            } -ModuleName PSImmich
+
+            Mock Invoke-ImmichApiGetTimeBucket {
+                return [PSCustomObject]@{ id = @('a1'); fileCreatedAt = @('2024-02-01T00:00:00.000Z') }
+            } -ModuleName PSImmich
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should require TimeBucket in the timebucket parameter set' {
+                $Function = Get-Command Get-IMTimeBucket
+                $TimeBucketParam = $Function.Parameters['TimeBucket']
+                $TimeBucketParam.ParameterSets['timebucket'].IsMandatory | Should -BeTrue
+            }
+
+            It 'Should reject an invalid Visibility value' {
+                { Get-IMTimeBucket -Visibility 'invalid' } | Should -Throw
+            }
+
+            It 'Should reject an invalid AlbumId format' {
+                { Get-IMTimeBucket -AlbumId 'not-a-guid' } | Should -Throw
             }
         }
-        Context 'Time Bucket Retrieval' {
-            It 'Should get time buckets with correct API call' {
-                Get-IMTimeBucket -timeBucket '2024-02'
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/timeline/bucket'
+
+        Context 'List Operations' {
+            It 'Should call the buckets API when no TimeBucket is given' {
+                $Result = Get-IMTimeBucket
+                Should -Invoke Invoke-ImmichApiGetTimeBuckets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $null -eq $Order -and $null -eq $ImmichSession
+                }
+                $Result.Count | Should -Be 2
+            }
+
+            It 'Should forward only bound filters to the buckets API' {
+                Get-IMTimeBucket -IsFavorite $true -Order desc -Visibility timeline
+                Should -Invoke Invoke-ImmichApiGetTimeBuckets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $IsFavorite -eq $true -and $Order -eq 'desc' -and $Visibility -eq 'timeline' -and
+                    $null -eq $AlbumId -and $null -eq $WithPartners
+                }
+            }
+
+            It 'Should forward the new spec filters to the buckets API' {
+                Get-IMTimeBucket -Bbox '1,2,3,4' -OrderBy createdAt -TagId '11111111-1111-1111-1111-111111111111' -WithCoordinates $true
+                Should -Invoke Invoke-ImmichApiGetTimeBuckets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Bbox -eq '1,2,3,4' -and $OrderBy -eq 'createdAt' -and
+                    $TagId -eq '11111111-1111-1111-1111-111111111111' -and $WithCoordinates -eq $true
+                }
+            }
+        }
+
+        Context 'Single Time Bucket Operations' {
+            It 'Should call the bucket API with the time bucket' {
+                Get-IMTimeBucket -TimeBucket '2024-02-01T00:00:00.000Z'
+                Should -Invoke Invoke-ImmichApiGetTimeBucket -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $TimeBucket -eq '2024-02-01T00:00:00.000Z' -and $null -eq $Order
+                }
+                Should -Invoke Invoke-ImmichApiGetTimeBuckets -ModuleName PSImmich -Times 0
+            }
+
+            It 'Should forward the user and partner filters to the bucket API' {
+                Get-IMTimeBucket -TimeBucket '2024-02-01T00:00:00.000Z' -UserId '22222222-2222-2222-2222-222222222222' -WithPartners $true -WithStacked $false
+                Should -Invoke Invoke-ImmichApiGetTimeBucket -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $UserId -eq '22222222-2222-2222-2222-222222222222' -and $WithPartners -eq $true -and $WithStacked -eq $false
+                }
+            }
+        }
+
+        Context 'Session Parameter' {
+            It 'Should pass Session parameter when provided' {
+                $fakeSession = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMTimeBucket -Session $fakeSession
+                Should -Invoke Invoke-ImmichApiGetTimeBuckets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $ImmichSession -eq $fakeSession
                 }
             }
         }

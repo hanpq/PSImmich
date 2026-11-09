@@ -9,22 +9,36 @@
         Optional session object for multi-instance connections.
     .PARAMETER AlbumId
         Filter by album ID.
+    .PARAMETER Bbox
+        Bounding box filter (west,south,east,north) for asset coordinates.
     .PARAMETER IsFavorite
         Filter by favorite status.
     .PARAMETER IsTrashed
         Filter by trash status.
+    .PARAMETER Key
+        Shared link key for access.
     .PARAMETER Order
         Sort order for results.
+    .PARAMETER OrderBy
+        Field used to order assets: takenAt or createdAt.
     .PARAMETER PersonId
         Filter by person ID.
+    .PARAMETER Slug
+        Shared link slug for access.
+    .PARAMETER TagId
+        Filter by tag ID.
     .PARAMETER TimeBucket
-        Timebucket
-    .PARAMETER userId
-        UserId filter
-    .PARAMETER withPartners
-        With partners filter
-    .PARAMETER withStacked
-        With stacked filter
+        Time bucket to retrieve assets for (uses the single-bucket endpoint).
+    .PARAMETER UserId
+        Filter by user ID.
+    .PARAMETER Visibility
+        Filter by visibility: archive, timeline, hidden, or locked.
+    .PARAMETER WithCoordinates
+        Only include assets with coordinates.
+    .PARAMETER WithPartners
+        Include assets from partners.
+    .PARAMETER WithStacked
+        Include stacked assets.
     .EXAMPLE
         Get-IMTimeBucket
 
@@ -38,73 +52,96 @@
         $Session = $null,
 
         [Parameter()]
-        [ApiParameter('albumId')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $albumId,
+        $AlbumId,
 
         [Parameter()]
-        [ApiParameter('isFavorite')]
-        [boolean]
-        $isFavorite,
+        [string]
+        $Bbox,
 
         [Parameter()]
-        [ApiParameter('isTrashed')]
-        [boolean]
-        $isTrashed,
+        [bool]
+        $IsFavorite,
 
         [Parameter()]
-        [ApiParameter('order')]
+        [bool]
+        $IsTrashed,
+
+        [Parameter()]
+        [string]
+        $Key,
+
+        [Parameter()]
         [ValidateSet('asc', 'desc')]
         [string]
-        $order = 'asc',
+        $Order,
 
         [Parameter()]
-        [ApiParameter('personId')]
+        [ValidateSet('takenAt', 'createdAt')]
+        [string]
+        $OrderBy,
+
+        [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $personId,
+        $PersonId,
+
+        [Parameter()]
+        [string]
+        $Slug,
+
+        [Parameter()]
+        [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
+        [string]
+        $TagId,
 
         [Parameter(Mandatory, ParameterSetName = 'timebucket')]
-        [ApiParameter('timeBucket')]
         [string]
-        $timeBucket,
+        $TimeBucket,
 
         [Parameter()]
-        [ApiParameter('userId')]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
         [string]
-        $userId,
+        $UserId,
 
         [Parameter()]
-        [ApiParameter('withPartners')]
-        [boolean]
-        $withPartners,
+        [ValidateSet('archive', 'timeline', 'hidden', 'locked')]
+        [string]
+        $Visibility,
 
         [Parameter()]
-        [ApiParameter('withStacked')]
-        [boolean]
-        $withStacked
+        [bool]
+        $WithCoordinates,
+
+        [Parameter()]
+        [bool]
+        $WithPartners,
+
+        [Parameter()]
+        [bool]
+        $WithStacked
     )
 
-    begin
+    $ApiParams = @{ ImmichSession = $Session }
+    foreach ($Name in 'AlbumId', 'Bbox', 'IsFavorite', 'IsTrashed', 'Key', 'Order', 'OrderBy', 'PersonId', 'Slug', 'TagId', 'UserId', 'Visibility', 'WithCoordinates', 'WithPartners', 'WithStacked')
     {
-        $QueryParameters = @{}
-        $QueryParameters += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
+        if ($PSBoundParameters.ContainsKey($Name))
+        {
+            $ApiParams[$Name] = $PSBoundParameters[$Name]
+        }
     }
 
-    process
+    switch ($PSCmdlet.ParameterSetName)
     {
-        switch ($PSCmdlet.ParameterSetName)
+        'list'
         {
-            'list'
-            {
-                InvokeImmichRestMethod -Method Get -RelativePath '/timeline/buckets' -ImmichSession:$Session -QueryParameters $QueryParameters
-            }
-            'timebucket'
-            {
-                InvokeImmichRestMethod -Method Get -RelativePath '/timeline/bucket' -ImmichSession:$Session -QueryParameters $QueryParameters
-            }
+            Invoke-ImmichApiGetTimeBuckets @ApiParams
+        }
+        'timebucket'
+        {
+            $ApiParams['TimeBucket'] = $TimeBucket
+            Invoke-ImmichApiGetTimeBucket @ApiParams
         }
     }
 }

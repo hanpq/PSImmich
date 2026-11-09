@@ -237,8 +237,9 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 | Unreachable | 110 |
 | Total | 279 |
 
-Wired for 153 of 219 non-excluded operations (69.9%) after the Map batch
-(was 151, 68.9%, after the Notification batch;
+Wired for 156 of 219 non-excluded operations (71.2%) after the Session and Timeline batches
+(was 153, 69.9%, after the Map batch;
+was 151, 68.9%, after the Notification batch;
 was 150, 68.5%, after the Auth batch;
 was 149, 68.0%, after the Plugin batch;
 was 147, 67.1%, after the Duplicates batch;
@@ -291,6 +292,15 @@ Map batch: `Get-IMMapMarker` calls `getMapMarkers` (`GET /map/markers`) and forw
 calls `reverseGeocode` (`GET /map/reverse-geocode`). Breaking: outputs are now `MapMarkerResponseDto` and
 `MapReverseGeocodeResponseDto`. The 3.3.6 DTOs have no `assetCount` (markers) or `name` (reverse geocode), so those
 properties are no longer returned. Targeted tests: 36 passed, 0 failed.
+
+Session batch: `Disconnect-Immich` calls `logout` (`POST /auth/logout`) through `Invoke-ImmichApiLogout`. It now
+tolerates the absence of a default session instead of failing on `Remove-Variable`. `Invoke-ImmichMethod` stays a raw
+passthrough on `InvokeImmichRestMethod` by design. Targeted tests (with Timeline): 26 passed, 0 failed.
+
+Timeline batch: `Get-IMTimeBucket` calls `getTimeBuckets` (`GET /timeline/buckets`) in list mode and `getTimeBucket`
+(`GET /timeline/bucket`, mandatory `-TimeBucket`) in the `timebucket` set. It adds the spec filters `-Bbox`, `-Key`,
+`-OrderBy`, `-Slug`, `-TagId`, `-Visibility`, and `-WithCoordinates`. Only bound filters are forwarded. Output stays raw
+(no DTO cast) so the existing shape is unchanged. Targeted tests (with Session): 26 passed, 0 failed.
 
 AuthSession batch: `Get-IMAuthSession` (`getSessions`) returns `SessionResponseDto`; `Remove-IMAuthSession` calls
 `deleteAllSessions` (no `-Id`) or `deleteSession` (per `-Id`). Breaking: the 3.3.6 `SessionResponseDto` has no
