@@ -261,6 +261,16 @@ InModuleScope $ProjectName {
                     $Body -match '"when":"2026-11-06T10:00:00(\.0+)?Z"'
                 }
             }
+            It 'Should send datetimes nested in hashtables as UTC ISO 8601' {
+                InvokeImmichRestMethod -Method post -immichsession:$Session -RelativePath '/auth/login' -Body:@{
+                    filter = @{
+                        takenAt = @{ lte = [datetime]::SpecifyKind([datetime]'2026-11-06T10:00:00', 'Utc') }
+                    }
+                }
+                Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
+                    $Body -match '"lte":"2026-11-06T10:00:00(\.0+)?Z"'
+                }
+            }
         }
         Context 'When calling get with datetime query' {
             It 'Should format the datetime as UTC ISO 8601' {

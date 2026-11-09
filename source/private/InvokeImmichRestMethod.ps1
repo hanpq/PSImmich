@@ -92,36 +92,7 @@
     # Add body to invoke rest method splat
     if ($Body)
     {
-        $NewBody = @{}
-        foreach ($Key in $Body.Keys)
-        {
-            switch ($Body.$Key.GetType().Name)
-            {
-                'boolean'
-                {
-                    $NewBody.$Key = [bool]$Body.$Key
-                    break
-                }
-                'SwitchParameter'
-                {
-                    $NewBody.$Key = [bool]$Body.$Key
-                    break
-                }
-                'datetime'
-                {
-                    $NewBody.$Key = ([DateTimeOffset]$Body.$Key).UtcDateTime.ToString('o')
-                    break
-                }
-                'SecureString'
-                {
-                    $NewBody.$Key = ConvertFromSecureString -SecureString $Body.$Key
-                }
-                default
-                {
-                    $NewBody.$Key = $Body.$Key
-                }
-            }
-        }
+        $NewBody = ConvertTo-ImmichRequestBody -InputObject $Body
         $InvokeRestMethodSplat.Body = $NewBody | ConvertTo-Json -Compress -Depth 10
     }
 
