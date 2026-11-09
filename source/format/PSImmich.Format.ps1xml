@@ -186,9 +186,9 @@
             </TableControl>
         </View>
         <View>
-            <Name>PSImmich.ObjectType.IMPlace</Name>
+            <Name>PSImmich.ObjectType.PlacesResponseDto</Name>
             <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMPlace</TypeName>
+                <TypeName>PlacesResponseDto</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
@@ -282,78 +282,6 @@
                             </TableColumnItem>
                             <TableColumnItem>
                                 <PropertyName>createdAt</PropertyName>
-                            </TableColumnItem>
-                        </TableColumnItems>
-                    </TableRowEntry>
-                </TableRowEntries>
-            </TableControl>
-        </View>
-        <View>
-            <Name>PSImmich.ObjectType.IMLargeAsset</Name>
-            <ViewSelectedBy>
-                <TypeName>PSImmich.ObjectType.IMLargeAsset</TypeName>
-            </ViewSelectedBy>
-            <TableControl>
-                <TableHeaders>
-                    <TableColumnHeader>
-                        <Label>Id</Label>
-                        <Width>37</Width>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Type</Label>
-                        <Width>6</Width>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>FileName</Label>
-                        <Width>30</Width>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Size (MB)</Label>
-                        <Width>10</Width>
-                        <Alignment>Right</Alignment>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Resolution</Label>
-                        <Width>12</Width>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                        <Label>Updated</Label>
-                        <Width>20</Width>
-                    </TableColumnHeader>
-                </TableHeaders>
-                <TableRowEntries>
-                    <TableRowEntry>
-                        <TableColumnItems>
-                            <TableColumnItem>
-                                <PropertyName>id</PropertyName>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <PropertyName>type</PropertyName>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <PropertyName>originalFileName</PropertyName>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <ScriptBlock>
-                                    if ($_.exifInfo.fileSizeInByte) {
-                                    [math]::Round($_.exifInfo.fileSizeInByte / 1MB, 2)
-                                    } else {
-                                    'N/A'
-                                    }
-                                </ScriptBlock>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <ScriptBlock>
-                                    if ($_.exifInfo.exifImageWidth -and $_.exifInfo.exifImageHeight)
-                                    {
-                                    "$($_.exifInfo.exifImageWidth)x$($_.exifInfo.exifImageHeight)"
-                                    } else {
-                                    'N/A'
-                                    }
-                                </ScriptBlock>
-                            </TableColumnItem>
-                            <TableColumnItem>
-                                <PropertyName>updatedAt</PropertyName>
                             </TableColumnItem>
                         </TableColumnItems>
                     </TableRowEntry>

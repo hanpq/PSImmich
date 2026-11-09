@@ -21,6 +21,11 @@
             "Reason": "Functionality covered by Set-IMAsset -AddToAlbum parameter. This API is more efficient when adding multiple assets to multiple albums at the same time."
         },
         {
+            "Path": "/search/cities",
+            "Method": "GET",
+            "Reason": "Web places-page feature (one thumbnail per city); no PowerShell use case. Find-IMCity removed."
+        },
+        {
             "Path": "/auth/admin-sign-up",
             "Method": "POST",
             "Reason": "Admin setup - not suitable for interactive use"

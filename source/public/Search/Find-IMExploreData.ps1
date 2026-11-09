@@ -19,7 +19,7 @@
         [ImmichSession]$Session = $null
     )
 
-    InvokeImmichRestMethod -Method GET -RelativePath '/search/explore' -ImmichSession:$Session -Body $Body
+    Invoke-ImmichApiGetExploreData -ImmichSession $Session | ForEach-Object { [SearchExploreResponseDto]::new($PSItem) }
 
 }
 #endregion

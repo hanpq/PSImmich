@@ -7155,47 +7155,26 @@ InModuleScope $ProjectName {
     }
     Describe 'Find-IMAsset' -Tag 'Unit', 'Find-IMAsset' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiSearchAssets -ModuleName PSImmich {
                 return [PSCustomObject]@{
-                    assets = @(
-                        [PSCustomObject]@{
-                            items = @(
-                                [PSCustomObject]@{
-                                    id               = 'asset1-guid-here-1234567890abcdef'
-                                    type             = 'IMAGE'
-                                    originalFileName = 'photo1.jpg'
-                                    fileCreatedAt    = '2024-01-01T10:00:00Z'
-                                },
-                                [PSCustomObject]@{
-                                    id               = 'asset2-guid-here-2345678901bcdefg'
-                                    type             = 'VIDEO'
-                                    originalFileName = 'video1.mp4'
-                                    fileCreatedAt    = '2024-01-02T11:00:00Z'
-                                }
-                            )
-                        }
-                    )
-                    albums = @()
-                    total  = 2
+                    assets = [PSCustomObject]@{
+                        items    = @(
+                            [PSCustomObject]@{
+                                id               = 'asset1-guid-here-1234567890abcdef'
+                                type             = 'IMAGE'
+                                originalFileName = 'photo1.jpg'
+                                fileCreatedAt    = '2024-01-01T10:00:00Z'
+                            },
+                            [PSCustomObject]@{
+                                id               = 'asset2-guid-here-2345678901bcdefg'
+                                type             = 'VIDEO'
+                                originalFileName = 'video1.mp4'
+                                fileCreatedAt    = '2024-01-02T11:00:00Z'
+                            }
+                        )
+                        nextPage = $null
+                    }
                 }
-            }
-
-            Mock ConvertTo-ApiParameters {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Query)
-                {
-                    $result.q = $BoundParameters.Query
-                }
-                if ($BoundParameters.Type)
-                {
-                    $result.type = $BoundParameters.Type
-                }
-                if ($BoundParameters.IsFavorite -ne $null)
-                {
-                    $result.isFavorite = $BoundParameters.IsFavorite
-                }
-                return $result
             }
         }
 
@@ -7215,17 +7194,18 @@ InModuleScope $ProjectName {
         }
 
         Context 'Asset Search' {
-            It 'Should search assets with correct API call' {
-                Find-IMAsset -OriginalFileName 'vacation.jpg'
+            It 'Should POST to the internal search assets endpoint with the metadata filter' {
+                $result = Find-IMAsset -OriginalFileName 'vacation.jpg'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/search/metadata'
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.originalFileName -eq 'vacation.jpg'
                 }
+                $result.Count | Should -Be 2
+                $result[0].GetType().Name | Should -Be 'AssetResponseDto'
             }
 
             It 'Should send the next page token as an integer when paging' {
-                Mock InvokeImmichRestMethod {
+                Mock Invoke-ImmichApiSearchAssets -ModuleName PSImmich {
                     if ($Body.page)
                     {
                         return [PSCustomObject]@{ assets = [PSCustomObject]@{ items = @(); nextPage = $null } }
@@ -7233,31 +7213,32 @@ InModuleScope $ProjectName {
                     return [PSCustomObject]@{ assets = [PSCustomObject]@{ items = @([PSCustomObject]@{ id = 'a1' }); nextPage = '2' } }
                 }
 
-                Find-IMAsset -OriginalFileName 'unsp' -Size 1
+                $result = Find-IMAsset -OriginalFileName 'unsp' -Size 1
 
-                Should -Invoke InvokeImmichRestMethod -Exactly -Times 2 -ParameterFilter {
-                    $RelativePath -eq '/search/metadata' -and
-                    ($null -eq $Body.page -or $Body.page -is [int])
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Exactly -Times 2
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.page -is [int] -and $Body.page -eq 2
                 }
+                $result.Count | Should -Be 1
             }
 
-            It 'Should include query parameters' {
+            It 'Should map query parameters into the request body' {
                 Find-IMAsset -OriginalFileName 'beach.jpg' -Type 'IMAGE' -isFavorite:$true
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -ParameterFilter {
-                    $BoundParameters.originalFileName -eq 'beach.jpg' -and
-                    $BoundParameters.Type -eq 'IMAGE' -and
-                    $BoundParameters.IsFavorite -eq $true
+                Should -Invoke Invoke-ImmichApiSearchAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.originalFileName -eq 'beach.jpg' -and
+                    $Body.type -eq 'IMAGE' -and
+                    $Body.isFavorite -eq $true
                 }
             }
         }
     }
     Describe 'Search-IMAsset' -Tag 'Unit', 'Search-IMAsset' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiSearchSmart -ModuleName PSImmich {
                 return [PSCustomObject]@{
                     assets = [PSCustomObject]@{
-                        items = @(
+                        items    = @(
                             [PSCustomObject]@{
                                 id               = 'search-asset1-guid-1234567890abcdef'
                                 type             = 'IMAGE'
@@ -7271,26 +7252,9 @@ InModuleScope $ProjectName {
                                 fileCreatedAt    = '2024-01-02T11:00:00Z'
                             }
                         )
+                        nextPage = $null
                     }
                 }
-            }
-
-            Mock ConvertTo-ApiParameters {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Query)
-                {
-                    $result.query = $BoundParameters.Query
-                }
-                if ($BoundParameters.Clip)
-                {
-                    $result.clip = $BoundParameters.Clip
-                }
-                if ($BoundParameters.Motion)
-                {
-                    $result.motion = $BoundParameters.Motion
-                }
-                return $result
             }
         }
 
@@ -7304,67 +7268,29 @@ InModuleScope $ProjectName {
         }
 
         Context 'Asset Search Operations' {
-            It 'Should search assets with smart search API' {
-                Search-IMAsset -Query 'sunset beach'
+            It 'Should POST to the smart search endpoint and return AssetResponseDto objects' {
+                $result = Search-IMAsset -Query 'sunset beach'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and
-                    $RelativePath -eq '/search/smart'
+                Should -Invoke Invoke-ImmichApiSearchSmart -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.query -eq 'sunset beach'
                 }
+                $result.Count | Should -Be 2
+                $result[0].GetType().Name | Should -Be 'AssetResponseDto'
             }
 
-            It 'Should handle OCR search' {
+            It 'Should map OCR search text into the request body' {
                 Search-IMAsset -Query 'running dog' -OCR 'text search'
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -ParameterFilter {
-                    $BoundParameters.OCR -eq 'text search' -and
-                    $BoundParameters.Query -eq 'running dog'
+                Should -Invoke Invoke-ImmichApiSearchSmart -ModuleName PSImmich -Times 1 -ParameterFilter {
+                    $Body.ocr -eq 'text search' -and
+                    $Body.query -eq 'running dog'
                 }
-            }
-        }
-    }
-    Describe 'Find-IMCity' -Tag 'Unit', 'Find-IMCity' {
-        BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @(
-                    [PSCustomObject]@{
-                        id         = 'city1-guid-here-1234567890abcdef'
-                        name       = 'London'
-                        country    = 'United Kingdom'
-                        assetCount = 150
-                    },
-                    [PSCustomObject]@{
-                        id         = 'city2-guid-here-2345678901bcdefg'
-                        name       = 'Paris'
-                        country    = 'France'
-                        assetCount = 89
-                    }
-                )
-            }
-        }
-
-        Context 'City Search' {
-            It 'Should search cities with correct API call' {
-                Find-IMCity
-
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/search/cities'
-                }
-            }
-
-            It 'Should return city results' {
-                $result = Find-IMCity
-
-                $result | Should -HaveCount 2
-                $result[0].name | Should -Be 'London'
-                $result[1].country | Should -Be 'France'
             }
         }
     }
     Describe 'Find-IMExploreData' -Tag 'Unit', 'Find-IMExploreData' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetExploreData -ModuleName PSImmich {
                 return @(
                     [PSCustomObject]@{
                         fieldName = 'camera-make'
@@ -7385,27 +7311,36 @@ InModuleScope $ProjectName {
         }
 
         Context 'Explore Data Retrieval' {
-            It 'Should get explore data with correct API call' {
+            It 'Should call the generated explore data function' {
                 Find-IMExploreData
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/search/explore'
-                }
+                Should -Invoke Invoke-ImmichApiGetExploreData -ModuleName PSImmich -Times 1 -Exactly
             }
 
-            It 'Should return structured explore data' {
+            It 'Should return SearchExploreResponseDto objects' {
                 $result = Find-IMExploreData
 
                 $result | Should -HaveCount 2
+                $result[0].GetType().Name | Should -Be 'SearchExploreResponseDto'
                 $result[0].fieldName | Should -Be 'camera-make'
                 $result[1].items[0].value | Should -Be 'vacation'
             }
+
+            It 'Should forward an explicit session' {
+                $session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+                Find-IMExploreData -Session $session
+
+                Should -Invoke Invoke-ImmichApiGetExploreData -ModuleName PSImmich -ParameterFilter {
+                    $ImmichSession -eq $session
+                }
+            }
         }
     }
+
     Describe 'Find-IMPerson' -Tag 'Unit', 'Find-IMPerson' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiSearchPerson -ModuleName PSImmich {
                 return @(
                     [PSCustomObject]@{
                         id            = 'found-person1-guid-1234567890abcdef'
@@ -7425,63 +7360,86 @@ InModuleScope $ProjectName {
             }
         }
 
-        Context 'Person Search' {
-            It 'Should search people with correct API call' {
+        Context 'Request mapping' {
+            It 'Should pass Name and omit WithHidden when not bound' {
                 Find-IMPerson -Name 'Alice'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/search/person'
+                Should -Invoke Invoke-ImmichApiSearchPerson -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $Name -eq 'Alice' -and
+                    -not $PSBoundParameters.ContainsKey('WithHidden')
                 }
             }
 
-            It 'Should return person search results' {
+            It 'Should send an explicit WithHidden value of false' {
+                Find-IMPerson -Name 'Alice' -WithHidden $false
+
+                Should -Invoke Invoke-ImmichApiSearchPerson -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $Name -eq 'Alice' -and
+                    $WithHidden -eq $false
+                }
+            }
+
+            It 'Should reject a missing Name' {
+                { Find-IMPerson } | Should -Throw
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return PersonResponseDto objects' {
                 $result = Find-IMPerson -Name 'Alice'
 
                 $result | Should -HaveCount 2
+                $result[0].GetType().Name | Should -Be 'PersonResponseDto'
                 $result[0].name | Should -Be 'Alice Johnson'
                 $result[1].name | Should -Be 'Bob Wilson'
             }
         }
     }
+
     Describe 'Find-IMPlace' -Tag 'Unit', 'Find-IMPlace' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiSearchPlaces -ModuleName PSImmich {
                 return @(
                     [PSCustomObject]@{
-                        id         = 'place1-guid-here-1234567890abcdef'
                         name       = 'Central Park'
-                        city       = 'New York'
-                        country    = 'United States'
-                        assetCount = 67
+                        latitude   = 40.7829
+                        longitude  = -73.9654
+                        admin1name = 'New York'
+                        admin2name = 'New York County'
                     },
                     [PSCustomObject]@{
-                        id         = 'place2-guid-here-2345678901bcdefg'
                         name       = 'Tower Bridge'
-                        city       = 'London'
-                        country    = 'United Kingdom'
-                        assetCount = 23
+                        latitude   = 51.5055
+                        longitude  = -0.0754
+                        admin1name = 'England'
+                        admin2name = 'Greater London'
                     }
                 )
             }
         }
 
-        Context 'Place Search' {
-            It 'Should search places with correct API call' {
+        Context 'Request mapping' {
+            It 'Should pass the Name to the generated places function' {
                 Find-IMPlace -Name 'Central'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
-                    $Method -eq 'Get' -and
-                    $RelativePath -eq '/search/places'
+                Should -Invoke Invoke-ImmichApiSearchPlaces -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $Name -eq 'Central'
                 }
             }
 
-            It 'Should return place search results' {
+            It 'Should reject a missing Name' {
+                { Find-IMPlace } | Should -Throw
+            }
+        }
+
+        Context 'Output' {
+            It 'Should return PlacesResponseDto objects' {
                 $result = Find-IMPlace -Name 'Central'
 
                 $result | Should -HaveCount 2
+                $result[0].GetType().Name | Should -Be 'PlacesResponseDto'
                 $result[0].name | Should -Be 'Central Park'
-                $result[1].city | Should -Be 'London'
+                $result[1].admin2name | Should -Be 'Greater London'
             }
         }
     }
@@ -8324,7 +8282,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMTopLargestAsset' -Tag 'Unit', 'Get-IMTopLargestAsset' {
         BeforeAll {
-            Mock InvokeImmichRestMethod -ModuleName PSImmich {
+            Mock Invoke-ImmichApiSearchLargeAssets -ModuleName PSImmich {
                 return @(
                     [PSCustomObject]@{
                         id               = '123e4567-e89b-12d3-a456-426614174000'
@@ -8350,18 +8308,6 @@ InModuleScope $ProjectName {
                     }
                 )
             }
-
-            Mock AddCustomType -MockWith {
-                param($InputObject, $TypeName)
-                $InputObject | ForEach-Object {
-                    $_.PSTypeNames.Insert(0, "PSImmich.ObjectType.$TypeName")
-                }
-                return $InputObject
-            } -ModuleName PSImmich
-
-            Mock ConvertTo-ApiParameters -MockWith {
-                return @{ size = $BoundParameters.Size }
-            } -ModuleName PSImmich
         }
 
         Context 'Parameter Validation' {
@@ -8375,52 +8321,51 @@ InModuleScope $ProjectName {
                 $ValidateRange.MaxRange | Should -Be 1000
             }
 
-            It 'Should include default Size of 100 when not explicitly provided' {
-                # The function should add the default Size value to parameters
-                Get-IMTopLargestAsset
-
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ContainsKey('Size') -and $BoundParameters.Size -eq 100
-                }
-            }
-
-            It 'Should accept custom Size parameter' {
-                Get-IMTopLargestAsset -Size 50
-
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -ParameterFilter {
-                    $BoundParameters.Size -eq 50
-                }
-            }
-
             It 'Should have Session parameter of ImmichSession type' {
                 $Function = Get-Command Get-IMTopLargestAsset
                 $Function.Parameters['Session'].ParameterType.Name | Should -Be 'ImmichSession'
             }
+
+            It 'Should reject a Size outside 1-1000' {
+                { Get-IMTopLargestAsset -Size 0 } | Should -Throw
+                { Get-IMTopLargestAsset -Size 1001 } | Should -Throw
+            }
         }
 
-        Context 'API Calls' {
-            It 'Should call correct REST method and endpoint' {
+        Context 'Request mapping' {
+            It 'Should send the default Size of 100 when not explicitly provided' {
                 Get-IMTopLargestAsset
 
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'POST' -and $RelativePath -eq '/search/large-assets'
+                Should -Invoke Invoke-ImmichApiSearchLargeAssets -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $Size -eq 100
+                }
+            }
+
+            It 'Should forward a custom Size' {
+                Get-IMTopLargestAsset -Size 50
+
+                Should -Invoke Invoke-ImmichApiSearchLargeAssets -ModuleName PSImmich -Times 1 -Exactly -ParameterFilter {
+                    $Size -eq 50
+                }
+            }
+
+            It 'Should forward an explicit session' {
+                $session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+
+                Get-IMTopLargestAsset -Session $session
+
+                Should -Invoke Invoke-ImmichApiSearchLargeAssets -ModuleName PSImmich -ParameterFilter {
+                    $ImmichSession -eq $session
                 }
             }
         }
 
         Context 'Response Processing' {
-            It 'Should call AddCustomType with IMLargeAsset type' {
-                Get-IMTopLargestAsset
-
-                Should -Invoke AddCustomType -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Type -eq 'IMLargeAsset'
-                }
-            }
-
-            It 'Should return array of asset objects with custom type' {
+            It 'Should return AssetResponseDto objects' {
                 $Result = Get-IMTopLargestAsset
 
                 $Result | Should -HaveCount 2
+                $Result[0].GetType().Name | Should -Be 'AssetResponseDto'
                 $Result[0].id | Should -Be '123e4567-e89b-12d3-a456-426614174000'
                 $Result[0].type | Should -Be 'IMAGE'
                 $Result[1].id | Should -Be '987fcdeb-51a2-43d5-b789-123456789abc'
@@ -8433,29 +8378,6 @@ InModuleScope $ProjectName {
                 $Result[0].exifInfo.fileSizeInByte | Should -Be 52428800
                 $Result[0].exifInfo.exifImageWidth | Should -Be 4000
                 $Result[1].exifInfo.fileSizeInByte | Should -Be 104857600
-            }
-        }
-
-        Context 'Parameter Conversion' {
-            It 'Should call ConvertTo-ApiParameters correctly' {
-                Get-IMTopLargestAsset -Size 250
-
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.ContainsKey('Size') -and $BoundParameters.Size -eq 250 -and
-                    $CmdletName -eq 'Get-IMTopLargestAsset'
-                }
-            }
-
-            It 'Should pass converted parameters to REST method' {
-                Mock ConvertTo-ApiParameters -MockWith {
-                    return @{ size = 150 }
-                } -ModuleName PSImmich
-
-                Get-IMTopLargestAsset
-
-                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Body.size -eq 150
-                }
             }
         }
     }

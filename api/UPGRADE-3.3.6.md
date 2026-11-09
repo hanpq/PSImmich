@@ -231,14 +231,15 @@ Measured with `.\tools\Get-ImmichApiCoverage.ps1` against `api.3.3.6.json`:
 
 | Status | Count |
 | --- | ---: |
-| Excluded (`exclusions.json`, method and path) | 59 |
-| Tested (generated function named under `tests/Unit`) | 19 |
-| Reachable (generated function used by module source) | 78 |
-| Unreachable | 123 |
+| Excluded (`exclusions.json`, method and path) | 60 |
+| Tested (generated function named under `tests/Unit`) | 35 |
+| Reachable (generated function used by module source) | 74 |
+| Unreachable | 110 |
 | Total | 279 |
 
-Wired for 105 of 220 non-excluded operations (47.7%) after the SharedLink batch
-(was 97, 44.1%, after the Job batch;
+Wired for 109 of 219 non-excluded operations (49.8%) after the Search batch
+(was 105, 47.7%, after the SharedLink batch;
+was 97, 44.1%, after the Job batch;
 was 91, 41.4%, after the Library batch;
 was 83, 37.7%, after the User batch and the profile-image export;
 was 82, 37.3%, after the User batch;
@@ -290,6 +291,17 @@ SharedLink batch: the six shared-link cmdlets call the generated functions. `Get
 the list query no longer sends an empty `albumId`. The asset cmdlets declared `SupportsShouldProcess`
 but never checked it; they now honor `-WhatIf` and `-Confirm`. No shared-link route is deprecated
 in 3.3.6, so no legacy paths remain. No format view existed for shared links, so no type name changed.
+
+Search batch: `Find-IMExploreData`, `Find-IMPerson`, `Find-IMPlace`, `Find-IMAsset`, `Search-IMAsset`,
+and `Get-IMTopLargestAsset` call the generated functions. Results are DTO objects:
+`SearchExploreResponseDto`, `PersonResponseDto`, `PlacesResponseDto`, and `AssetResponseDto`.
+`Get-IMTopLargestAsset` was sending a JSON body to `POST /search/large-assets`, but the 3.3.6
+spec defines only the `size` query parameter. It now sends `size` as a query parameter, and it
+returns `AssetResponseDto`, so the former `IMLargeAsset` view was removed. `Find-IMCity` was
+removed because `GET /search/cities` is a web places-page feature. Its route is excluded in
+`exclusions.json`, and the generated `Invoke-ImmichApiGetAssetsByCity` stays as internal
+coverage. `Find-IMPlace` output now uses `PlacesResponseDto` fields (name, latitude, longitude,
+admin1name, admin2name).
 
 ## Next handoff
 

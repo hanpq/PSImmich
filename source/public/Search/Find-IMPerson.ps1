@@ -23,18 +23,16 @@
         [ImmichSession]$Session = $null,
 
         [Parameter(Mandatory)]
-        [ApiParameter('name')]
         [string]$Name,
 
         [Parameter()]
-        [ApiParameter('withHidden')]
         [boolean]$WithHidden
     )
 
-    $Query = @{}
-    $Query += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
+    $ApiArguments = @{ Name = $Name; ImmichSession = $Session }
+    if ($PSBoundParameters.ContainsKey('WithHidden')) { $ApiArguments.WithHidden = $WithHidden }
 
-    InvokeImmichRestMethod -Method GET -RelativePath '/search/person' -ImmichSession:$Session -QueryParameters:$Query
+    Invoke-ImmichApiSearchPerson @ApiArguments | ForEach-Object { [PersonResponseDto]::new($PSItem) }
 
 }
 #endregion
