@@ -427,16 +427,15 @@ InModuleScope $ProjectName {
     }
     Describe 'Add-IMAlbumUser' -Tag 'Unit', 'Add-IMAlbumUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{success = $true } }
+            Mock Invoke-ImmichApiAddUsersToAlbum -ModuleName PSImmich { return @{success = $true } }
         }
 
         Context 'When adding a single user to an album' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiAddUsersToAlbum with correct parameters' {
                 Add-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '223e4567-e89b-12d3-a456-426614174001' -Role 'editor'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/users' -and
+                Should -Invoke Invoke-ImmichApiAddUsersToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and
                     $Body.albumUsers -is [array] -and
                     $Body.albumUsers[0].userId -eq '223e4567-e89b-12d3-a456-426614174001' -and
                     $Body.albumUsers[0].role -eq 'editor'
@@ -448,7 +447,7 @@ InModuleScope $ProjectName {
             It 'Should create correct body with multiple user objects' {
                 Add-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId @('223e4567-e89b-12d3-a456-426614174001', '323e4567-e89b-12d3-a456-426614174002') -Role 'viewer'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiAddUsersToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $Body.albumUsers.Count -eq 2 -and
                     $Body.albumUsers[0].role -eq 'viewer' -and
                     $Body.albumUsers[1].role -eq 'viewer'
@@ -460,7 +459,7 @@ InModuleScope $ProjectName {
             It 'Should accept UserId from pipeline by value' {
                 @('223e4567-e89b-12d3-a456-426614174001', '323e4567-e89b-12d3-a456-426614174002') | Add-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Role 'editor'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiAddUsersToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $Body.albumUsers.Count -eq 2
                 }
             }
@@ -472,7 +471,7 @@ InModuleScope $ProjectName {
                 )
                 $users | Add-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Role 'viewer'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiAddUsersToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
 
@@ -494,7 +493,7 @@ InModuleScope $ProjectName {
             It 'Should use viewer as default role' {
                 Add-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '223e4567-e89b-12d3-a456-426614174001'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiAddUsersToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $Body.albumUsers[0].role -eq 'viewer'
                 }
             }
@@ -504,7 +503,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Add-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '223e4567-e89b-12d3-a456-426614174001'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiAddUsersToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -512,18 +511,14 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMAlbum' -Tag 'Unit', 'Get-IMAlbum' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                if ($RelativePath -eq '/albums')
-                {
-                    return @(
-                        @{id = '123e4567-e89b-12d3-a456-426614174000'; albumName = 'Family Photos'; shared = $false },
-                        @{id = '223e4567-e89b-12d3-a456-426614174001'; albumName = 'Vacation 2023'; shared = $true }
-                    )
-                }
-                elseif ($RelativePath -match '/albums/[a-f0-9-]+')
-                {
-                    return @{id = '123e4567-e89b-12d3-a456-426614174000'; albumName = 'Family Photos'; assets = @() }
-                }
+            Mock Invoke-ImmichApiGetAllAlbums -ModuleName PSImmich {
+                return @(
+                    @{id = '123e4567-e89b-12d3-a456-426614174000'; albumName = 'Family Photos'; shared = $false },
+                    @{id = '223e4567-e89b-12d3-a456-426614174001'; albumName = 'Vacation 2023'; shared = $true }
+                )
+            }
+            Mock Invoke-ImmichApiGetAlbumInfo -ModuleName PSImmich {
+                return @{id = '123e4567-e89b-12d3-a456-426614174000'; albumName = 'Family Photos'; assets = @() }
             }
             Mock ConvertTo-ApiParameters { return @{} }
             Mock AddCustomType {
@@ -533,27 +528,28 @@ InModuleScope $ProjectName {
         }
 
         Context 'When retrieving all albums (list parameter set)' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiGetAllAlbums without filters by default' {
                 Get-IMAlbum
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/albums'
+                Should -Invoke Invoke-ImmichApiGetAllAlbums -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $null -eq $IsShared -and $null -eq $AssetId
                 }
+                Should -Invoke Invoke-ImmichApiGetAlbumInfo -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
 
-            It 'Should send isShared query parameter when Shared is specified' {
+            It 'Should pass IsShared when Shared is specified' {
                 Get-IMAlbum -Shared $true
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums' -and $QueryParameters.isShared -eq $true
+                Should -Invoke Invoke-ImmichApiGetAllAlbums -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $IsShared -eq $true
                 }
             }
 
-            It 'Should not send a shared query parameter when Shared is omitted' {
-                Get-IMAlbum
+            It 'Should pass IsShared as false when Shared is false' {
+                Get-IMAlbum -Shared $false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums' -and -not ($QueryParameters -and $QueryParameters.ContainsKey('isShared'))
+                Should -Invoke Invoke-ImmichApiGetAllAlbums -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $IsShared -eq $false
                 }
             }
 
@@ -565,20 +561,13 @@ InModuleScope $ProjectName {
         }
 
         Context 'When retrieving specific album by ID (id parameter set)' {
-            It 'Should call InvokeImmichRestMethod with album ID path' {
+            It 'Should call Invoke-ImmichApiGetAlbumInfo with the album ID' {
                 Get-IMAlbum -AlbumId '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
-            }
-
-            It 'Should not send a withoutAssets query parameter, which the spec does not define' {
-                Get-IMAlbum -AlbumId '123e4567-e89b-12d3-a456-426614174000'
-
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    -not ($QueryParameters -and $QueryParameters.ContainsKey('withoutAssets'))
-                }
+                Should -Invoke Invoke-ImmichApiGetAllAlbums -ModuleName PSImmich -Times 0 -Exactly -Scope It
             }
 
             It 'Should return AlbumResponseDto without assets when IncludeAssets is omitted' {
@@ -591,13 +580,13 @@ InModuleScope $ProjectName {
 
         Context 'When including assets' {
             BeforeAll {
-                Mock Invoke-ImmichApiSearchAssets {
+                Mock Invoke-ImmichApiSearchAssets -ModuleName PSImmich {
                     if ($Body.page -eq 1)
                     {
                         return @{ assets = @{ items = @(@{ id = 'asset-1' }); nextPage = '2' } }
                     }
                     return @{ assets = @{ items = @(@{ id = 'asset-2' }); nextPage = $null } }
-                } -ModuleName 'PSImmich'
+                }
             }
 
             It 'Should page through metadata search filtered by the album ID' {
@@ -611,11 +600,11 @@ InModuleScope $ProjectName {
         }
 
         Context 'When filtering by asset ID' {
-            It 'Should send assetId query parameter' {
+            It 'Should pass AssetId to Invoke-ImmichApiGetAllAlbums' {
                 Get-IMAlbum -AssetId '123e4567-e89b-12d3-a456-426614174000'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums' -and $QueryParameters.assetId -eq '123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetAllAlbums -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $AssetId -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
         }
@@ -624,16 +613,16 @@ InModuleScope $ProjectName {
             It 'Should accept AlbumId from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Get-IMAlbum
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept AlbumId from pipeline by property name' {
                 [PSCustomObject]@{Id = '123e4567-e89b-12d3-a456-426614174000' } | Get-IMAlbum
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiGetAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
         }
@@ -652,7 +641,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Get-IMAlbum
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiGetAllAlbums -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -660,7 +649,7 @@ InModuleScope $ProjectName {
     }
     Describe 'Get-IMAlbumStatistic' -Tag 'Unit', 'Get-IMAlbumStatistic' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
+            Mock Invoke-ImmichApiGetAlbumStatistics -ModuleName PSImmich {
                 return @{
                     notShared = 9
                     owned     = 17
@@ -670,12 +659,10 @@ InModuleScope $ProjectName {
         }
 
         Context 'When retrieving album statistics' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiGetAlbumStatistics' {
                 Get-IMAlbumStatistic
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Get' -and $RelativePath -eq '/albums/statistics'
-                }
+                Should -Invoke Invoke-ImmichApiGetAlbumStatistics -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
 
             It 'Should return AlbumStatisticsResponseDto' {
@@ -692,7 +679,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Get-IMAlbumStatistic
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiGetAlbumStatistics -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -770,15 +757,15 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMAlbum' -Tag 'Unit', 'Remove-IMAlbum' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiDeleteAlbum -ModuleName PSImmich { return $null }
         }
 
         Context 'When removing a single album' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiDeleteAlbum with the album ID' {
                 Remove-IMAlbum -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Delete' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiDeleteAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
         }
@@ -788,7 +775,7 @@ InModuleScope $ProjectName {
                 $albumIds = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
                 Remove-IMAlbum -AlbumId $albumIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiDeleteAlbum -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -796,17 +783,17 @@ InModuleScope $ProjectName {
             It 'Should accept AlbumId from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Remove-IMAlbum -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiDeleteAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept AlbumId from pipeline by property name' {
                 [PSCustomObject]@{id = '123e4567-e89b-12d3-a456-426614174000' } | Remove-IMAlbum -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
-                } -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiDeleteAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
             }
         }
 
@@ -824,7 +811,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Remove-IMAlbum -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiDeleteAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -832,15 +819,15 @@ InModuleScope $ProjectName {
     }
     Describe 'Remove-IMAlbumUser' -Tag 'Unit', 'Remove-IMAlbumUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return $null }
+            Mock Invoke-ImmichApiRemoveUserFromAlbum -ModuleName PSImmich { return $null }
         }
 
         Context 'When removing a single user from album' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should call Invoke-ImmichApiRemoveUserFromAlbum with correct parameters' {
                 Remove-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '550e8400-e29b-41d4-a716-446655440000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/user/550e8400-e29b-41d4-a716-446655440000'
+                Should -Invoke Invoke-ImmichApiRemoveUserFromAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $UserId -eq '550e8400-e29b-41d4-a716-446655440000'
                 }
             }
         }
@@ -850,7 +837,7 @@ InModuleScope $ProjectName {
                 $userIds = @('550e8400-e29b-41d4-a716-446655440000', '6ba7b810-9dad-11d1-80b4-00c04fd430c8')
                 Remove-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId $userIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiRemoveUserFromAlbum -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -858,17 +845,17 @@ InModuleScope $ProjectName {
             It 'Should accept UserId from pipeline by value' {
                 '550e8400-e29b-41d4-a716-446655440000' | Remove-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/user/550e8400-e29b-41d4-a716-446655440000'
+                Should -Invoke Invoke-ImmichApiRemoveUserFromAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $UserId -eq '550e8400-e29b-41d4-a716-446655440000'
                 }
             }
 
             It 'Should accept UserId from pipeline by property name' {
                 [PSCustomObject]@{id = '550e8400-e29b-41d4-a716-446655440000' } | Remove-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/user/550e8400-e29b-41d4-a716-446655440000'
-                } -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiRemoveUserFromAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $UserId -eq '550e8400-e29b-41d4-a716-446655440000'
+                }
             }
         }
 
@@ -891,7 +878,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Remove-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '550e8400-e29b-41d4-a716-446655440000' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiRemoveUserFromAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
