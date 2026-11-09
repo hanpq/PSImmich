@@ -4125,6 +4125,13 @@ InModuleScope $ProjectName {
                 $validateSetAttribute.ValidValues | Should -Contain 'user-cleanup'
             }
 
+            It 'Should not contain duplicate or misspelled job names' {
+                $function = Get-Command Start-IMJob
+                $validateSetAttribute = $function.Parameters['Job'].Attributes | Where-Object { $_.TypeId.Name -eq 'ValidateSetAttribute' }
+                $validateSetAttribute.ValidValues | Should -Not -Contain 'backup-databaseperson-cleanup'
+                ($validateSetAttribute.ValidValues | Group-Object | Where-Object Count -gt 1) | Should -BeNullOrEmpty
+            }
+
             It 'Should have Force parameter as switch' {
                 $function = Get-Command Start-IMJob
                 $forceParam = $function.Parameters['Force']
@@ -8891,6 +8898,55 @@ InModuleScope $ProjectName {
     Describe 'Set-IMQueue' -Tag 'Unit', 'Set-IMQueue' {
     }
     Describe 'Clear-IMQueue' -Tag 'Unit', 'Clear-IMQueue' {
+        BeforeAll {
+            Mock Invoke-ImmichApiEmptyQueue -ModuleName PSImmich { }
+        }
+
+        Context 'Request mapping' {
+            It 'Should call Invoke-ImmichApiEmptyQueue with the queue name and failed=false' {
+                Clear-IMQueue -Name 'thumbnailGeneration' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $Name -eq 'thumbnailGeneration' -and
+                    $Body.failed -eq $false
+                }
+            }
+
+            It 'Should not send a force field' {
+                Clear-IMQueue -Name 'thumbnailGeneration' -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    -not $Body.ContainsKey('force')
+                }
+            }
+
+            It 'Should clear each queue received from the pipeline' {
+                'thumbnailGeneration', 'faceDetection' | Clear-IMQueue -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 2 -Scope It
+            }
+
+            It 'Should not call the API when WhatIf is specified' {
+                Clear-IMQueue -Name 'thumbnailGeneration' -WhatIf
+
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 0 -Scope It
+            }
+        }
+
+        Context 'Force parameter' {
+            It 'Should write a warning and still clear the queue when Force is specified' {
+                Clear-IMQueue -Name 'thumbnailGeneration' -Force -Confirm:$false -WarningVariable warnings -WarningAction SilentlyContinue
+
+                $warnings | Should -Not -BeNullOrEmpty
+                Should -Invoke Invoke-ImmichApiEmptyQueue -ModuleName PSImmich -Exactly 1 -Scope It
+            }
+        }
+
+        Context 'Parameter Validation' {
+            It 'Should reject an invalid queue name' {
+                { Clear-IMQueue -Name 'invalidQueue' -Confirm:$false } | Should -Throw
+            }
+        }
     }
     Describe 'Get-IMQueue' -Tag 'Unit', 'Get-IMQueue' {
     }

@@ -66,11 +66,6 @@
             'user-cleanup',
             'memory-cleanup',
             'memory-create',
-            'backup-databaseperson-cleanup',
-            'tag-cleanup',
-            'user-cleanup',
-            'memory-cleanup',
-            'memory-create',
             'backup-database'
         )]
         [string[]]
@@ -92,7 +87,7 @@
                     Invoke-ImmichApiEmptyTrash -ImmichSession $Session
                 }
             }
-            { @('person-cleanup', 'tag-cleanup', 'user-cleanup', 'memory-cleanup', 'memory-create', 'backup-databaseperson-cleanup', 'tag-cleanup', 'user-cleanup', 'memory-cleanup', 'memory-create', 'backup-database') -contains $PSItem }
+            { @('person-cleanup', 'tag-cleanup', 'user-cleanup', 'memory-cleanup', 'memory-create', 'backup-database') -contains $PSItem }
             {
                 if ($PSCmdlet.ShouldProcess("Start job: $($PSitem)", 'START'))
                 {

@@ -14,17 +14,18 @@
         faceDetection, facialRecognition, smartSearch, duplicateDetection, backgroundTask,
         storageTemplateMigration, migration, search, sidecar, library, notifications, backupDatabase, ocr, workflow
     .PARAMETER Force
-        Force removal of jobs without additional confirmation prompts.
+        Accepted for compatibility but has no effect: the queues API does not support forced clearing,
+        so a warning is written. To skip the confirmation prompt, use -Confirm:$false.
     .EXAMPLE
         Clear-IMQueue -Name thumbnailGeneration
 
-        Clears all jobs from the thumbnail generation queue.
+        Clears all jobs from the thumbnail generation queue after confirmation.
     .EXAMPLE
-        Clear-IMQueue -Name duplicateDetection -Force
+        Clear-IMQueue -Name duplicateDetection -Confirm:$false
 
-        Forcefully clears all jobs from the duplicate detection queue without confirmation.
+        Clears all jobs from the duplicate detection queue without a confirmation prompt.
     .EXAMPLE
-        @('faceDetection', 'facialRecognition') | Clear-IMQueue -Force
+        @('faceDetection', 'facialRecognition') | Clear-IMQueue -Confirm:$false
 
         Clears multiple queues via pipeline input.
     .NOTES
@@ -47,19 +48,20 @@
         $Name,
 
         [Parameter()]
-        [ApiParameter('force')]
         [switch]
         $Force
     )
 
     process
     {
+        if ($Force)
+        {
+            Write-Warning 'The -Force parameter has no effect: the queues API does not support forced clearing.'
+        }
+
         if ($PSCmdlet.ShouldProcess($Name, 'Clear all queue jobs'))
         {
-            $Body = @{}
-            $Body += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-
-            InvokeImmichRestMethod -Method DELETE -RelativePath "/queues/$Name/jobs" -ImmichSession:$Session -Body $Body
+            Invoke-ImmichApiEmptyQueue -Name $Name -Body @{ failed = $false } -ImmichSession $Session
         }
     }
 }
