@@ -43,35 +43,30 @@
         $Session = $null,
 
         [Parameter(Mandatory)]
-        [ApiParameter('albumName')]
         [string]
         $AlbumName,
 
         [Parameter()]
         [ValidatePattern('^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$')]
-        [ApiParameter('assetIds')]
         [string[]]
         $AssetIds,
 
         [Parameter()]
-        [ApiParameter('description')]
         [string]
         $Description,
 
         [Parameter()]
-        [ApiParameter('albumUsers')]
         [hashtable[]]
         $AlbumUsers
     )
 
-    begin
-    {
-        $BodyParameters = @{}
-        $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-    }
-
     process
     {
+        $BodyParameters = @{ albumName = $AlbumName }
+        if ($PSBoundParameters.ContainsKey('AssetIds')) { $BodyParameters.assetIds = [string[]]$AssetIds }
+        if ($PSBoundParameters.ContainsKey('Description')) { $BodyParameters.description = $Description }
+        if ($PSBoundParameters.ContainsKey('AlbumUsers')) { $BodyParameters.albumUsers = @($AlbumUsers) }
+
         Invoke-ImmichApiCreateAlbum -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [AlbumResponseDto]::new($PSItem) }
     }
 

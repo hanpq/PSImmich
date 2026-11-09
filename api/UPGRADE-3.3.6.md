@@ -267,8 +267,8 @@ Duplicates batch: `Get-IMDuplicate` (`getAssetDuplicates`) returns `DuplicateRes
 `IMAssetDuplicate` type name is dropped). `Remove-IMDuplicate` calls `deleteDuplicates` with the same body
 as before (`ids` = duplicate group IDs), so wire behavior is unchanged. Open question: the 3.3.6 spec describes
 `deleteDuplicates` as "Delete multiple duplicate assets specified by their IDs" and the `BulkIdsDto` `ids`
-as asset IDs, which conflicts with the group-ID contract documented in the cmdlet. Not changed pending
-maintainer decision and live verification. Still unimplemented: `deleteDuplicate` (`DELETE /duplicates/{id}`,
+as asset IDs, which conflicts with the group-ID contract documented in the cmdlet. Decision: keep group IDs,
+following the batch-form reading of `/duplicates/{id}`. This is not verified against the live server. Still unimplemented: `deleteDuplicate` (`DELETE /duplicates/{id}`,
 dismiss a group; currently excluded as "Batch-version of this api is implemented as Remove-IMDuplicate") and
 `resolveDuplicates` (`POST /duplicates/resolve`, Alpha in 3.3.6). Targeted tests: 35 passed, 0 failed.
 
@@ -363,8 +363,14 @@ all. The maintainer decides whether to migrate or keep these paths. Known issue,
 `DELETE /queues/{name}/jobs` removes all jobs, not only failed ones, so `Clear-IMJob` is not
 equivalent to clearing failed jobs.
 
-Album batch (uncommitted at this writing): `Get-IMAlbum` and the album write cmdlets
-call the generated functions. `Get-IMAlbum -Shared` now sends the spec's `isShared`
+Album batch: `Get-IMAlbum`, `New-IMAlbum`, `Rename-IMAlbum`, `Set-IMAlbum`, and `Set-IMAlbumUser` call the
+generated functions. `New-IMAlbum` sends `albumName` (required) plus `assetIds`, `description`, and
+`albumUsers` only when bound. `Rename-IMAlbum` sends `albumName`. `Set-IMAlbum` sends only the bound
+update fields to `updateAlbumInfo`, so explicit `false` and `order` values are sent, and it routes
+`-AddAssets`/`-RemoveAssets` to `addAssetsToAlbum`/`removeAssetFromAlbum` with `ids`. `Set-IMAlbumUser`
+sends `role` to `updateAlbumUser`. Unit tests: 63 passed, 0 failed (`-Tag` run for the four write
+cmdlets). The `Set-IMAlbum` `-AddAssets` and `-RemoveAssets` routes use the 3.3.6 spec's `ids` body,
+which the legacy cmdlet also sent. `Get-IMAlbum -Shared` now sends the spec's `isShared`
 query parameter; it previously sent `shared`. `-IncludeAssets` no longer uses the
 undefined `withoutAssets` query. It pages `POST /search/metadata` filtered by `albumIds`
 and attaches the items as `assets`. The `IMAlbum` view is now `AlbumResponseDto`, and the

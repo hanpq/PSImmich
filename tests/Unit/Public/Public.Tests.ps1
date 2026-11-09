@@ -714,8 +714,8 @@ InModuleScope $ProjectName {
     }
     Describe 'New-IMAlbum' -Tag 'Unit', 'New-IMAlbum' {
         BeforeAll {
-            Mock InvokeImmichRestMethod {
-                return @{
+            Mock Invoke-ImmichApiCreateAlbum {
+                return [PSCustomObject]@{
                     id          = '123e4567-e89b-12d3-a456-426614174000'
                     albumName   = 'Test Album'
                     description = 'Test Description'
@@ -723,35 +723,41 @@ InModuleScope $ProjectName {
                     albumUsers  = @()
                     shared      = $false
                 }
-            }
-            Mock ConvertTo-ApiParameters { return @{} }
+            } -ModuleName PSImmich
         }
 
         Context 'When creating an album with minimal parameters' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should send only albumName in the body' {
                 New-IMAlbum -AlbumName 'Test Album'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Post' -and $RelativePath -eq '/albums'
+                Should -Invoke Invoke-ImmichApiCreateAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.albumName -eq 'Test Album' -and
+                    -not $Body.ContainsKey('description') -and
+                    -not $Body.ContainsKey('assetIds') -and
+                    -not $Body.ContainsKey('albumUsers')
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters for body parameters' {
-                New-IMAlbum -AlbumName 'Test Album'
+            It 'Should return an AlbumResponseDto' {
+                $result = New-IMAlbum -AlbumName 'Test Album'
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
+                $result.GetType().Name | Should -Be 'AlbumResponseDto'
+                $result.Id | Should -Be '123e4567-e89b-12d3-a456-426614174000'
             }
         }
 
         Context 'When creating an album with all parameters' {
-            It 'Should handle all optional parameters correctly' {
+            It 'Should send all optional parameters in the body' {
                 $assetIds = @('550e8400-e29b-41d4-a716-446655440000', '6ba7b810-9dad-11d1-80b4-00c04fd430c8')
                 $albumUsers = @(@{userId = 'user1-uuid'; role = 'editor' }, @{userId = 'user2-uuid'; role = 'viewer' })
 
                 New-IMAlbum -AlbumName 'Complete Album' -Description 'Test Description' -AssetIds $assetIds -AlbumUsers $albumUsers
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'Post' -and $RelativePath -eq '/albums' -and $null -ne $Body
+                Should -Invoke Invoke-ImmichApiCreateAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.albumName -eq 'Complete Album' -and
+                    $Body.description -eq 'Test Description' -and
+                    $Body.assetIds.Count -eq 2 -and
+                    $Body.albumUsers.Count -eq 2
                 }
             }
         }
@@ -770,7 +776,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 New-IMAlbum -AlbumName 'Test Album'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiCreateAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -907,27 +913,16 @@ InModuleScope $ProjectName {
     }
     Describe 'Rename-IMAlbum' -Tag 'Unit', 'Rename-IMAlbum' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{success = $true } }
-            Mock ConvertTo-ApiParameters {
-                return @{
-                    albumName = $BoundParameters.NewName
-                }
-            }
+            Mock Invoke-ImmichApiUpdateAlbumInfo { return [PSCustomObject]@{ id = '123e4567-e89b-12d3-a456-426614174000' } } -ModuleName PSImmich
         }
 
         Context 'When renaming a single album' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should send albumName to the album update route' {
                 Rename-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -NewName 'Vacation 2024' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PATCH' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $Body.albumName -eq 'Vacation 2024'
                 }
-            }
-
-            It 'Should call ConvertTo-ApiParameters for body parameters' {
-                Rename-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -NewName 'New Album Name' -Confirm:$false
-
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
             }
         }
 
@@ -936,7 +931,7 @@ InModuleScope $ProjectName {
                 $albumIds = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
                 Rename-IMAlbum -Id $albumIds -NewName 'Archived Photos' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -944,17 +939,17 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Rename-IMAlbum -NewName 'Piped Album' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{albumId = '123e4567-e89b-12d3-a456-426614174000' } | Rename-IMAlbum -NewName 'Property Album' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PATCH' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
-                } -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
             }
         }
 
@@ -973,7 +968,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Rename-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -NewName 'Session Test' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -981,80 +976,66 @@ InModuleScope $ProjectName {
     }
     Describe 'Set-IMAlbum' -Tag 'Unit', 'Set-IMAlbum' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{success = $true } }
-            Mock ConvertTo-ApiParameters {
-                $result = @{}
-                if ($BoundParameters.AlbumName)
-                {
-                    $result.albumName = $BoundParameters.AlbumName
-                }
-                if ($BoundParameters.Description)
-                {
-                    $result.description = $BoundParameters.Description
-                }
-                if ($BoundParameters.IsActivityEnabled)
-                {
-                    $result.isActivityEnabled = $BoundParameters.IsActivityEnabled
-                }
-                if ($BoundParameters.Order)
-                {
-                    $result.order = $BoundParameters.Order
-                }
-                if ($BoundParameters.AlbumThumbnailAssetId)
-                {
-                    $result.albumThumbnailAssetId = $BoundParameters.AlbumThumbnailAssetId
-                }
-                return $result
-            }
+            Mock Invoke-ImmichApiUpdateAlbumInfo { return [PSCustomObject]@{ id = '123e4567-e89b-12d3-a456-426614174000' } } -ModuleName PSImmich
+            Mock Invoke-ImmichApiAddAssetsToAlbum { return @() } -ModuleName PSImmich
+            Mock Invoke-ImmichApiRemoveAssetFromAlbum { return @() } -ModuleName PSImmich
         }
 
         Context 'When updating album properties' {
-            It 'Should call InvokeImmichRestMethod with PATCH for basic updates' {
+            It 'Should send only the bound properties in the body' {
                 Set-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -AlbumName 'Updated Album' -Description 'New description' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PATCH' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and
+                    $Body.albumName -eq 'Updated Album' -and
+                    $Body.description -eq 'New description' -and
+                    -not $Body.ContainsKey('isActivityEnabled') -and
+                    -not $Body.ContainsKey('order') -and
+                    -not $Body.ContainsKey('albumThumbnailAssetId')
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters for body parameters' {
-                Set-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -IsActivityEnabled:$true -Order 'desc' -Confirm:$false
+            It 'Should send explicit false and order values in the body' {
+                Set-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -IsActivityEnabled:$false -Order 'desc' -Confirm:$false
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.isActivityEnabled -eq $false -and $Body.order -eq 'desc'
+                }
             }
         }
 
         Context 'When adding assets' {
-            It 'Should call PUT endpoint for adding assets' {
+            It 'Should call the add assets route with the asset IDs' {
                 $assetIds = @('550e8400-e29b-41d4-a716-446655440000', '6ba7b810-9dad-11d1-80b4-00c04fd430c8')
                 Set-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -AddAssets $assetIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/assets'
+                Should -Invoke Invoke-ImmichApiAddAssetsToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $Body.ids.Count -eq 2
                 }
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
 
         Context 'When removing assets' {
-            It 'Should call DELETE endpoint for removing assets' {
+            It 'Should call the remove assets route with the asset IDs' {
                 $assetIds = @('550e8400-e29b-41d4-a716-446655440000')
                 Set-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -RemoveAssets $assetIds -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'DELETE' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/assets'
+                Should -Invoke Invoke-ImmichApiRemoveAssetFromAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and $Body.ids -contains '550e8400-e29b-41d4-a716-446655440000'
                 }
             }
         }
 
         Context 'When managing assets and updating properties' {
-            It 'Should handle both operations in single call' {
+            It 'Should handle property update, add and remove in one call' {
                 $addAssets = @('550e8400-e29b-41d4-a716-446655440000')
                 $removeAssets = @('6ba7b810-9dad-11d1-80b4-00c04fd430c8')
                 Set-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -AlbumName 'Mixed Operation' -AddAssets $addAssets -RemoveAssets $removeAssets -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 3 -Exactly -Scope It # PATCH + PUT + DELETE
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiAddAssetsToAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiRemoveAssetFromAlbum -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
 
@@ -1063,7 +1044,7 @@ InModuleScope $ProjectName {
                 $albumIds = @('123e4567-e89b-12d3-a456-426614174000', '223e4567-e89b-12d3-a456-426614174001')
                 Set-IMAlbum -Id $albumIds -Description 'Bulk update description' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -1071,17 +1052,17 @@ InModuleScope $ProjectName {
             It 'Should accept Id from pipeline by value' {
                 '123e4567-e89b-12d3-a456-426614174000' | Set-IMAlbum -Description 'Piped update' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
                 }
             }
 
             It 'Should accept Id from pipeline by property name' {
                 [PSCustomObject]@{albumId = '123e4567-e89b-12d3-a456-426614174000' } | Set-IMAlbum -AlbumName 'Property Update' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PATCH' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000'
-                } -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000'
+                }
             }
         }
 
@@ -1107,7 +1088,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Set-IMAlbum -Id '123e4567-e89b-12d3-a456-426614174000' -Description 'Session test' -Confirm:$false
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiUpdateAlbumInfo -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }
@@ -1115,27 +1096,18 @@ InModuleScope $ProjectName {
     }
     Describe 'Set-IMAlbumUser' -Tag 'Unit', 'Set-IMAlbumUser' {
         BeforeAll {
-            Mock InvokeImmichRestMethod { return @{success = $true } }
-            Mock ConvertTo-ApiParameters {
-                return @{
-                    role = $BoundParameters.Role
-                }
-            }
+            Mock Invoke-ImmichApiUpdateAlbumUser { return $null } -ModuleName PSImmich
         }
 
         Context 'When setting user role for single user' {
-            It 'Should call InvokeImmichRestMethod with correct parameters' {
+            It 'Should send the role to the album user route' {
                 Set-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '550e8400-e29b-41d4-a716-446655440000' -Role 'editor'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/user/550e8400-e29b-41d4-a716-446655440000'
+                Should -Invoke Invoke-ImmichApiUpdateAlbumUser -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Id -eq '123e4567-e89b-12d3-a456-426614174000' -and
+                    $UserId -eq '550e8400-e29b-41d4-a716-446655440000' -and
+                    $Body.role -eq 'editor'
                 }
-            }
-
-            It 'Should call ConvertTo-ApiParameters for body parameters' {
-                Set-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '550e8400-e29b-41d4-a716-446655440000' -Role 'viewer'
-
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -Exactly -Scope It
             }
         }
 
@@ -1144,7 +1116,7 @@ InModuleScope $ProjectName {
                 $userIds = @('550e8400-e29b-41d4-a716-446655440000', '6ba7b810-9dad-11d1-80b4-00c04fd430c8')
                 Set-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId $userIds -Role 'editor'
 
-                Should -Invoke InvokeImmichRestMethod -Times 2 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiUpdateAlbumUser -ModuleName PSImmich -Times 2 -Exactly -Scope It
             }
         }
 
@@ -1152,17 +1124,17 @@ InModuleScope $ProjectName {
             It 'Should accept UserId from pipeline by value' {
                 '550e8400-e29b-41d4-a716-446655440000' | Set-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Role 'viewer'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/user/550e8400-e29b-41d4-a716-446655440000'
+                Should -Invoke Invoke-ImmichApiUpdateAlbumUser -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $UserId -eq '550e8400-e29b-41d4-a716-446655440000' -and $Body.role -eq 'viewer'
                 }
             }
 
             It 'Should accept UserId from pipeline by property name' {
                 [PSCustomObject]@{id = '550e8400-e29b-41d4-a716-446655440000' } | Set-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -Role 'editor'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
-                    $Method -eq 'PUT' -and $RelativePath -eq '/albums/123e4567-e89b-12d3-a456-426614174000/user/550e8400-e29b-41d4-a716-446655440000'
-                } -ModuleName PSImmich
+                Should -Invoke Invoke-ImmichApiUpdateAlbumUser -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $UserId -eq '550e8400-e29b-41d4-a716-446655440000'
+                }
             }
         }
 
@@ -1190,7 +1162,7 @@ InModuleScope $ProjectName {
             It 'Should use default session when no session parameter provided' {
                 Set-IMAlbumUser -AlbumId '123e4567-e89b-12d3-a456-426614174000' -UserId '550e8400-e29b-41d4-a716-446655440000' -Role 'viewer'
 
-                Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -Scope It -ParameterFilter {
+                Should -Invoke Invoke-ImmichApiUpdateAlbumUser -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $null -eq $ImmichSession
                 }
             }

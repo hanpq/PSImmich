@@ -41,19 +41,14 @@
         $Id,
 
         [Parameter(Mandatory)]
-        [ApiParameter('albumName')]
         [string]
         $NewName
     )
 
-    begin
-    {
-        $BodyParameters = @{}
-        $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-    }
-
     process
     {
+        $BodyParameters = @{ albumName = $NewName }
+
         $Id | ForEach-Object {
             if ($PSCmdlet.ShouldProcess($PSItem, 'Update'))
             {
