@@ -8450,6 +8450,14 @@ InModuleScope $ProjectName {
                     $ContentType -eq 'application/json'
                 }
             }
+
+            It 'Should add a leading slash to a relative URI without one' {
+                Invoke-ImmichMethod -Method 'GET' -RelativeURI 'server/version'
+
+                Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Exactly 1 -Scope It -ParameterFilter {
+                    $RelativePath -eq '/server/version'
+                }
+            }
         }
 
         Context 'Basic API Invocation' {
