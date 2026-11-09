@@ -239,6 +239,15 @@ Carried-over uncommitted worktree edits (`.github/copilot-instructions.md`, `BUI
 Implementation batches on `upgrade/immich-3.3.6` (each validated with the module unit/QA suite;
 8 baseline QA failures for Queue, UserSession and UserStatistics remain unchanged):
 
+- `feat!` job queue batch (pending commit): `Get-IMJob` now calls `GET /queues` and returns `statistics`
+  instead of `jobCounts`. `Suspend-IMJob`/`Resume-IMJob` call `PUT /queues/{name}` with `isPaused`.
+  `Clear-IMJob` calls `DELETE /queues/{name}/jobs` with `failed = $false` by default (previously
+  `command = empty`). `-FailedOnly` keeps deprecated `PUT /jobs/{name}` `clear-failed`, because the
+  queues API cannot clear failed jobs alone. `-Force` on the three cmdlets warns and has no effect
+  (no `force` in `QueueUpdateDto`/`QueueDeleteDto`). `Start-IMJob` is unchanged (no replacement).
+  Validation: `.\build.ps1 -Task Test -TestSuite Module` passed (1810 passed, 0 failed, 39 skipped).
+  Pre-existing, not changed: `Clear-IMQueue` sends `force` to `DELETE /queues/{name}/jobs`, which
+  `QueueDeleteDto` does not define.
 - `f1ad1fe` fix(server): read theme from the public config endpoint
 - `9257eae` fix(person): migrate person merging to the bulk endpoint
 - `7f56875` fix(api): send booleans and ISO 8601 datetimes for Immich 3.3.6

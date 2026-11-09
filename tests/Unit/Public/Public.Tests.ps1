@@ -3863,16 +3863,6 @@ InModuleScope $ProjectName {
                 # Mock returns nothing for PUT operations
                 return $null
             }
-
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Force)
-                {
-                    $result.force = $BoundParameters.Force
-                }
-                return $result
-            }
         }
 
         Context 'Parameter Validation' {
@@ -3918,9 +3908,9 @@ InModuleScope $ProjectName {
                 Clear-IMJob -Job $TestJob
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    $RelativePath -eq "/jobs/$TestJob" -and
-                    $Body.command -eq 'empty'
+                    $Method -eq 'DELETE' -and
+                    $RelativePath -eq "/queues/$TestJob/jobs" -and
+                    $Body.failed -eq $false
                 }
             }
 
@@ -3938,32 +3928,22 @@ InModuleScope $ProjectName {
                 Clear-IMJob -Job @($TestJob, $TestJob2)
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
-                    $Method -eq 'PUT' -and
-                    ($RelativePath -eq "/jobs/$TestJob" -or $RelativePath -eq "/jobs/$TestJob2") -and
-                    $Body.command -eq 'empty'
+                    $Method -eq 'DELETE' -and
+                    ($RelativePath -eq "/queues/$TestJob/jobs" -or $RelativePath -eq "/queues/$TestJob2/jobs")
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters with Force parameter' {
-                Clear-IMJob -Job $TestJob -Force
+            It 'Should warn and not send force when Force is specified' {
+                Clear-IMJob -Job $TestJob -Force -WarningVariable warnings -WarningAction SilentlyContinue
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Force -eq $true
-                }
-            }
-
-            It 'Should include force in body when Force is specified' {
-                Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                    return @{ force = $true }
-                }
-
-                Clear-IMJob -Job $TestJob -Force
-
+                $warnings | Should -Not -BeNullOrEmpty
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Body.force -eq $true
+                    $Method -eq 'DELETE' -and
+                    -not $Body.ContainsKey('force')
                 }
             }
         }
+
 
         Context 'Session Parameter' {
             It 'Should pass Session parameter when provided' {
@@ -3987,12 +3967,13 @@ InModuleScope $ProjectName {
             Mock InvokeImmichRestMethod -ModuleName PSImmich {
                 switch ($RelativePath)
                 {
-                    '/jobs'
+                    '/queues'
                     {
                         return @(
                             [PSCustomObject]@{
-                                name        = 'thumbnailGeneration'
-                                jobCounts   = [PSCustomObject]@{
+                                name       = 'thumbnailGeneration'
+                                isPaused   = $false
+                                statistics = [PSCustomObject]@{
                                     active    = 2
                                     completed = 1547
                                     failed    = 3
@@ -4000,14 +3981,11 @@ InModuleScope $ProjectName {
                                     waiting   = 15
                                     paused    = 0
                                 }
-                                queueStatus = [PSCustomObject]@{
-                                    isActive = $true
-                                    isPaused = $false
-                                }
                             },
                             [PSCustomObject]@{
-                                name        = 'metadataExtraction'
-                                jobCounts   = [PSCustomObject]@{
+                                name       = 'metadataExtraction'
+                                isPaused   = $false
+                                statistics = [PSCustomObject]@{
                                     active    = 1
                                     completed = 892
                                     failed    = 0
@@ -4015,24 +3993,17 @@ InModuleScope $ProjectName {
                                     waiting   = 8
                                     paused    = 0
                                 }
-                                queueStatus = [PSCustomObject]@{
-                                    isActive = $true
-                                    isPaused = $false
-                                }
                             },
                             [PSCustomObject]@{
-                                name        = 'faceDetection'
-                                jobCounts   = [PSCustomObject]@{
+                                name       = 'faceDetection'
+                                isPaused   = $true
+                                statistics = [PSCustomObject]@{
                                     active    = 0
                                     completed = 234
                                     failed    = 1
                                     delayed   = 0
                                     waiting   = 0
                                     paused    = 50
-                                }
-                                queueStatus = [PSCustomObject]@{
-                                    isActive = $false
-                                    isPaused = $true
                                 }
                             }
                         )
@@ -4051,7 +4022,7 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Method -eq 'GET' -and
-                    $RelativePath -eq '/jobs'
+                    $RelativePath -eq '/queues'
                 }
             }
 
@@ -4068,31 +4039,29 @@ InModuleScope $ProjectName {
 
                 # Test thumbnailGeneration job
                 $thumbJob = $result | Where-Object { $_.name -eq 'thumbnailGeneration' }
-                $thumbJob.jobCounts.active | Should -Be 2
-                $thumbJob.jobCounts.completed | Should -Be 1547
-                $thumbJob.jobCounts.failed | Should -Be 3
-                $thumbJob.jobCounts.waiting | Should -Be 15
-                $thumbJob.queueStatus.isActive | Should -Be $true
-                $thumbJob.queueStatus.isPaused | Should -Be $false
+                $thumbJob.statistics.active | Should -Be 2
+                $thumbJob.statistics.completed | Should -Be 1547
+                $thumbJob.statistics.failed | Should -Be 3
+                $thumbJob.statistics.waiting | Should -Be 15
+                $thumbJob.isPaused | Should -Be $false
 
                 # Test metadataExtraction job
                 $metaJob = $result | Where-Object { $_.name -eq 'metadataExtraction' }
-                $metaJob.jobCounts.active | Should -Be 1
-                $metaJob.jobCounts.completed | Should -Be 892
-                $metaJob.jobCounts.failed | Should -Be 0
-                $metaJob.queueStatus.isActive | Should -Be $true
+                $metaJob.statistics.active | Should -Be 1
+                $metaJob.statistics.completed | Should -Be 892
+                $metaJob.statistics.failed | Should -Be 0
+                $metaJob.isPaused | Should -Be $false
 
                 # Test faceDetection job (paused)
                 $faceJob = $result | Where-Object { $_.name -eq 'faceDetection' }
-                $faceJob.jobCounts.paused | Should -Be 50
-                $faceJob.queueStatus.isActive | Should -Be $false
-                $faceJob.queueStatus.isPaused | Should -Be $true
+                $faceJob.statistics.paused | Should -Be 50
+                $faceJob.isPaused | Should -Be $true
             }
 
-            It 'Should handle different job statuses' {
+            It 'Should handle different queue states' {
                 $result = Get-IMJob
-                $activeJobs = $result | Where-Object { $_.queueStatus.isActive -eq $true }
-                $pausedJobs = $result | Where-Object { $_.queueStatus.isPaused -eq $true }
+                $activeJobs = $result | Where-Object { $_.statistics.active -gt 0 }
+                $pausedJobs = $result | Where-Object { $_.isPaused -eq $true }
 
                 $activeJobs | Should -HaveCount 2
                 $pausedJobs | Should -HaveCount 1
@@ -4113,16 +4082,6 @@ InModuleScope $ProjectName {
             Mock InvokeImmichRestMethod -ModuleName PSImmich {
                 # Mock returns nothing for PUT operations
                 return $null
-            }
-
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Force)
-                {
-                    $result.force = $BoundParameters.Force
-                }
-                return $result
             }
         }
 
@@ -4164,8 +4123,8 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Method -eq 'PUT' -and
-                    $RelativePath -eq "/jobs/$TestJob" -and
-                    $Body.command -eq 'resume'
+                    $RelativePath -eq "/queues/$TestJob" -and
+                    $Body.isPaused -eq $false
                 }
             }
 
@@ -4174,29 +4133,17 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
                     $Method -eq 'PUT' -and
-                    ($RelativePath -eq "/jobs/$TestJob" -or $RelativePath -eq "/jobs/$TestJob2") -and
-                    $Body.command -eq 'resume'
+                    ($RelativePath -eq "/queues/$TestJob" -or $RelativePath -eq "/queues/$TestJob2") -and
+                    $Body.isPaused -eq $false
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters with Force parameter' {
-                Resume-IMJob -Job $TestJob -Force
+            It 'Should warn and not send force when Force is specified' {
+                Resume-IMJob -Job $TestJob -Force -WarningVariable warnings -WarningAction SilentlyContinue
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Force -eq $true
-                }
-            }
-
-            It 'Should include force in body when Force is specified' {
-                Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                    return @{ force = $true }
-                }
-
-                Resume-IMJob -Job $TestJob -Force
-
+                $warnings | Should -Not -BeNullOrEmpty
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Body.force -eq $true -and
-                    $Body.command -eq 'resume'
+                    -not $Body.ContainsKey('force')
                 }
             }
 
@@ -4206,7 +4153,7 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 3 -ParameterFilter {
                     $Method -eq 'PUT' -and
-                    $Body.command -eq 'resume'
+                    $Body.isPaused -eq $false
                 }
             }
         }
@@ -4484,16 +4431,6 @@ InModuleScope $ProjectName {
                 # Mock returns nothing for PUT operations
                 return $null
             }
-
-            Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.Force)
-                {
-                    $result.force = $BoundParameters.Force
-                }
-                return $result
-            }
         }
 
         Context 'Parameter Validation' {
@@ -4535,8 +4472,8 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Method -eq 'PUT' -and
-                    $RelativePath -eq "/jobs/$TestJob" -and
-                    $Body.command -eq 'pause'
+                    $RelativePath -eq "/queues/$TestJob" -and
+                    $Body.isPaused -eq $true
                 }
             }
 
@@ -4545,29 +4482,17 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 2 -ParameterFilter {
                     $Method -eq 'PUT' -and
-                    ($RelativePath -eq "/jobs/$TestJob" -or $RelativePath -eq "/jobs/$TestJob2") -and
-                    $Body.command -eq 'pause'
+                    ($RelativePath -eq "/queues/$TestJob" -or $RelativePath -eq "/queues/$TestJob2") -and
+                    $Body.isPaused -eq $true
                 }
             }
 
-            It 'Should call ConvertTo-ApiParameters with Force parameter' {
-                Suspend-IMJob -Job $TestJob -Force
+            It 'Should warn and not send force when Force is specified' {
+                Suspend-IMJob -Job $TestJob -Force -WarningVariable warnings -WarningAction SilentlyContinue
 
-                Should -Invoke ConvertTo-ApiParameters -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $BoundParameters.Force -eq $true
-                }
-            }
-
-            It 'Should include force in body when Force is specified' {
-                Mock ConvertTo-ApiParameters -ModuleName PSImmich {
-                    return @{ force = $true }
-                }
-
-                Suspend-IMJob -Job $TestJob -Force
-
+                $warnings | Should -Not -BeNullOrEmpty
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 1 -ParameterFilter {
-                    $Body.force -eq $true -and
-                    $Body.command -eq 'pause'
+                    -not $Body.ContainsKey('force')
                 }
             }
 
@@ -4577,7 +4502,7 @@ InModuleScope $ProjectName {
 
                 Should -Invoke InvokeImmichRestMethod -ModuleName PSImmich -Times 4 -ParameterFilter {
                     $Method -eq 'PUT' -and
-                    $Body.command -eq 'pause'
+                    $Body.isPaused -eq $true
                 }
             }
         }

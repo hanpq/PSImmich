@@ -998,9 +998,10 @@ Describe 'Job' -Tag 'Integration' {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
     }
     Context -Name 'Get-IMJob' -Tag 'Get-IMJob' {
-        It 'Should return 1 object' {
+        It 'Should return job queues with statistics' {
             $Result = Get-IMJob
-            $Result | Should -HaveCount 1
+            $Result.name | Should -Contain 'thumbnailGeneration'
+            $Result.statistics | Should -Not -BeNullOrEmpty
         }
     }
     Context -Name 'Start-IMJob' -Tag 'Start-IMJob' {

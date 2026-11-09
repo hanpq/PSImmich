@@ -12,15 +12,15 @@
         The type of job to suspend. Valid values include thumbnailGeneration, metadataExtraction,
         videoConversion, faceDetection, and other background job types.
     .PARAMETER Force
-        Forces the suspension without additional confirmation.
+        Retained for compatibility. The queues API has no force option, so this parameter has no effect and a warning is written.
     .EXAMPLE
         Suspend-IMJob -Job 'thumbnailGeneration'
 
         Suspends thumbnail generation processing.
     .EXAMPLE
-        Suspend-IMJob -Job 'videoConversion' -Force
+        Suspend-IMJob -Job 'videoConversion'
 
-        Forcibly suspends video conversion jobs.
+        Suspends video conversion jobs.
     .EXAMPLE
         @('faceDetection', 'duplicateDetection') | ForEach-Object { Suspend-IMJob -Job $_ }
 
@@ -57,18 +57,21 @@
         $Job,
 
         [Parameter()]
-        [ApiParameter('force')]
         [switch]
         $Force
     )
 
+    if ($Force)
+    {
+        Write-Warning 'The -Force parameter has no effect: the queues API does not support forced suspension.'
+    }
+
     $Job | ForEach-Object {
         $CurrentJob = $PSItem
         $Body = @{
-            command = 'pause'
+            isPaused = $true
         }
-        $Body += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
-        InvokeImmichRestMethod -Method PUT -RelativePath "/jobs/$CurrentJob" -ImmichSession:$Session -Body:$Body
+        InvokeImmichRestMethod -Method PUT -RelativePath "/queues/$CurrentJob" -ImmichSession:$Session -Body:$Body
     }
 }
 #endregion
