@@ -43,7 +43,7 @@
                 $SavedProgressPreference = $global:ProgressPreference
                 $global:ProgressPreference = 'SilentlyContinue'
             }
-            InvokeImmichRestMethod -Method Get -RelativePath "/people/$CurrentID/thumbnail" -ImmichSession:$Session -ContentType 'application/octet-stream' -OutFilePath $OutputPath
+            Invoke-ImmichApiGetPersonThumbnail -Id $CurrentID -OutFilePath $OutputPath -ImmichSession $Session
             if ($PSVersionTable.PSEdition -eq 'Desktop')
             {
                 $global:ProgressPreference = $SavedProgressPreference

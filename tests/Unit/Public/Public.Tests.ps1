@@ -6915,16 +6915,6 @@ InModuleScope $ProjectName {
                     }
                 }
             }
-
-            Mock ConvertTo-ApiParameters {
-                param($BoundParameters, $CmdletName)
-                $result = @{}
-                if ($BoundParameters.WithHidden -ne $null)
-                {
-                    $result.withHidden = $BoundParameters.WithHidden
-                }
-                return $result
-            }
         }
 
         Context 'Parameter Validation' {
@@ -6968,11 +6958,21 @@ InModuleScope $ProjectName {
                 $result[0].name | Should -Be 'John Doe'
             }
 
-            It 'Should handle WithHidden parameter' {
-                Get-IMPerson -WithHidden
+            It 'Should send withHidden when WithHidden is specified' {
+                Get-IMPerson -WithHidden | Out-Null
 
-                Should -Invoke ConvertTo-ApiParameters -Times 1 -ParameterFilter {
-                    $BoundParameters.WithHidden -eq $true
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $RelativePath -eq '/people' -and
+                    $QueryParameters.withHidden -eq $true
+                }
+            }
+
+            It 'Should not send withHidden when WithHidden is omitted' {
+                Get-IMPerson | Out-Null
+
+                Should -Invoke InvokeImmichRestMethod -Times 1 -ParameterFilter {
+                    $RelativePath -eq '/people' -and
+                    $null -eq $QueryParameters
                 }
             }
         }

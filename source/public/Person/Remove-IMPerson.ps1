@@ -65,7 +65,7 @@
     {
         if ($PSCmdlet.ShouldProcess(($BodyParameters.ids -join ','), 'DELETE'))
         {
-            InvokeImmichRestMethod -Method Delete -RelativePath '/people' -ImmichSession:$Session -Body:$BodyParameters
+            Invoke-ImmichApiDeletePeople -Body $BodyParameters -ImmichSession $Session
         }
     }
 

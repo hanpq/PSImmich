@@ -94,7 +94,7 @@
             $BodyResult = @{
                 people = $ObjectArray
             }
-            InvokeImmichRestMethod -Method Put -RelativePath '/people' -ImmichSession:$Session -Body:$BodyResult
+            Invoke-ImmichApiUpdatePeople -Body $BodyResult -ImmichSession $Session
         }
     }
 

@@ -44,7 +44,7 @@
             ids = @($ToPersonID) + @($FromPersonID)
         }
 
-        InvokeImmichRestMethod -Method POST -RelativePath '/people/merge' -ImmichSession:$Session -Body:$BodyParameters
+        Invoke-ImmichApiMergePeople -Body $BodyParameters -ImmichSession $Session
     }
 }
 #endregion

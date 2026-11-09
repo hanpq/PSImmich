@@ -44,29 +44,22 @@
         $IncludeStatistics
     )
 
-    begin
-    {
-        if ($PSCmdlet.ParameterSetName -eq 'list')
-        {
-            $QueryParameters = @{}
-            $QueryParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-        }
-    }
-
     process
     {
         switch ($PSCmdlet.ParameterSetName)
         {
             'list'
             {
-                InvokeImmichRestMethod -Method Get -RelativePath '/people' -ImmichSession:$Session -QueryParameters $QueryParameters
+                $ApiArguments = @{ ImmichSession = $Session }
+                if ($PSBoundParameters.ContainsKey('WithHidden')) { $ApiArguments.WithHidden = $WithHidden.IsPresent }
+                Invoke-ImmichApiGetAllPeople @ApiArguments | ForEach-Object { [PersonResponseDto]::new($PSItem) }
             }
             'id'
             {
-                $Person = InvokeImmichRestMethod -Method Get -RelativePath "/people/$id" -ImmichSession:$Session -QueryParameters $QueryParameters
+                $Person = [PersonResponseDto]::new((Invoke-ImmichApiGetPerson -Id $id -ImmichSession $Session))
                 if ($IncludeStatistics)
                 {
-                    $PersonStats = InvokeImmichRestMethod -Method Get -RelativePath "/people/$id/statistics" -ImmichSession:$Session
+                    $PersonStats = Invoke-ImmichApiGetPersonStatistics -Id $id -ImmichSession $Session
                     $Person | Add-Member -MemberType NoteProperty -Name AssetCount -Value $PersonStats.assets
                 }
                 $Person

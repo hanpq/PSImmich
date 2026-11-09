@@ -43,6 +43,6 @@
 
     $BodyParameters = @{}
     $BodyParameters += ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name
-    InvokeImmichRestMethod -Method Post -RelativePath '/people' -ImmichSession:$Session -Body:$BodyParameters
+    Invoke-ImmichApiCreatePerson -Body $BodyParameters -ImmichSession $Session | ForEach-Object { [PersonResponseDto]::new($PSItem) }
 }
 #endregion
