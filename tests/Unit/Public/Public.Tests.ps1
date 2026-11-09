@@ -2833,6 +2833,47 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'Reset-IMAPIKey' -Tag 'Unit', 'Reset-IMAPIKey' {
+        BeforeAll {
+            Mock Invoke-ImmichApiRotateApiKey -ModuleName PSImmich {
+                return [pscustomobject]@{ apiKey = [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'; name = 'Automation'; permissions = @('all'); createdAt = '2024-01-01T00:00:00Z'; updatedAt = '2024-01-02T00:00:00Z' }; secret = 'new-secret' }
+            }
+        }
+
+        It 'Should call Invoke-ImmichApiRotateApiKey with the API key ID' {
+            Reset-IMAPIKey -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiRotateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+            }
+        }
+
+        It 'Should return the new secret as an ApiKeyCreateResponseDto' {
+            $result = Reset-IMAPIKey -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -Confirm:$false
+
+            $result.GetType().Name | Should -Be 'ApiKeyCreateResponseDto'
+            $result.secret | Should -Be 'new-secret'
+        }
+
+        It 'Should not rotate the key when -WhatIf is specified' {
+            Reset-IMAPIKey -Id '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' -WhatIf
+
+            Should -Invoke Invoke-ImmichApiRotateApiKey -ModuleName PSImmich -Times 0 -Exactly -Scope It
+        }
+
+        It 'Should accept Id from pipeline by property name' {
+            [pscustomobject]@{ id = '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b' } | Reset-IMAPIKey -Confirm:$false
+
+            Should -Invoke Invoke-ImmichApiRotateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                $Id -eq '5a1f5a4e-2f1e-4b8e-9d0f-6c1d2e3f4a5b'
+            }
+        }
+
+        It 'Should reject an invalid API key GUID' {
+            { Reset-IMAPIKey -Id 'not-a-guid' -Confirm:$false } | Should -Throw
+        }
+    }
+
     Describe 'Save-IMAssetFile' -Tag 'Unit', 'Save-IMAssetFile' {
         BeforeAll {
             Mock Invoke-ImmichApiGetAssetFile -ModuleName PSImmich {
