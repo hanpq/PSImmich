@@ -72,7 +72,7 @@ Import-Module 'Alt3.Docusaurus.Powershell' -RequiredVersion '1.0.37' -ErrorActio
 Import-Module platyPS -RequiredVersion '0.14.2' -ErrorAction Stop
 
 $module = Import-Module -Name $moduleManifest -Force -PassThru -ErrorAction Stop
-$docsModulesPath = Join-Path $DocsRepositoryPath 'docs\modules'
+$docsModulesPath = Join-Path $DocsRepositoryPath 'modules'
 New-Item -ItemType Directory -Path $docsModulesPath -Force | Out-Null
 
 $docuSplat = @{
@@ -126,7 +126,7 @@ $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
     $utf8NoBom
 )
 
-$sidebarPath = Join-Path $destinationModulePath '03-Command Reference\docusaurus.sidebar.js'
+$sidebarPath = Join-Path (Join-Path $destinationModulePath '03-Command Reference') 'docusaurus.sidebar.js'
 if (Test-Path -LiteralPath $sidebarPath)
 {
     Remove-Item -LiteralPath $sidebarPath -Force
@@ -136,7 +136,7 @@ git -C $DocsRepositoryPath config user.name 'github-actions[bot]'
 if ($LASTEXITCODE -ne 0) { throw 'Could not configure the documentation commit user name.' }
 git -C $DocsRepositoryPath config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 if ($LASTEXITCODE -ne 0) { throw 'Could not configure the documentation commit email.' }
-git -C $DocsRepositoryPath add -- "docs/modules/$moduleName"
+git -C $DocsRepositoryPath add -- "modules/$moduleName"
 if ($LASTEXITCODE -ne 0) { throw 'Could not stage generated documentation.' }
 
 git -C $DocsRepositoryPath diff --cached --quiet
