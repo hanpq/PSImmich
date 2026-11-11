@@ -2044,17 +2044,7 @@ InModuleScope $ProjectName {
 
             Mock Get-Item {
                 param($Path)
-                $fileName = Split-Path $Path -Leaf
-                # Create a proper FileInfo-like object
-                $fileInfo = New-Object PSObject -Property @{
-                    FullName      = [string]$Path
-                    Name          = $fileName
-                    CreationTime  = [DateTime]'2023-01-01T10:00:00'
-                    LastWriteTime = [DateTime]'2023-01-01T11:00:00'
-                }
-                # Add the required type name to make it castable to FileInfo
-                $fileInfo.PSObject.TypeNames.Insert(0, 'System.IO.FileInfo')
-                return $fileInfo
+                return [System.IO.FileInfo]::new($Path)
             } -ModuleName PSImmich
 
             Mock ConvertTo-ApiParameters -MockWith {
@@ -2222,6 +2212,21 @@ InModuleScope $ProjectName {
         }
 
         Context 'HTTP Upload Integration' {
+            It 'Routes uploads through the wrapper with form data and session' {
+                $ExpectedSession = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Mock Invoke-ImmichApiUploadAsset -ModuleName PSImmich {
+                    [pscustomobject]@{ id = '550e8400-e29b-41d4-a716-446655440000' }
+                }
+                Import-IMAsset -FilePath $TestFile1 -Session $ExpectedSession -isArchived
+                Should -Invoke Invoke-ImmichApiUploadAsset -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $ImmichSession -eq $ExpectedSession -and $FileInfo.FullName -eq $TestFile1.FullName -and
+                    $FormData.isArchived -eq $true -and $FormData.deviceAssetId -eq 'photo1.jpg'
+                }
+                Should -Invoke Get-IMAsset -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq '550e8400-e29b-41d4-a716-446655440000' -and $Session -eq $ExpectedSession
+                }
+            }
+
             It 'Should call Invoke-MultipartHttpUpload with correct parameters' {
                 Import-IMAsset -FilePath $TestFile1
 
@@ -2249,6 +2254,18 @@ InModuleScope $ProjectName {
                 } -ModuleName PSImmich
 
                 { Import-IMAsset -FilePath $TestFile1 } | Should -Throw 'HTTP 400: Bad Request'
+            }
+
+            It 'Does not upload or retrieve assets with WhatIf' {
+                Import-IMAsset -FilePath $TestFile1 -WhatIf
+                Should -Invoke Invoke-MultipartHttpUpload -Times 0 -Exactly -Scope It -ModuleName PSImmich
+                Should -Invoke Get-IMAsset -Times 0 -Exactly -Scope It -ModuleName PSImmich
+            }
+
+            It 'Rejects an upload response without an asset ID' {
+                Mock Invoke-MultipartHttpUpload { return '{}' } -ModuleName PSImmich
+                { Import-IMAsset -FilePath $TestFile1 } | Should -Throw '*did not contain an asset ID*'
+                Should -Invoke Get-IMAsset -Times 0 -Exactly -Scope It -ModuleName PSImmich
             }
         }
 
