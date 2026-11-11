@@ -35,6 +35,12 @@ Describe 'Manual integration workflow contract' -Tag 'IntegrationWorkflow' {
         $Workflow | Should -Match '(?s)Summarize integration results\s+if: always\(\)'
         $Workflow | Should -Match '(?s)Upload integration report\s+if: always\(\)'
     }
+
+    It 'uploads only the reduced JSON report, never the raw NUnit report' {
+        $Upload = ($Workflow -split '      - name: Upload integration report')[1]
+        $Upload | Should -Match '(?m)^          path: output/testResults/integration-summary.json\s*$'
+        $Upload | Should -Not -Match 'PSImmich.Tests.xml|testResults/\*'
+    }
 }
 
 Describe 'Integration workflow summary' -Tag 'IntegrationWorkflow' {
@@ -72,10 +78,40 @@ Describe 'Integration workflow summary' -Tag 'IntegrationWorkflow' {
         $Text | Should -Match 'Test step: failure'
         $Text | Should -Match 'Total: 3; failures: 1; errors: 0; skipped: 1'
         $Text | Should -Match 'Tag\.test'
+        $Report = Get-Content -LiteralPath 'output\testResults\integration-summary.json' -Raw | ConvertFrom-Json
+        $Report.commit | Should -Be 'abcdef'
+        $Report.serverVersion | Should -Be '3.4.0'
+        $Report.outcome | Should -Be 'failure'
+        $Report.total | Should -Be 3
+        $Report.failures | Should -Be 1
+        $Report.errors | Should -Be 0
+        $Report.skipped | Should -Be 1
+    }
+
+    It 'does not copy plaintext or XML-escaped assertion secrets into the published report' {
+        New-Item -ItemType Directory -Force -Path 'output\testResults' | Out-Null
+        @'
+<test-results total="1" failures="1" errors="0" skipped="0">
+  <test-case name="Session.AccessToken" result="Failure">
+    <failure>
+      <message>Expected 'synthetic-key&lt;&amp;&quot;&apos;&gt;' but got 'synthetic-actual-token'.</message>
+      <stack-trace>synthetic-password&lt;&amp;&gt;</stack-trace>
+    </failure>
+  </test-case>
+</test-results>
+'@ | Set-Content -LiteralPath 'output\testResults\PSImmich.Tests.xml'
+        & $Summary
+        $Published = Get-Content -LiteralPath 'output\testResults\integration-summary.json' -Raw
+        $Published | Should -Not -Match 'synthetic-|message|stack-trace|test-case|Session.AccessToken'
+        $Report = $Published | ConvertFrom-Json
+        @($Report.PSObject.Properties.Name) | Should -HaveCount 7
+        $Report.failures | Should -Be 1
+        Get-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Raw | Should -Not -Match 'synthetic-'
     }
 
     It 'reports when no test report was produced' {
         & $Summary
         Get-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Raw | Should -Match 'No integration test report was produced'
+        Test-Path -LiteralPath 'output\testResults\integration-summary.json' | Should -BeFalse
     }
 }

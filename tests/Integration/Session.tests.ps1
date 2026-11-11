@@ -77,7 +77,7 @@ Describe 'Session' -Tag 'Integration' {
             {
                 $UnsecurePassword = ConvertFrom-SecureString -SecureString $ImmichSession.AccessToken -AsPlainText
             }
-            $UnsecurePassword | Should -Be $env:PSIMMICHAPIKEY
+            [string]::Equals($UnsecurePassword, $env:PSIMMICHAPIKEY, [StringComparison]::Ordinal) | Should -BeTrue -Because 'the stored access token must match the supplied API key'
         }
         It 'Credentials should be empty' {
             $ImmichSession.Credential | Should -BeNullOrEmpty

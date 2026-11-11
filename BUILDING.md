@@ -28,8 +28,11 @@ Before publishing a beta, run **Actions > Immich integration > Run workflow**
 on trusted `main` after merging the candidate code. The workflow requires the
 four `PSIMMICH*` repository secrets above and runs the full integration suite
 against the dedicated demo server. Its summary records the checked-out commit,
-server version, outcome, and skipped tests; the NUnit report is attached as an
-artifact. Confirm the commit is the candidate to be released, the server
+server version, outcome, and skipped tests. The attached JSON artifact contains
+only the commit, server version, outcome, and numeric test counts. Raw NUnit
+reports are not uploaded: assertion failures can contain credentials, including
+XML-escaped values that GitHub log masking does not protect in artifacts.
+Confirm the commit is the candidate to be released, the server
 version is appropriate, the suite passed, and skips are understood. For stable
 promotion, the beta run may be reused only if the application code is
 unchanged; otherwise run it again.
