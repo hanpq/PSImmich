@@ -155,9 +155,11 @@ InModuleScope $ProjectName {
             }
         }
         It 'does not expose headers, bodies, query secrets or raw JSON in debug messages' {
+            $DebugPreference = 'Continue'
             $DebugOutput = InvokeImmichRestMethod -Method post -ImmichSession $Session -RelativePath '/auth/login' -NoAuth `
                 -Headers @{ Authorization = 'synthetic-bearer-secret' } -Body @{ password = 'synthetic-password' } `
-                -RawBody '{"password":"synthetic-raw-secret"}' -QueryParameters @{ key = 'synthetic-query-secret' } -Debug 5>&1
+                -RawBody '{"password":"synthetic-raw-secret"}' -QueryParameters @{ key = 'synthetic-query-secret' } 5>&1
+            @($DebugOutput | Where-Object { $_ -is [System.Management.Automation.DebugRecord] }).Count | Should -BeGreaterThan 0
             ($DebugOutput | Out-String) | Should -Not -Match 'synthetic-|password|Authorization'
             Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
                 $Headers.Authorization -eq 'synthetic-bearer-secret' -and
@@ -165,16 +167,20 @@ InModuleScope $ProjectName {
             }
         }
         It 'does not expose the decrypted API key in debug messages' {
-            $DebugOutput = InvokeImmichRestMethod -Method get -ImmichSession $Session -RelativePath '/auth/login' -Debug 5>&1
+            $DebugPreference = 'Continue'
+            $DebugOutput = InvokeImmichRestMethod -Method get -ImmichSession $Session -RelativePath '/auth/login' 5>&1
+            @($DebugOutput | Where-Object { $_ -is [System.Management.Automation.DebugRecord] }).Count | Should -BeGreaterThan 0
             ($DebugOutput | Out-String) | Should -Not -Match 'accesstoken|X-API-Key'
             Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
                 $Headers.'X-API-Key' -eq 'accesstoken'
             }
         }
         It 'does not expose a credential JWT or login password in debug messages' {
+            $DebugPreference = 'Continue'
             $CredentialSession = [ImmichSession]::New('https://immich.domain.com', 'Credential', $null, $true, $null, (ConvertTo-SecureString 'synthetic-jwt' -AsPlainText -Force), '3.4.0', (New-Guid).Guid)
             $DebugOutput = InvokeImmichRestMethod -Method post -ImmichSession $CredentialSession -RelativePath '/auth/login' `
-                -Body @{ password = 'synthetic-password' } -Debug 5>&1
+                -Body @{ password = 'synthetic-password' } 5>&1
+            @($DebugOutput | Where-Object { $_ -is [System.Management.Automation.DebugRecord] }).Count | Should -BeGreaterThan 0
             ($DebugOutput | Out-String) | Should -Not -Match 'synthetic-|password|Authorization'
             Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
                 $Headers.Authorization -eq 'Bearer synthetic-jwt' -and
