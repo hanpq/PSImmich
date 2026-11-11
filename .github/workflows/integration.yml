@@ -1,0 +1,103 @@
+name: Immich integration
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: immich-demo-integration
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  integration:
+    name: Test against Immich
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require trusted main
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -cne 'refs/heads/main') {
+            throw 'Run this workflow from the trusted main branch only.'
+          }
+
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Record test target
+        id: target
+        shell: pwsh
+        env:
+          PSIMMICHURI: ${{ secrets.PSIMMICHURI }}
+          PSIMMICHAPIKEY: ${{ secrets.PSIMMICHAPIKEY }}
+          PSIMMICHUSER: ${{ secrets.PSIMMICHUSER }}
+          PSIMMICHPASSWORD: ${{ secrets.PSIMMICHPASSWORD }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($name in @('PSIMMICHURI', 'PSIMMICHAPIKEY', 'PSIMMICHUSER', 'PSIMMICHPASSWORD')) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "The $name secret is required for Immich integration tests."
+            }
+          }
+          $commit = (git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $commit -cne $env:GITHUB_SHA) {
+            throw 'Checked-out commit does not match the dispatched commit.'
+          }
+          $version = Invoke-RestMethod -Method Get -Uri "$($env:PSIMMICHURI.TrimEnd('/'))/api/server/version" -Headers @{ 'x-api-key' = $env:PSIMMICHAPIKEY }
+          if ($null -eq $version.major -or $null -eq $version.minor -or $null -eq $version.patch) {
+            throw 'Server version response is missing version components.'
+          }
+          $serverVersion = '{0}.{1}.{2}' -f $version.major, $version.minor, $version.patch
+          "commit=$commit" >> $env:GITHUB_OUTPUT
+          "server_version=$serverVersion" >> $env:GITHUB_OUTPUT
+          Write-Host "Testing commit $commit against Immich $serverVersion."
+
+      - name: Run integration suite
+        id: tests
+        shell: pwsh
+        env:
+          PSIMMICHURI: ${{ secrets.PSIMMICHURI }}
+          PSIMMICHAPIKEY: ${{ secrets.PSIMMICHAPIKEY }}
+          PSIMMICHUSER: ${{ secrets.PSIMMICHUSER }}
+          PSIMMICHPASSWORD: ${{ secrets.PSIMMICHPASSWORD }}
+        run: ./build.ps1 -Task Test -TestSuite Integration
+
+      - name: Summarize integration results
+        if: always()
+        shell: pwsh
+        env:
+          TEST_COMMIT: ${{ steps.target.outputs.commit }}
+          SERVER_VERSION: ${{ steps.target.outputs.server_version }}
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        run: |
+          @(
+            '## Immich integration'
+            "- Commit: $env:TEST_COMMIT"
+            "- Server version: $env:SERVER_VERSION"
+            "- Test step: $env:TEST_OUTCOME"
+          ) >> $env:GITHUB_STEP_SUMMARY
+          $path = 'output/testResults/PSImmich.Tests.xml'
+          if (Test-Path -LiteralPath $path) {
+            [xml]$result = Get-Content -LiteralPath $path -Raw
+            $counts = $result.'test-results'
+            if ($null -eq $counts) { throw 'Integration test report has no test-results element.' }
+            "- Total: $($counts.total); failures: $($counts.failures); errors: $($counts.errors); skipped: $($counts.skipped)" >> $env:GITHUB_STEP_SUMMARY
+            $skipped = @($result.SelectNodes('//test-case[@result="Skipped" or @result="Ignored"]'))
+            if ($skipped.Count) {
+              '### Skipped tests' >> $env:GITHUB_STEP_SUMMARY
+              foreach ($test in $skipped) { "- $($test.name)" >> $env:GITHUB_STEP_SUMMARY }
+            }
+          } else {
+            'No integration test report was produced.' >> $env:GITHUB_STEP_SUMMARY
+          }
+
+      - name: Upload integration report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: immich-integration-results
+          path: output/testResults/PSImmich.Tests.xml
+          if-no-files-found: warn

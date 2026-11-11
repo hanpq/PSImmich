@@ -67,24 +67,3 @@ jobs:
       - name: Test build and release automation
         shell: pwsh
         run: ./build.ps1 -Task Test -TestSuite Infrastructure
-
-  integration:
-    name: Immich integration
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Test against Immich
-        shell: pwsh
-        env:
-          PSIMMICHURI: ${{ secrets.PSIMMICHURI }}
-          PSIMMICHAPIKEY: ${{ secrets.PSIMMICHAPIKEY }}
-          PSIMMICHUSER: ${{ secrets.PSIMMICHUSER }}
-          PSIMMICHPASSWORD: ${{ secrets.PSIMMICHPASSWORD }}
-        run: |
-          foreach ($name in @('PSIMMICHURI', 'PSIMMICHAPIKEY', 'PSIMMICHUSER', 'PSIMMICHPASSWORD')) {
-            if (-not [Environment]::GetEnvironmentVariable($name)) {
-              throw "The $name secret is required for Immich integration tests."
-            }
-          }
-          ./build.ps1 -Task Test -TestSuite Integration

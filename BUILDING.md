@@ -20,7 +20,32 @@ The default `Verify` task builds the module from `source/` and runs unit, QA and
 
 Import the generated module from `output/PSImmich/<version>/` to try it locally. Make changes in `source/`, not generated output under `output/`.
 
-Local tests run unit, QA and infrastructure suites by default. Use `-Task Test -TestSuite Module` for unit/QA tests or `-Task Test -TestSuite Infrastructure` for build/release tests. For a subset of module tests, add `-Tag`, for example `-Task Test -TestSuite Module -Tag 'Get-IMStack','New-IMStack'`; each unit Describe is tagged with `Unit` and its cmdlet name. Tag-filtered runs skip code coverage. Run `-Task Test -TestSuite Integration` against a live Immich instance after setting `PSIMMICHURI`, `PSIMMICHAPIKEY`, `PSIMMICHUSER` and `PSIMMICHPASSWORD`. CI runs module tests with coverage across all supported platforms, infrastructure tests once on Linux PowerShell 7, and live integration tests on same-repository PRs and pushes when these four secrets are set. Fork PRs skip live integration tests. Release publishing runs the module suite.
+Local tests run unit, QA and infrastructure suites by default. Use `-Task Test -TestSuite Module` for unit/QA tests or `-Task Test -TestSuite Infrastructure` for build/release tests. For a subset of module tests, add `-Tag`, for example `-Task Test -TestSuite Module -Tag 'Get-IMStack','New-IMStack'`; each unit Describe is tagged with `Unit` and its cmdlet name. Tag-filtered runs skip coverage. Run `-Task Test -TestSuite Integration` against a live Immich instance after setting `PSIMMICHURI`, `PSIMMICHAPIKEY`, `PSIMMICHUSER` and `PSIMMICHPASSWORD`. CI runs module tests with coverage across all supported platforms and infrastructure tests once on Linux PowerShell 7; it does not run live integration tests. Release publishing runs the module suite.
+
+### Manual live integration gate
+
+Before publishing a beta, run **Actions > Immich integration > Run workflow**
+on trusted `main` after merging the candidate code. The workflow requires the
+four `PSIMMICH*` repository secrets above and runs the full integration suite
+against the dedicated demo server. Its summary records the checked-out commit,
+server version, outcome, and skipped tests; the NUnit report is attached as an
+artifact. Confirm the commit is the candidate to be released, the server
+version is appropriate, the suite passed, and skips are understood. For stable
+promotion, the beta run may be reused only if the application code is
+unchanged; otherwise run it again.
+
+This is a maintainer-controlled process gate, not an automatic publishing
+check: release workflows do not enforce it. GitHub runs in this repository
+share the `immich-demo-integration` concurrency group; an active run is not
+cancelled by a new dispatch, and up to 100 pending runs queue. Do not manually
+cancel a running suite while it is changing state. The group cannot serialize
+local tests or runs in other repositories: coordinate those separately and
+never run them concurrently against the same server. Do not run untrusted
+branches with the demo credentials. Manual workflow availability requires the
+workflow file to be present on the default branch.
+If branch protection requires the old `Immich integration` CI check, update
+that rule when adopting the manual workflow; otherwise pull requests may wait
+for a check that automatic CI no longer produces.
 
 Coverage instruments the built module that the tests execute, then uses ModuleBuilder's source mappings to report the original `source/public` and `source/private` files in `output/testResults/JaCoCo_coverage.xml`. The module test run fails if coverage is below the configured target (currently 1%).
 
@@ -89,7 +114,7 @@ The build uses these pinned dependencies from `output/RequiredModules`; you do n
 ## Pipeline customizations
 
 - `source/format/` is copied into the built module alongside `en-US` and `include`; the generic kit build script and its build test have been extended to preserve the existing formatting assets.
-- Live integration tests use a dedicated `Integration` suite and a same-repository CI job with Immich credentials. Default local verification excludes the live suite; fork PRs do not receive those secrets.
+- Live integration tests use a dedicated `Integration` suite and a manually dispatched workflow with Immich credentials. Default local verification and automatic CI exclude the live suite.
 - The legacy README test-count badge and its update task were removed. The module is published to the PowerShell Gallery and optionally ProGet, with Linux, macOS, Windows PowerShell 7 and Windows PowerShell 5.1 CI targets.
 
 Release metadata starts at the last published stable release, 2.3.1. The previously listed 2.3.2 changes are staged under the planned 2.3.3 heading in the Unreleased section. To skip the unpublished 2.3.2 release, put a `Release-As: 2.3.3` footer on the **next releasable** `fix:` commit (not the migration commit). Release Please generates notes from the commits since 2.3.1, not from manually staged changelog text; review its first beta PR to confirm the version and notes before merging.
