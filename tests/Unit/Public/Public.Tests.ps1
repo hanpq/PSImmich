@@ -8330,10 +8330,11 @@ InModuleScope $ProjectName {
         }
         Context '-Version' {
             It 'Should get server version through the generated wrapper and format it' {
-                Mock Invoke-ImmichApiGetServerVersion -ModuleName PSImmich { return [pscustomobject]@{ Major = 3; Minor = 3; Patch = 6 } }
+                Mock Invoke-ImmichApiGetServerVersion -ModuleName PSImmich { return [pscustomobject]@{ Major = 3; Minor = 4; Patch = 0; featureLevel = 0 } }
                 $Result = Get-IMServer -Version
                 Should -Invoke Invoke-ImmichApiGetServerVersion -ModuleName PSImmich -Times 1 -Exactly -Scope It
-                $Result.version | Should -Be '3.3.6'
+                $Result.version | Should -Be '3.4.0'
+                $Result.featureLevel | Should -Be 0
             }
         }
         Context '-Storage' {

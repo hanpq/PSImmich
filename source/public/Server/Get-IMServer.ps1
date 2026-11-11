@@ -11,7 +11,7 @@
     .PARAMETER About
         Retrieves general server information and about details.
     .PARAMETER Version
-        Retrieves server version information in a formatted object.
+        Retrieves the server version and its independent feature level in a formatted object.
     .PARAMETER VersionHistory
         Retrieves server version history and release information.
     .PARAMETER Features
@@ -161,7 +161,8 @@
         {
             $Result = Invoke-ImmichApiGetServerVersion -ImmichSession:$Session
             return [pscustomobject]@{
-                version = "$($Result.Major).$($Result.Minor).$($Result.Patch)"
+                version      = "$($Result.Major).$($Result.Minor).$($Result.Patch)"
+                featureLevel = $Result.featureLevel
             }
         }
         'version-history'
