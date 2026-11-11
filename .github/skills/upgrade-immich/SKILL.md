@@ -132,8 +132,11 @@ function per operation). It is a static reference check, not a parameter check:
 ```
 
 Each non-excluded operation is `Tested` (its `Invoke-ImmichApi*` function is
-referenced under `tests/Unit`), `Reachable` (referenced from module source) or
-`Unreachable`. Exclusions come from `api/exclusions.json` by method and path.
+referenced from module source and a non-generated unit test), `Reachable`
+(referenced from module source) or `Unreachable`. Generated route tests are not
+evidence of a public caller. Direct transport calls, such as multipart uploads,
+can still produce false `Unreachable` results and need separate inspection.
+Exclusions come from `api/exclusions.json` by method and path.
 Use `-Strict` to fail when an operation is unreachable. Report the wired
 percentage over non-excluded operations; do not treat it as contract parity.
 
