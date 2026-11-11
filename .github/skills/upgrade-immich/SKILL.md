@@ -324,6 +324,9 @@ Live integration rules (mandatory when a live instance is used):
   resources, clean them up in `AfterAll`/`finally` blocks, and never modify
   pre-existing assets, users, settings or jobs. If a test cannot restore state,
   stop and report it.
+- For tag association tests, wait for the specific association to appear
+  before removing it, then poll for its absence with a bounded timeout. Check
+  per-asset API results and report timeouts rather than silently retrying writes.
 - Do not send credentials or demo-instance details to third-party services or
   commit them to the repository.
 

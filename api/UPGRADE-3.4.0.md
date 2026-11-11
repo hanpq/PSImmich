@@ -163,7 +163,20 @@ validation for database-restore filenames that is not represented in OpenAPI.
 - `.\build.ps1 -Task Test -TestSuite Integration -Tag 'Get-IMPasskey'`: approved
   read-only run against 3.4.0; 1 passed, 1 skipped (no passkey to retrieve).
   Rename and delete have not been tested live because no disposable passkey is
-  available. The full integration suite was not run.
+  available.
+- The maintainer reported two repeated failures from their full live integration
+  runs: plugin templates rejected the valid `AssetOcrExtraction` trigger and
+  tag removal was not visible immediately. Prior tests had bounded retries for
+  this tag issue, which did not survive the integration-suite restructuring.
+- Approved live `.\build.ps1 -Task Test -TestSuite Integration -Tag 'Get-IMPluginTemplate','Set-IMTag'`
+  against confirmed 3.4.0: 12 passed after updating the trigger list and
+  using bounded state polling and disposable assets. No cleanup errors were
+  reported. One successful run does not establish that the historical
+  upstream race is fixed or that tag operations can never race.
+- `.\build.ps1 -Task Test -TestSuite Infrastructure -Tag 'TagIntegration','PluginIntegration'`:
+  5 passed for polling and trigger contract regression tests.
+- `.\build.ps1` after the integration fixes: 4,754 passed and 1,161 skipped;
+  source instruction coverage 93.14%.
 
 ## Completed batch
 
@@ -506,3 +519,10 @@ generated wrapper corrected the report while retaining transport assertions;
 the report remains a static reference check, not contract-parity evidence.
 Concurrent `build.ps1` runs also collided while rebuilding the shared output
 directory; sequential reruns passed.
+
+The prior tag integration tests polled and retried removal because an accepted
+request was sometimes not reflected immediately. The reorganized tests lost
+that workaround and removed immediately after adding. The replacement waits
+for the specific tag to appear before removal, then waits for it to disappear,
+checking each per-asset result without retrying mutations. It uses disposable
+assets rather than modifying existing ones; a timeout still fails explicitly.
