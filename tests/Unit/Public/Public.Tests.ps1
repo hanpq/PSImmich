@@ -2419,6 +2419,14 @@ InModuleScope $ProjectName {
                 }
             }
 
+            It 'Should include force when removing an asset piped by id alias' {
+                [PSCustomObject]@{ id = $TestAssetId } | Remove-IMAsset -Force -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.ids.Count -eq 1 -and $Body.ids[0] -eq $TestAssetId -and $Body.force -eq $true
+                }
+            }
+
             It 'Should handle multiple assets from pipeline' {
                 @($TestAssetId, $TestAssetId2) | Remove-IMAsset -Confirm:$false
 

@@ -177,6 +177,24 @@ validation for database-restore filenames that is not represented in OpenAPI.
   5 passed for polling and trigger contract regression tests.
 - `.\build.ps1` after the integration fixes: 4,754 passed and 1,161 skipped;
   source instruction coverage 93.14%.
+- The maintainer's subsequent full live run recorded two failures: tag
+  association did not appear within ten seconds after a successful add result,
+  and a forced deletion through pipeline input was still visible immediately
+  afterward. The plugin trigger test passed in that recorded run. These are
+  separate observations; their causes remain unconfirmed.
+- An approved investigation on the 3.4.0 demo used eight unique disposable
+  assets and tags, sequentially: all tag additions remained visible during
+  observations up to five seconds and all removals were absent immediately.
+  All assets already reported metadata present at the first observation, so
+  this does not establish whether metadata processing explains the full-run
+  failure. Cleanup reported no errors. An initial invocation failed to parse
+  before any live operations; it was corrected for the investigation.
+- `.\build.ps1 -Task Test -TestSuite Module -Tag 'Remove-IMAsset'`:
+  27 passed, including a new mock assertion that the pipeline-by-alias case
+  sends the correct asset ID and `force: true`. This confirms the public
+  cmdlet's wrapper arguments, not the live server's deletion timing.
+- `.\build.ps1` after the deletion regression test: 4,755 passed, 1,161
+  skipped; source instruction coverage 93.14%.
 
 ## Completed batch
 
