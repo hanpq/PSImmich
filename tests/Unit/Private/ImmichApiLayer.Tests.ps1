@@ -99,6 +99,16 @@ InModuleScope $ProjectName {
                 $Dto.name | Should -Be 'Test'
                 $Dto.profileChangedAt | Should -BeOfType ([datetime])
             }
+            It 'Should preserve an unconstrained WebAuthn response including nested values' {
+                $Response = [pscustomobject]@{
+                    id = 'credential'
+                    response = [pscustomobject]@{ clientDataJSON = 'encoded'; transports = @('usb', 'nfc') }
+                }
+                $Dto = [PasskeyRegistrationFinishDto]::new([pscustomobject]@{ name = 'Key'; response = $Response })
+                [object]::ReferenceEquals($Dto.response, $Response) | Should -BeTrue
+                $Dto.response.response.clientDataJSON | Should -Be 'encoded'
+                $Dto.response.response.transports -join ',' | Should -Be 'usb,nfc'
+            }
         }
     }
 

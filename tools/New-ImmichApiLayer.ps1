@@ -22,7 +22,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$SpecPath = (Join-Path $PSScriptRoot '..\api\api.3.3.6.json'),
+    [string]$SpecPath = (Join-Path $PSScriptRoot '..\api\api.3.4.0.json'),
     [string]$SourcePath = (Join-Path $PSScriptRoot '..\source'),
     [switch]$Check
 )
@@ -806,6 +806,18 @@ function Get-DtoPropertyType($Property, [string]$Context, [hashtable]$Done)
         if ($Members.Count -eq 0 -or @($Members | Where-Object { -not (Test-Property $_ '$ref') }).Count -gt 0)
         {
             throw "$Context uses a union that is not a set of references, which the generator does not support."
+        }
+        return [pscustomobject]@{ Type = 'object'; Array = $false; Kind = 'raw' }
+    }
+    if (-not (Test-Property $Property 'type') -and -not (Test-Property $Property 'enum'))
+    {
+        $Constraints = @($Property.PSObject.Properties.Name | Where-Object {
+                $_ -notin @('title', 'description', 'nullable', 'default', 'example', 'deprecated', 'readOnly', 'writeOnly') -and
+                $_ -notlike 'x-*'
+            })
+        if ($Constraints.Count -gt 0)
+        {
+            throw "$Context has an untyped schema with unsupported keywords: $($Constraints -join ', ')."
         }
         return [pscustomobject]@{ Type = 'object'; Array = $false; Kind = 'raw' }
     }

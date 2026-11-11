@@ -143,6 +143,7 @@ class AdminConfigDatabaseBackupDto
 
 class AdminConfigBackupsDto
 {
+    [bool]$beta
     [AdminConfigDatabaseBackupDto]$database
 
     AdminConfigBackupsDto()
@@ -151,6 +152,7 @@ class AdminConfigBackupsDto
 
     AdminConfigBackupsDto([object]$Source)
     {
+        if ($null -ne $Source.beta) { $this.beta = $Source.beta }
         if ($null -ne $Source.database) { $this.database = [AdminConfigDatabaseBackupDto]::new($Source.database) }
     }
 }
@@ -783,6 +785,24 @@ class AdminConfigOAuthDto
     }
 }
 
+class AdminConfigPasskeyDto
+{
+    [string[]]$additionalDomains
+    [string]$domain
+    [bool]$enabled
+
+    AdminConfigPasskeyDto()
+    {
+    }
+
+    AdminConfigPasskeyDto([object]$Source)
+    {
+        if ($null -ne $Source.additionalDomains) { $this.additionalDomains = $Source.additionalDomains }
+        if ($null -ne $Source.domain) { $this.domain = $Source.domain }
+        if ($null -ne $Source.enabled) { $this.enabled = $Source.enabled }
+    }
+}
+
 class AdminConfigPasswordLoginDto
 {
     [bool]$enabled
@@ -939,6 +959,7 @@ class AdminConfigDto
     [AdminConfigNightlyTasksDto]$nightlyTasks
     [AdminConfigNotificationsDto]$notifications
     [AdminConfigOAuthDto]$oauth
+    [AdminConfigPasskeyDto]$passkey
     [AdminConfigPasswordLoginDto]$passwordLogin
     [AdminConfigReverseGeocodingDto]$reverseGeocoding
     [AdminConfigServerDto]$server
@@ -968,6 +989,7 @@ class AdminConfigDto
         if ($null -ne $Source.nightlyTasks) { $this.nightlyTasks = [AdminConfigNightlyTasksDto]::new($Source.nightlyTasks) }
         if ($null -ne $Source.notifications) { $this.notifications = [AdminConfigNotificationsDto]::new($Source.notifications) }
         if ($null -ne $Source.oauth) { $this.oauth = [AdminConfigOAuthDto]::new($Source.oauth) }
+        if ($null -ne $Source.passkey) { $this.passkey = [AdminConfigPasskeyDto]::new($Source.passkey) }
         if ($null -ne $Source.passwordLogin) { $this.passwordLogin = [AdminConfigPasswordLoginDto]::new($Source.passwordLogin) }
         if ($null -ne $Source.reverseGeocoding) { $this.reverseGeocoding = [AdminConfigReverseGeocodingDto]::new($Source.reverseGeocoding) }
         if ($null -ne $Source.server) { $this.server = [AdminConfigServerDto]::new($Source.server) }
@@ -3165,6 +3187,7 @@ class MaintenanceStatusResponseDto
     [string]$action
     [bool]$active
     [string]$error
+    [string]$futoBackupsJobId
     [long]$progress
     [string]$task
 
@@ -3177,6 +3200,7 @@ class MaintenanceStatusResponseDto
         if ($null -ne $Source.action) { $this.action = $Source.action }
         if ($null -ne $Source.active) { $this.active = $Source.active }
         if ($null -ne $Source.error) { $this.error = $Source.error }
+        if ($null -ne $Source.futoBackupsJobId) { $this.futoBackupsJobId = $Source.futoBackupsJobId }
         if ($null -ne $Source.progress) { $this.progress = $Source.progress }
         if ($null -ne $Source.task) { $this.task = $Source.task }
     }
@@ -4083,6 +4107,77 @@ class PartnerUpdateDto
     }
 }
 
+class PasskeyAuthenticationFinishDto
+{
+    [object]$response
+
+    PasskeyAuthenticationFinishDto()
+    {
+    }
+
+    PasskeyAuthenticationFinishDto([object]$Source)
+    {
+        if ($null -ne $Source.response) { $this.response = $Source.response }
+    }
+}
+
+class PasskeyRegistrationFinishDto
+{
+    [string]$name
+    [object]$response
+
+    PasskeyRegistrationFinishDto()
+    {
+    }
+
+    PasskeyRegistrationFinishDto([object]$Source)
+    {
+        if ($null -ne $Source.name) { $this.name = $Source.name }
+        if ($null -ne $Source.response) { $this.response = $Source.response }
+    }
+}
+
+class PasskeyResponseDto
+{
+    [datetime]$createdAt
+    [string]$id
+    [string]$name
+    [datetime]$updatedAt
+    [datetime]$usedAt
+
+    PasskeyResponseDto()
+    {
+    }
+
+    PasskeyResponseDto([object]$Source)
+    {
+        if ($null -ne $Source.createdAt) { $this.createdAt = $Source.createdAt }
+        if ($null -ne $Source.id) { $this.id = $Source.id }
+        if ($null -ne $Source.name) { $this.name = $Source.name }
+        if ($null -ne $Source.updatedAt) { $this.updatedAt = $Source.updatedAt }
+        if ($null -ne $Source.usedAt) { $this.usedAt = $Source.usedAt }
+    }
+
+    [string] ToString()
+    {
+        return $this.id
+    }
+}
+
+class PasskeyUpdateDto
+{
+    [string]$name
+
+    PasskeyUpdateDto()
+    {
+    }
+
+    PasskeyUpdateDto([object]$Source)
+    {
+        if ($null -ne $Source.name) { $this.name = $Source.name }
+    }
+}
+
 class PeopleDeleteDto
 {
     [string[]]$ids
@@ -4477,6 +4572,52 @@ class PluginTemplateResponseDto
     }
 }
 
+class PublicConfigFFmpegRealtimeDto
+{
+    [bool]$enabled
+
+    PublicConfigFFmpegRealtimeDto()
+    {
+    }
+
+    PublicConfigFFmpegRealtimeDto([object]$Source)
+    {
+        if ($null -ne $Source.enabled) { $this.enabled = $Source.enabled }
+    }
+}
+
+class PublicConfigFFmpegDto
+{
+    [PublicConfigFFmpegRealtimeDto]$realtime
+
+    PublicConfigFFmpegDto()
+    {
+    }
+
+    PublicConfigFFmpegDto([object]$Source)
+    {
+        if ($null -ne $Source.realtime) { $this.realtime = [PublicConfigFFmpegRealtimeDto]::new($Source.realtime) }
+    }
+}
+
+class PublicConfigMapDto
+{
+    [string]$darkStyle
+    [bool]$enabled
+    [string]$lightStyle
+
+    PublicConfigMapDto()
+    {
+    }
+
+    PublicConfigMapDto([object]$Source)
+    {
+        if ($null -ne $Source.darkStyle) { $this.darkStyle = $Source.darkStyle }
+        if ($null -ne $Source.enabled) { $this.enabled = $Source.enabled }
+        if ($null -ne $Source.lightStyle) { $this.lightStyle = $Source.lightStyle }
+    }
+}
+
 class PublicConfigOAuthDto
 {
     [bool]$autoLaunch
@@ -4491,6 +4632,20 @@ class PublicConfigOAuthDto
     {
         if ($null -ne $Source.autoLaunch) { $this.autoLaunch = $Source.autoLaunch }
         if ($null -ne $Source.buttonText) { $this.buttonText = $Source.buttonText }
+        if ($null -ne $Source.enabled) { $this.enabled = $Source.enabled }
+    }
+}
+
+class PublicConfigPasskeyDto
+{
+    [bool]$enabled
+
+    PublicConfigPasskeyDto()
+    {
+    }
+
+    PublicConfigPasskeyDto([object]$Source)
+    {
         if ($null -ne $Source.enabled) { $this.enabled = $Source.enabled }
     }
 }
@@ -4523,26 +4678,14 @@ class PublicConfigServerDto
     }
 }
 
-class PublicConfigThemeDto
-{
-    [string]$customCss
-
-    PublicConfigThemeDto()
-    {
-    }
-
-    PublicConfigThemeDto([object]$Source)
-    {
-        if ($null -ne $Source.customCss) { $this.customCss = $Source.customCss }
-    }
-}
-
 class PublicConfigDto
 {
+    [PublicConfigFFmpegDto]$ffmpeg
+    [PublicConfigMapDto]$map
     [PublicConfigOAuthDto]$oauth
+    [PublicConfigPasskeyDto]$passkey
     [PublicConfigPasswordLoginDto]$passwordLogin
     [PublicConfigServerDto]$server
-    [PublicConfigThemeDto]$theme
 
     PublicConfigDto()
     {
@@ -4550,10 +4693,12 @@ class PublicConfigDto
 
     PublicConfigDto([object]$Source)
     {
+        if ($null -ne $Source.ffmpeg) { $this.ffmpeg = [PublicConfigFFmpegDto]::new($Source.ffmpeg) }
+        if ($null -ne $Source.map) { $this.map = [PublicConfigMapDto]::new($Source.map) }
         if ($null -ne $Source.oauth) { $this.oauth = [PublicConfigOAuthDto]::new($Source.oauth) }
+        if ($null -ne $Source.passkey) { $this.passkey = [PublicConfigPasskeyDto]::new($Source.passkey) }
         if ($null -ne $Source.passwordLogin) { $this.passwordLogin = [PublicConfigPasswordLoginDto]::new($Source.passwordLogin) }
         if ($null -ne $Source.server) { $this.server = [PublicConfigServerDto]::new($Source.server) }
-        if ($null -ne $Source.theme) { $this.theme = [PublicConfigThemeDto]::new($Source.theme) }
     }
 }
 
@@ -4918,6 +5063,7 @@ class RecentlyAddedUpdate
 
 class ServerVersionResponseDto
 {
+    [long]$featureLevel
     [long]$major
     [long]$minor
     [long]$patch
@@ -4929,6 +5075,7 @@ class ServerVersionResponseDto
 
     ServerVersionResponseDto([object]$Source)
     {
+        if ($null -ne $Source.featureLevel) { $this.featureLevel = $Source.featureLevel }
         if ($null -ne $Source.major) { $this.major = $Source.major }
         if ($null -ne $Source.minor) { $this.minor = $Source.minor }
         if ($null -ne $Source.patch) { $this.patch = $Source.patch }
@@ -5240,6 +5387,7 @@ class ServerConfigDto
 
 class ServerFeaturesDto
 {
+    [bool]$backups
     [bool]$configFile
     [bool]$duplicateDetection
     [bool]$email
@@ -5263,6 +5411,7 @@ class ServerFeaturesDto
 
     ServerFeaturesDto([object]$Source)
     {
+        if ($null -ne $Source.backups) { $this.backups = $Source.backups }
         if ($null -ne $Source.configFile) { $this.configFile = $Source.configFile }
         if ($null -ne $Source.duplicateDetection) { $this.duplicateDetection = $Source.duplicateDetection }
         if ($null -ne $Source.email) { $this.email = $Source.email }
@@ -5539,6 +5688,8 @@ class SetMaintenanceModeDto
 {
     [string]$action
     [string]$restoreBackupFilename
+    [string]$rollbackRepositoryId
+    [string]$rollbackSnapshotId
 
     SetMaintenanceModeDto()
     {
@@ -5548,6 +5699,8 @@ class SetMaintenanceModeDto
     {
         if ($null -ne $Source.action) { $this.action = $Source.action }
         if ($null -ne $Source.restoreBackupFilename) { $this.restoreBackupFilename = $Source.restoreBackupFilename }
+        if ($null -ne $Source.rollbackRepositoryId) { $this.rollbackRepositoryId = $Source.rollbackRepositoryId }
+        if ($null -ne $Source.rollbackSnapshotId) { $this.rollbackSnapshotId = $Source.rollbackSnapshotId }
     }
 }
 
@@ -7658,8 +7811,37 @@ class UserConfigMapDto
     }
 }
 
+class UserConfigSmtpDto
+{
+    [bool]$enabled
+
+    UserConfigSmtpDto()
+    {
+    }
+
+    UserConfigSmtpDto([object]$Source)
+    {
+        if ($null -ne $Source.enabled) { $this.enabled = $Source.enabled }
+    }
+}
+
+class UserConfigNotificationsDto
+{
+    [UserConfigSmtpDto]$smtp
+
+    UserConfigNotificationsDto()
+    {
+    }
+
+    UserConfigNotificationsDto([object]$Source)
+    {
+        if ($null -ne $Source.smtp) { $this.smtp = [UserConfigSmtpDto]::new($Source.smtp) }
+    }
+}
+
 class UserConfigOAuthDto
 {
+    [string]$accountManagementUrl
     [bool]$autoLaunch
     [string]$buttonText
     [bool]$enabled
@@ -7670,8 +7852,23 @@ class UserConfigOAuthDto
 
     UserConfigOAuthDto([object]$Source)
     {
+        if ($null -ne $Source.accountManagementUrl) { $this.accountManagementUrl = $Source.accountManagementUrl }
         if ($null -ne $Source.autoLaunch) { $this.autoLaunch = $Source.autoLaunch }
         if ($null -ne $Source.buttonText) { $this.buttonText = $Source.buttonText }
+        if ($null -ne $Source.enabled) { $this.enabled = $Source.enabled }
+    }
+}
+
+class UserConfigPasskeyDto
+{
+    [bool]$enabled
+
+    UserConfigPasskeyDto()
+    {
+    }
+
+    UserConfigPasskeyDto([object]$Source)
+    {
         if ($null -ne $Source.enabled) { $this.enabled = $Source.enabled }
     }
 }
@@ -7722,20 +7919,6 @@ class UserConfigServerDto
     }
 }
 
-class UserConfigThemeDto
-{
-    [string]$customCss
-
-    UserConfigThemeDto()
-    {
-    }
-
-    UserConfigThemeDto([object]$Source)
-    {
-        if ($null -ne $Source.customCss) { $this.customCss = $Source.customCss }
-    }
-}
-
 class UserConfigTrashDto
 {
     [long]$days
@@ -7772,11 +7955,12 @@ class UserConfigDto
     [UserConfigImageDto]$image
     [UserConfigMachineLearningDto]$machineLearning
     [UserConfigMapDto]$map
+    [UserConfigNotificationsDto]$notifications
     [UserConfigOAuthDto]$oauth
+    [UserConfigPasskeyDto]$passkey
     [UserConfigPasswordLoginDto]$passwordLogin
     [UserConfigReverseGeocodingDto]$reverseGeocoding
     [UserConfigServerDto]$server
-    [UserConfigThemeDto]$theme
     [UserConfigTrashDto]$trash
     [UserConfigUserDto]$user
 
@@ -7790,11 +7974,12 @@ class UserConfigDto
         if ($null -ne $Source.image) { $this.image = [UserConfigImageDto]::new($Source.image) }
         if ($null -ne $Source.machineLearning) { $this.machineLearning = [UserConfigMachineLearningDto]::new($Source.machineLearning) }
         if ($null -ne $Source.map) { $this.map = [UserConfigMapDto]::new($Source.map) }
+        if ($null -ne $Source.notifications) { $this.notifications = [UserConfigNotificationsDto]::new($Source.notifications) }
         if ($null -ne $Source.oauth) { $this.oauth = [UserConfigOAuthDto]::new($Source.oauth) }
+        if ($null -ne $Source.passkey) { $this.passkey = [UserConfigPasskeyDto]::new($Source.passkey) }
         if ($null -ne $Source.passwordLogin) { $this.passwordLogin = [UserConfigPasswordLoginDto]::new($Source.passwordLogin) }
         if ($null -ne $Source.reverseGeocoding) { $this.reverseGeocoding = [UserConfigReverseGeocodingDto]::new($Source.reverseGeocoding) }
         if ($null -ne $Source.server) { $this.server = [UserConfigServerDto]::new($Source.server) }
-        if ($null -ne $Source.theme) { $this.theme = [UserConfigThemeDto]::new($Source.theme) }
         if ($null -ne $Source.trash) { $this.trash = [UserConfigTrashDto]::new($Source.trash) }
         if ($null -ne $Source.user) { $this.user = [UserConfigUserDto]::new($Source.user) }
     }
