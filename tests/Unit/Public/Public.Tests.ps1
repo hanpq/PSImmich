@@ -9644,6 +9644,13 @@ InModuleScope $ProjectName {
                 }
             }
 
+            It 'Should forward the OCR extraction trigger' {
+                Get-IMPluginMethod -Trigger 'AssetOcrExtraction'
+                Should -Invoke Invoke-ImmichApiSearchPluginMethods -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Trigger -eq 'AssetOcrExtraction'
+                }
+            }
+
             It 'Should filter the returned methods by type without sending the type to the API' {
                 $Result = @(Get-IMPluginMethod -Type 'AssetV1')
 
@@ -9756,6 +9763,13 @@ InModuleScope $ProjectName {
 
                 Should -Invoke Invoke-ImmichApiSearchWorkflows -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $Name -eq 'Test' -and $Description -eq 'Desc' -and $Trigger -eq 'AssetCreate' -and $null -eq $Enabled -and $null -eq $Logging
+                }
+            }
+
+            It 'Should forward the OCR extraction trigger' {
+                Get-IMWorkflow -Trigger 'AssetOcrExtraction'
+                Should -Invoke Invoke-ImmichApiSearchWorkflows -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Trigger -eq 'AssetOcrExtraction'
                 }
             }
 
@@ -9878,6 +9892,13 @@ InModuleScope $ProjectName {
                 }
             }
 
+            It 'Should send the OCR extraction trigger' {
+                New-IMWorkflow -Name 'OCR' -Trigger 'AssetOcrExtraction'
+                Should -Invoke Invoke-ImmichApiCreateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.trigger -eq 'AssetOcrExtraction'
+                }
+            }
+
             It 'Should send description, logging and steps when specified' {
                 $steps = @(@{ method = 'TagAsset'; config = @{ tagId = 'tag' }; enabled = $true })
                 New-IMWorkflow -Name 'Test' -Trigger 'AssetTagged' -Description 'Desc' -Logging:$true -Steps $steps
@@ -9936,6 +9957,13 @@ InModuleScope $ProjectName {
 
                 Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $Body.enabled -eq $false -and -not $Body.ContainsKey('name') -and -not $Body.ContainsKey('trigger') -and -not $Body.ContainsKey('steps')
+                }
+            }
+
+            It 'Should send the OCR extraction trigger' {
+                Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Trigger 'AssetOcrExtraction' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.trigger -eq 'AssetOcrExtraction'
                 }
             }
 

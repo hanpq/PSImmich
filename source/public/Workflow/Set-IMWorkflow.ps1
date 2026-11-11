@@ -15,7 +15,7 @@
     .PARAMETER Description
         The new description for the workflow.
     .PARAMETER Trigger
-        The trigger for the workflow. This determines when the workflow will be executed.
+        The trigger for the workflow, including AssetOcrExtraction.
     .PARAMETER Enabled
         Specifies whether the workflow should be enabled or disabled.
     .PARAMETER Logging
@@ -38,7 +38,6 @@
     .NOTES
         This cmdlet supports ShouldProcess and will prompt for confirmation before making changes.
         This feature is in Alpha state and may be subject to changes in future Immich versions.
-        Uses the PUT /workflows/{id} endpoint, which is marked deprecated by the Immich API without a replacement in 3.3.6.
     #>
 
     [CmdletBinding(SupportsShouldProcess)]
@@ -61,7 +60,7 @@
         $Description,
 
         [Parameter()]
-        [ValidateSet('AssetCreate', 'AssetMetadataExtraction', 'AssetTagged')]
+        [ValidateSet('AssetCreate', 'AssetMetadataExtraction', 'AssetOcrExtraction', 'AssetTagged')]
         [string]
         $Trigger,
 
