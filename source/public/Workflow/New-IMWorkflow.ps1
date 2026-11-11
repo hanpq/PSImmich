@@ -13,7 +13,7 @@
     .PARAMETER Description
         A description for the workflow to provide additional context about its purpose.
     .PARAMETER Trigger
-        The trigger for the workflow. This determines when the workflow will be executed. Required by the Immich API.
+        The trigger for the workflow, including AssetOcrExtraction. Required by the Immich API.
     .PARAMETER Enabled
         Specifies whether the workflow should be enabled upon creation. Defaults to true.
     .PARAMETER Logging
@@ -48,7 +48,7 @@
         $Description,
 
         [Parameter(Mandatory)]
-        [ValidateSet('AssetCreate', 'AssetMetadataExtraction', 'AssetTagged')]
+        [ValidateSet('AssetCreate', 'AssetMetadataExtraction', 'AssetOcrExtraction', 'AssetTagged')]
         [string]
         $Trigger,
 

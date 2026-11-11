@@ -112,6 +112,8 @@ function Get-IMAsset {
 4. **Check Test Output**: Pay attention to test timing, coverage reports, and any warnings in output
 5. **Handle Test Failures Promptly**: Don't proceed with new development if tests are failing - fix them first
 
+Run `build.ps1` invocations sequentially: they rebuild the same output directory and concurrent runs can interfere.
+
 #### Common Test Failure Patterns and Solutions
 - **Mock Parameter Mismatches**: Check `ParameterFilter` blocks match actual mock parameter names (e.g., `$Name` vs `$CommandName`)
 - **Reflection-Based Function Testing**: Complex functions using `Get-Command` require sophisticated mocking with `GetType().Name` simulation
@@ -225,6 +227,7 @@ Always use Conventional Commits when generating or creating commit messages:
 - Use `docs:`, `test:`, `refactor:`, `build:`, `ci:`, or `chore:` for changes that do not request a release. A release-mode configuration toggle alone normally uses `chore:`.
 - Mark breaking changes with `!` before the colon and explain them in a `BREAKING CHANGE:` footer.
 - Keep the description concise and imperative. Never use an unprefixed subject such as `release 5.2.6`.
+- Do not add a Copilot co-author trailer to commit messages.
 - Apply the same format to pull request titles intended for squash merging. Preserve required commit trailers.
 - For multi-batch Immich upgrades, preserve individual Conventional Commits when merging so their feature/fix subjects reach Release Please; squashing the entire upgrade loses those individual subjects. See the upgrade workflow for the maintainer-controlled handoff.
 

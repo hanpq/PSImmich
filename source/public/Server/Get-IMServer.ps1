@@ -11,7 +11,7 @@
     .PARAMETER About
         Retrieves general server information and about details.
     .PARAMETER Version
-        Retrieves server version information in a formatted object.
+        Retrieves the server version and its independent feature level in a formatted object.
     .PARAMETER VersionHistory
         Retrieves server version history and release information.
     .PARAMETER Features
@@ -20,6 +20,8 @@
         Retrieves server usage statistics.
     .PARAMETER Configuration
         Retrieves server configuration settings.
+    .PARAMETER PublicConfiguration
+        Retrieves the public configuration, including passkey and map availability.
     .PARAMETER AppliedSystemConfiguration
         Retrieves currently applied system configuration.
     .PARAMETER DefaultSystemConfiguration
@@ -34,7 +36,7 @@
     .PARAMETER MediaTypes
         Retrieves supported media types and formats.
     .PARAMETER Theme
-        Retrieves server theme configuration.
+        Retrieves server theme configuration. Requires permission to read admin configuration.
     .PARAMETER APKLinks
         Retrieves mobile application download links.
     .PARAMETER VersionCheck
@@ -59,6 +61,10 @@
         Get-IMServer -AppliedSystemConfiguration -ReturnRawJSON
 
         Gets current system configuration as raw JSON.
+    .EXAMPLE
+        Get-IMServer -PublicConfiguration
+
+        Gets the server's public configuration.
     .EXAMPLE
         Get-IMServer -Ping
 
@@ -94,6 +100,10 @@
         [Parameter(ParameterSetName = 'configuration')]
         [switch]
         $Configuration,
+
+        [Parameter(ParameterSetName = 'publicconfiguration')]
+        [switch]
+        $PublicConfiguration,
 
         [Parameter(ParameterSetName = 'appliedsystemconfiguration')]
         [switch]
@@ -151,7 +161,8 @@
         {
             $Result = Invoke-ImmichApiGetServerVersion -ImmichSession:$Session
             return [pscustomobject]@{
-                version = "$($Result.Major).$($Result.Minor).$($Result.Patch)"
+                version      = "$($Result.Major).$($Result.Minor).$($Result.Patch)"
+                featureLevel = $Result.featureLevel
             }
         }
         'version-history'
@@ -169,6 +180,10 @@
         'configuration'
         {
             Invoke-ImmichApiGetServerConfig -ImmichSession:$Session
+        }
+        'publicconfiguration'
+        {
+            Invoke-ImmichApiGetPublicConfig -ImmichSession:$Session
         }
         'appliedsystemconfiguration'
         {
@@ -208,7 +223,7 @@
         }
         'theme'
         {
-            $Result = Invoke-ImmichApiGetPublicConfig -ImmichSession:$Session
+            $Result = Invoke-ImmichApiGetAdminConfig -ImmichSession:$Session
             $Result.theme
         }
         'ping'

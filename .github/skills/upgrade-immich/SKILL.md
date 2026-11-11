@@ -132,8 +132,11 @@ function per operation). It is a static reference check, not a parameter check:
 ```
 
 Each non-excluded operation is `Tested` (its `Invoke-ImmichApi*` function is
-referenced under `tests/Unit`), `Reachable` (referenced from module source) or
-`Unreachable`. Exclusions come from `api/exclusions.json` by method and path.
+referenced from module source and a non-generated unit test), `Reachable`
+(referenced from module source) or `Unreachable`. Generated route tests are not
+evidence of a public caller. Direct transport calls, such as multipart uploads,
+can still produce false `Unreachable` results and need separate inspection.
+Exclusions come from `api/exclusions.json` by method and path.
 Use `-Strict` to fail when an operation is unreachable. Report the wired
 percentage over non-excluded operations; do not treat it as contract parity.
 
@@ -298,6 +301,7 @@ For targeted unit tests, use `.\build.ps1 -Task Test -TestSuite Module -Tag '<cm
 Tag-filtered runs skip coverage. Check that
 tests were actually selected and executed. This does not replace the final
 full verification or its coverage conversion.
+Run build invocations sequentially because they rebuild the same output directory.
 
 Use [Get-IMLibrary tests](../../../tests/Unit/Public/Public.Tests.ps1) as a
 pattern, locating the current block rather than relying on historical line
@@ -320,6 +324,9 @@ Live integration rules (mandatory when a live instance is used):
   resources, clean them up in `AfterAll`/`finally` blocks, and never modify
   pre-existing assets, users, settings or jobs. If a test cannot restore state,
   stop and report it.
+- For tag association tests, wait for the specific association to appear
+  before removing it, then poll for its absence with a bounded timeout. Check
+  per-asset API results and report timeouts rather than silently retrying writes.
 - Do not send credentials or demo-instance details to third-party services or
   commit them to the repository.
 

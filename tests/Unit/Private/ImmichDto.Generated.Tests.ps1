@@ -160,9 +160,11 @@ InModuleScope $ProjectName {
         }
         It 'Should map every property from a source object' {
             $Source = [pscustomobject]@{
+                beta = $true
                 database = [pscustomobject]@{}
             }
             $Dto = [AdminConfigBackupsDto]::new($Source)
+            $Dto.beta | Should -Be $true
             $Dto.database.GetType().Name | Should -Be 'AdminConfigDatabaseBackupDto'
         }
     }
@@ -766,6 +768,23 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'AdminConfigPasskeyDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
+        It 'Should create an instance with the default constructor' {
+            [AdminConfigPasskeyDto]::new() | Should -BeOfType ([AdminConfigPasskeyDto])
+        }
+        It 'Should map every property from a source object' {
+            $Source = [pscustomobject]@{
+                additionalDomains = @('sample', 'sample')
+                domain = 'sample'
+                enabled = $true
+            }
+            $Dto = [AdminConfigPasskeyDto]::new($Source)
+            @($Dto.additionalDomains).Count | Should -Be 2
+            $Dto.domain | Should -Be 'sample'
+            $Dto.enabled | Should -Be $true
+        }
+    }
+
     Describe 'AdminConfigPasswordLoginDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
         It 'Should create an instance with the default constructor' {
             [AdminConfigPasswordLoginDto]::new() | Should -BeOfType ([AdminConfigPasswordLoginDto])
@@ -917,6 +936,7 @@ InModuleScope $ProjectName {
                 nightlyTasks = [pscustomobject]@{}
                 notifications = [pscustomobject]@{}
                 oauth = [pscustomobject]@{}
+                passkey = [pscustomobject]@{}
                 passwordLogin = [pscustomobject]@{}
                 reverseGeocoding = [pscustomobject]@{}
                 server = [pscustomobject]@{}
@@ -941,6 +961,7 @@ InModuleScope $ProjectName {
             $Dto.nightlyTasks.GetType().Name | Should -Be 'AdminConfigNightlyTasksDto'
             $Dto.notifications.GetType().Name | Should -Be 'AdminConfigNotificationsDto'
             $Dto.oauth.GetType().Name | Should -Be 'AdminConfigOAuthDto'
+            $Dto.passkey.GetType().Name | Should -Be 'AdminConfigPasskeyDto'
             $Dto.passwordLogin.GetType().Name | Should -Be 'AdminConfigPasswordLoginDto'
             $Dto.reverseGeocoding.GetType().Name | Should -Be 'AdminConfigReverseGeocodingDto'
             $Dto.server.GetType().Name | Should -Be 'AdminConfigServerDto'
@@ -2997,6 +3018,7 @@ InModuleScope $ProjectName {
                 action = 'sample'
                 active = $true
                 error = 'sample'
+                futoBackupsJobId = 'sample'
                 progress = 1
                 task = 'sample'
             }
@@ -3004,6 +3026,7 @@ InModuleScope $ProjectName {
             $Dto.action | Should -Be 'sample'
             $Dto.active | Should -Be $true
             $Dto.error | Should -Be 'sample'
+            $Dto.futoBackupsJobId | Should -Be 'sample'
             $Dto.progress | Should -Be 1
             $Dto.task | Should -Be 'sample'
         }
@@ -3865,6 +3888,71 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'PasskeyAuthenticationFinishDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
+        It 'Should create an instance with the default constructor' {
+            [PasskeyAuthenticationFinishDto]::new() | Should -BeOfType ([PasskeyAuthenticationFinishDto])
+        }
+        It 'Should map every property from a source object' {
+            $Source = [pscustomobject]@{
+                response = 'sample'
+            }
+            $Dto = [PasskeyAuthenticationFinishDto]::new($Source)
+            $Dto.response | Should -Be 'sample'
+        }
+    }
+
+    Describe 'PasskeyRegistrationFinishDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
+        It 'Should create an instance with the default constructor' {
+            [PasskeyRegistrationFinishDto]::new() | Should -BeOfType ([PasskeyRegistrationFinishDto])
+        }
+        It 'Should map every property from a source object' {
+            $Source = [pscustomobject]@{
+                name = 'sample'
+                response = 'sample'
+            }
+            $Dto = [PasskeyRegistrationFinishDto]::new($Source)
+            $Dto.name | Should -Be 'sample'
+            $Dto.response | Should -Be 'sample'
+        }
+    }
+
+    Describe 'PasskeyResponseDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
+        It 'Should create an instance with the default constructor' {
+            [PasskeyResponseDto]::new() | Should -BeOfType ([PasskeyResponseDto])
+        }
+        It 'Should map every property from a source object' {
+            $Source = [pscustomobject]@{
+                createdAt = ([datetime]'2024-01-02T03:04:05.0000000Z')
+                id = 'sample'
+                name = 'sample'
+                updatedAt = ([datetime]'2024-01-02T03:04:05.0000000Z')
+                usedAt = ([datetime]'2024-01-02T03:04:05.0000000Z')
+            }
+            $Dto = [PasskeyResponseDto]::new($Source)
+            $Dto.createdAt | Should -Be ([datetime]'2024-01-02T03:04:05.0000000Z')
+            $Dto.id | Should -Be 'sample'
+            $Dto.name | Should -Be 'sample'
+            $Dto.updatedAt | Should -Be ([datetime]'2024-01-02T03:04:05.0000000Z')
+            $Dto.usedAt | Should -Be ([datetime]'2024-01-02T03:04:05.0000000Z')
+        }
+        It 'Should return the id from ToString' {
+            [PasskeyResponseDto]::new([pscustomobject]@{ id = 'sample' }).ToString() | Should -Be 'sample'
+        }
+    }
+
+    Describe 'PasskeyUpdateDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
+        It 'Should create an instance with the default constructor' {
+            [PasskeyUpdateDto]::new() | Should -BeOfType ([PasskeyUpdateDto])
+        }
+        It 'Should map every property from a source object' {
+            $Source = [pscustomobject]@{
+                name = 'sample'
+            }
+            $Dto = [PasskeyUpdateDto]::new($Source)
+            $Dto.name | Should -Be 'sample'
+        }
+    }
+
     Describe 'PeopleDeleteDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
         It 'Should create an instance with the default constructor' {
             [PeopleDeleteDto]::new() | Should -BeOfType ([PeopleDeleteDto])
@@ -4236,6 +4324,49 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'PublicConfigFFmpegRealtimeDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
+        It 'Should create an instance with the default constructor' {
+            [PublicConfigFFmpegRealtimeDto]::new() | Should -BeOfType ([PublicConfigFFmpegRealtimeDto])
+        }
+        It 'Should map every property from a source object' {
+            $Source = [pscustomobject]@{
+                enabled = $true
+            }
+            $Dto = [PublicConfigFFmpegRealtimeDto]::new($Source)
+            $Dto.enabled | Should -Be $true
+        }
+    }
+
+    Describe 'PublicConfigFFmpegDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
+        It 'Should create an instance with the default constructor' {
+            [PublicConfigFFmpegDto]::new() | Should -BeOfType ([PublicConfigFFmpegDto])
+        }
+        It 'Should map every property from a source object' {
+            $Source = [pscustomobject]@{
+                realtime = [pscustomobject]@{}
+            }
+            $Dto = [PublicConfigFFmpegDto]::new($Source)
+            $Dto.realtime.GetType().Name | Should -Be 'PublicConfigFFmpegRealtimeDto'
+        }
+    }
+
+    Describe 'PublicConfigMapDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
+        It 'Should create an instance with the default constructor' {
+            [PublicConfigMapDto]::new() | Should -BeOfType ([PublicConfigMapDto])
+        }
+        It 'Should map every property from a source object' {
+            $Source = [pscustomobject]@{
+                darkStyle = 'sample'
+                enabled = $true
+                lightStyle = 'sample'
+            }
+            $Dto = [PublicConfigMapDto]::new($Source)
+            $Dto.darkStyle | Should -Be 'sample'
+            $Dto.enabled | Should -Be $true
+            $Dto.lightStyle | Should -Be 'sample'
+        }
+    }
+
     Describe 'PublicConfigOAuthDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
         It 'Should create an instance with the default constructor' {
             [PublicConfigOAuthDto]::new() | Should -BeOfType ([PublicConfigOAuthDto])
@@ -4249,6 +4380,19 @@ InModuleScope $ProjectName {
             $Dto = [PublicConfigOAuthDto]::new($Source)
             $Dto.autoLaunch | Should -Be $true
             $Dto.buttonText | Should -Be 'sample'
+            $Dto.enabled | Should -Be $true
+        }
+    }
+
+    Describe 'PublicConfigPasskeyDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
+        It 'Should create an instance with the default constructor' {
+            [PublicConfigPasskeyDto]::new() | Should -BeOfType ([PublicConfigPasskeyDto])
+        }
+        It 'Should map every property from a source object' {
+            $Source = [pscustomobject]@{
+                enabled = $true
+            }
+            $Dto = [PublicConfigPasskeyDto]::new($Source)
             $Dto.enabled | Should -Be $true
         }
     }
@@ -4279,35 +4423,26 @@ InModuleScope $ProjectName {
         }
     }
 
-    Describe 'PublicConfigThemeDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
-        It 'Should create an instance with the default constructor' {
-            [PublicConfigThemeDto]::new() | Should -BeOfType ([PublicConfigThemeDto])
-        }
-        It 'Should map every property from a source object' {
-            $Source = [pscustomobject]@{
-                customCss = 'sample'
-            }
-            $Dto = [PublicConfigThemeDto]::new($Source)
-            $Dto.customCss | Should -Be 'sample'
-        }
-    }
-
     Describe 'PublicConfigDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
         It 'Should create an instance with the default constructor' {
             [PublicConfigDto]::new() | Should -BeOfType ([PublicConfigDto])
         }
         It 'Should map every property from a source object' {
             $Source = [pscustomobject]@{
+                ffmpeg = [pscustomobject]@{}
+                map = [pscustomobject]@{}
                 oauth = [pscustomobject]@{}
+                passkey = [pscustomobject]@{}
                 passwordLogin = [pscustomobject]@{}
                 server = [pscustomobject]@{}
-                theme = [pscustomobject]@{}
             }
             $Dto = [PublicConfigDto]::new($Source)
+            $Dto.ffmpeg.GetType().Name | Should -Be 'PublicConfigFFmpegDto'
+            $Dto.map.GetType().Name | Should -Be 'PublicConfigMapDto'
             $Dto.oauth.GetType().Name | Should -Be 'PublicConfigOAuthDto'
+            $Dto.passkey.GetType().Name | Should -Be 'PublicConfigPasskeyDto'
             $Dto.passwordLogin.GetType().Name | Should -Be 'PublicConfigPasswordLoginDto'
             $Dto.server.GetType().Name | Should -Be 'PublicConfigServerDto'
-            $Dto.theme.GetType().Name | Should -Be 'PublicConfigThemeDto'
         }
     }
 
@@ -4658,12 +4793,14 @@ InModuleScope $ProjectName {
         }
         It 'Should map every property from a source object' {
             $Source = [pscustomobject]@{
+                featureLevel = 1
                 major = 1
                 minor = 1
                 patch = 1
                 prerelease = 1
             }
             $Dto = [ServerVersionResponseDto]::new($Source)
+            $Dto.featureLevel | Should -Be 1
             $Dto.major | Should -Be 1
             $Dto.minor | Should -Be 1
             $Dto.patch | Should -Be 1
@@ -4965,6 +5102,7 @@ InModuleScope $ProjectName {
         }
         It 'Should map every property from a source object' {
             $Source = [pscustomobject]@{
+                backups = $true
                 configFile = $true
                 duplicateDetection = $true
                 email = $true
@@ -4983,6 +5121,7 @@ InModuleScope $ProjectName {
                 trash = $true
             }
             $Dto = [ServerFeaturesDto]::new($Source)
+            $Dto.backups | Should -Be $true
             $Dto.configFile | Should -Be $true
             $Dto.duplicateDetection | Should -Be $true
             $Dto.email | Should -Be $true
@@ -5246,10 +5385,14 @@ InModuleScope $ProjectName {
             $Source = [pscustomobject]@{
                 action = 'sample'
                 restoreBackupFilename = 'sample'
+                rollbackRepositoryId = 'sample'
+                rollbackSnapshotId = 'sample'
             }
             $Dto = [SetMaintenanceModeDto]::new($Source)
             $Dto.action | Should -Be 'sample'
             $Dto.restoreBackupFilename | Should -Be 'sample'
+            $Dto.rollbackRepositoryId | Should -Be 'sample'
+            $Dto.rollbackSnapshotId | Should -Be 'sample'
         }
     }
 
@@ -7218,19 +7361,60 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'UserConfigSmtpDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
+        It 'Should create an instance with the default constructor' {
+            [UserConfigSmtpDto]::new() | Should -BeOfType ([UserConfigSmtpDto])
+        }
+        It 'Should map every property from a source object' {
+            $Source = [pscustomobject]@{
+                enabled = $true
+            }
+            $Dto = [UserConfigSmtpDto]::new($Source)
+            $Dto.enabled | Should -Be $true
+        }
+    }
+
+    Describe 'UserConfigNotificationsDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
+        It 'Should create an instance with the default constructor' {
+            [UserConfigNotificationsDto]::new() | Should -BeOfType ([UserConfigNotificationsDto])
+        }
+        It 'Should map every property from a source object' {
+            $Source = [pscustomobject]@{
+                smtp = [pscustomobject]@{}
+            }
+            $Dto = [UserConfigNotificationsDto]::new($Source)
+            $Dto.smtp.GetType().Name | Should -Be 'UserConfigSmtpDto'
+        }
+    }
+
     Describe 'UserConfigOAuthDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
         It 'Should create an instance with the default constructor' {
             [UserConfigOAuthDto]::new() | Should -BeOfType ([UserConfigOAuthDto])
         }
         It 'Should map every property from a source object' {
             $Source = [pscustomobject]@{
+                accountManagementUrl = 'sample'
                 autoLaunch = $true
                 buttonText = 'sample'
                 enabled = $true
             }
             $Dto = [UserConfigOAuthDto]::new($Source)
+            $Dto.accountManagementUrl | Should -Be 'sample'
             $Dto.autoLaunch | Should -Be $true
             $Dto.buttonText | Should -Be 'sample'
+            $Dto.enabled | Should -Be $true
+        }
+    }
+
+    Describe 'UserConfigPasskeyDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
+        It 'Should create an instance with the default constructor' {
+            [UserConfigPasskeyDto]::new() | Should -BeOfType ([UserConfigPasskeyDto])
+        }
+        It 'Should map every property from a source object' {
+            $Source = [pscustomobject]@{
+                enabled = $true
+            }
+            $Dto = [UserConfigPasskeyDto]::new($Source)
             $Dto.enabled | Should -Be $true
         }
     }
@@ -7278,19 +7462,6 @@ InModuleScope $ProjectName {
         }
     }
 
-    Describe 'UserConfigThemeDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
-        It 'Should create an instance with the default constructor' {
-            [UserConfigThemeDto]::new() | Should -BeOfType ([UserConfigThemeDto])
-        }
-        It 'Should map every property from a source object' {
-            $Source = [pscustomobject]@{
-                customCss = 'sample'
-            }
-            $Dto = [UserConfigThemeDto]::new($Source)
-            $Dto.customCss | Should -Be 'sample'
-        }
-    }
-
     Describe 'UserConfigTrashDto' -Tag 'Unit', 'ImmichDtoLayer', 'Generated' {
         It 'Should create an instance with the default constructor' {
             [UserConfigTrashDto]::new() | Should -BeOfType ([UserConfigTrashDto])
@@ -7329,11 +7500,12 @@ InModuleScope $ProjectName {
                 image = [pscustomobject]@{}
                 machineLearning = [pscustomobject]@{}
                 map = [pscustomobject]@{}
+                notifications = [pscustomobject]@{}
                 oauth = [pscustomobject]@{}
+                passkey = [pscustomobject]@{}
                 passwordLogin = [pscustomobject]@{}
                 reverseGeocoding = [pscustomobject]@{}
                 server = [pscustomobject]@{}
-                theme = [pscustomobject]@{}
                 trash = [pscustomobject]@{}
                 user = [pscustomobject]@{}
             }
@@ -7342,11 +7514,12 @@ InModuleScope $ProjectName {
             $Dto.image.GetType().Name | Should -Be 'UserConfigImageDto'
             $Dto.machineLearning.GetType().Name | Should -Be 'UserConfigMachineLearningDto'
             $Dto.map.GetType().Name | Should -Be 'UserConfigMapDto'
+            $Dto.notifications.GetType().Name | Should -Be 'UserConfigNotificationsDto'
             $Dto.oauth.GetType().Name | Should -Be 'UserConfigOAuthDto'
+            $Dto.passkey.GetType().Name | Should -Be 'UserConfigPasskeyDto'
             $Dto.passwordLogin.GetType().Name | Should -Be 'UserConfigPasswordLoginDto'
             $Dto.reverseGeocoding.GetType().Name | Should -Be 'UserConfigReverseGeocodingDto'
             $Dto.server.GetType().Name | Should -Be 'UserConfigServerDto'
-            $Dto.theme.GetType().Name | Should -Be 'UserConfigThemeDto'
             $Dto.trash.GetType().Name | Should -Be 'UserConfigTrashDto'
             $Dto.user.GetType().Name | Should -Be 'UserConfigUserDto'
         }

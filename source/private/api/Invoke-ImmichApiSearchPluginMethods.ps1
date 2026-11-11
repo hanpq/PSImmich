@@ -11,7 +11,7 @@ function Invoke-ImmichApiSearchPluginMethods
         [string]$PluginName,
         [string]$PluginVersion,
         [string]$Title,
-        [ValidateSet('AssetCreate', 'AssetMetadataExtraction', 'AssetTagged')][string]$Trigger,
+        [ValidateSet('AssetCreate', 'AssetMetadataExtraction', 'AssetOcrExtraction', 'AssetTagged')][string]$Trigger,
         [ValidateSet('AssetV1')][string]$Type,
         [ImmichSession]$ImmichSession = $null
     )

@@ -19,7 +19,7 @@
     .PARAMETER Logging
         Filters the workflow list by whether run results are logged. Only applies to the list parameter set.
     .PARAMETER Trigger
-        Filters the workflow list by trigger type. Only applies to the list parameter set.
+        Filters the workflow list by trigger type, including AssetOcrExtraction. Only applies to the list parameter set.
     .PARAMETER Share
         Retrieves the shareable representation of the workflow specified by Id instead of the workflow itself.
     .EXAMPLE
@@ -69,7 +69,7 @@
         $Logging,
 
         [Parameter(ParameterSetName = 'list')]
-        [ValidateSet('AssetCreate', 'AssetMetadataExtraction', 'AssetTagged')]
+        [ValidateSet('AssetCreate', 'AssetMetadataExtraction', 'AssetOcrExtraction', 'AssetTagged')]
         [string]
         $Trigger,
 

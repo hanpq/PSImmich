@@ -230,7 +230,7 @@ Describe 'Plugin' -Tag 'Integration' {
             }
             foreach ($Template in $script:AllTemplates)
             {
-                $Template.trigger | Should -BeIn @('AssetCreate', 'AssetMetadataExtraction', 'AssetTagged')
+                $Template.trigger | Should -BeIn @('AssetCreate', 'AssetMetadataExtraction', 'AssetOcrExtraction', 'AssetTagged')
             }
         }
     }

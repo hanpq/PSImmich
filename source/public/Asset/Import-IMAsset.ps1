@@ -42,7 +42,7 @@
         Imports multiple photos and archives them immediately.
     .NOTES
         Uses System.Net.Http.HttpClient for reliable multipart uploads across all PowerShell editions.
-        This cmdlet supports ShouldProcess and will prompt for confirmation before uploading files.
+        Supports -WhatIf and -Confirm for each uploaded file.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'FP, retreived through PSBoundParameters')]
     [CmdletBinding(SupportsShouldProcess)]
@@ -97,8 +97,6 @@
 
         $FilePath | ForEach-Object {
             $FileInfo = Get-Item -Path $PSItem.FullName
-            $RelativePath = '/assets'
-
             # Prepare form data
             $FormData = @{}
             $FormData += (ConvertTo-ApiParameters -BoundParameters $PSBoundParameters -CmdletName $MyInvocation.MyCommand.Name)
@@ -109,10 +107,15 @@
                 fileModifiedAt = ([DateTimeOffset]$FileInfo.LastWriteTime).UtcDateTime.ToString('o')
             }
 
-            # Use unified HttpClient approach via private function
-            $ResponseContent = Invoke-MultipartHttpUpload -RelativePath $RelativePath -Session:$Session -FormData $FormData -FileInfo $FileInfo -FileFieldName 'assetData'
-
-            $ResponseContent | ConvertFrom-Json | Get-IMAsset
+            if ($PSCmdlet.ShouldProcess($FileInfo.FullName, 'Upload asset'))
+            {
+                $Response = Invoke-ImmichApiUploadAsset -ImmichSession $Session -FormData $FormData -FileInfo $FileInfo
+                if ($null -eq $Response -or [string]::IsNullOrWhiteSpace($Response.id))
+                {
+                    throw 'The asset upload response did not contain an asset ID.'
+                }
+                Get-IMAsset -Id $Response.id -Session $Session
+            }
         }
     }
 }

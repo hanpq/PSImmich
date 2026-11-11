@@ -20,7 +20,7 @@ function Get-IMPluginMethod
     .PARAMETER PluginVersion
         Filter the method list by the version of the plugin that provides the method.
     .PARAMETER Trigger
-        Filter the method list by workflow trigger.
+        Filter the method list by workflow trigger, including AssetOcrExtraction.
     .PARAMETER Type
         Filter the method list by workflow type. Applied after the list is retrieved, against each method's types.
     .EXAMPLE
@@ -69,7 +69,7 @@ function Get-IMPluginMethod
         $PluginVersion,
 
         [Parameter()]
-        [ValidateSet('AssetCreate', 'AssetMetadataExtraction', 'AssetTagged')]
+        [ValidateSet('AssetCreate', 'AssetMetadataExtraction', 'AssetOcrExtraction', 'AssetTagged')]
         [string]
         $Trigger,
 

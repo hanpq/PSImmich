@@ -1335,8 +1335,16 @@ InModuleScope $ProjectName {
                 }
             }
 
+            It 'Should send passkey management permissions' {
+                New-IMAPIKey -Name 'Passkey Key' -Permission 'passkey.read', 'passkey.update', 'passkey.delete'
+
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    ($Body.permissions -join ',') -eq 'passkey.read,passkey.update,passkey.delete'
+                }
+            }
+
             It 'Should handle admin permissions' {
-                $adminPermissions = @('admin.user.create', 'admin.user.read', 'admin.user.update')
+                $adminPermissions = @('adminUser.create', 'adminUser.read', 'adminUser.update')
                 New-IMAPIKey -Name 'Admin Key' -Permission $adminPermissions
 
                 Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It
@@ -1350,6 +1358,15 @@ InModuleScope $ProjectName {
 
             It 'Should validate Permission parameter values' {
                 { New-IMAPIKey -Name 'Invalid Permission' -Permission 'invalid.permission' } | Should -Throw
+            }
+
+            It 'Should match the 3.4.0 permission enum exactly' {
+                $Root = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
+                $Spec = Get-Content -Raw -LiteralPath (Join-Path $Root 'api\api.3.4.0.json') | ConvertFrom-Json
+                $Validation = (Get-Command New-IMAPIKey).Parameters['Permission'].Attributes |
+                    Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] }
+                $Differences = Compare-Object @($Spec.components.schemas.Permission.enum) @($Validation.ValidValues)
+                $Differences | Should -BeNullOrEmpty
             }
 
             It 'Should accept valid permission values' {
@@ -2027,17 +2044,7 @@ InModuleScope $ProjectName {
 
             Mock Get-Item {
                 param($Path)
-                $fileName = Split-Path $Path -Leaf
-                # Create a proper FileInfo-like object
-                $fileInfo = New-Object PSObject -Property @{
-                    FullName      = [string]$Path
-                    Name          = $fileName
-                    CreationTime  = [DateTime]'2023-01-01T10:00:00'
-                    LastWriteTime = [DateTime]'2023-01-01T11:00:00'
-                }
-                # Add the required type name to make it castable to FileInfo
-                $fileInfo.PSObject.TypeNames.Insert(0, 'System.IO.FileInfo')
-                return $fileInfo
+                return [System.IO.FileInfo]::new($Path)
             } -ModuleName PSImmich
 
             Mock ConvertTo-ApiParameters -MockWith {
@@ -2205,6 +2212,21 @@ InModuleScope $ProjectName {
         }
 
         Context 'HTTP Upload Integration' {
+            It 'Routes uploads through the wrapper with form data and session' {
+                $ExpectedSession = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Mock Invoke-ImmichApiUploadAsset -ModuleName PSImmich {
+                    [pscustomobject]@{ id = '550e8400-e29b-41d4-a716-446655440000' }
+                }
+                Import-IMAsset -FilePath $TestFile1 -Session $ExpectedSession -isArchived
+                Should -Invoke Invoke-ImmichApiUploadAsset -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $ImmichSession -eq $ExpectedSession -and $FileInfo.FullName -eq $TestFile1.FullName -and
+                    $FormData.isArchived -eq $true -and $FormData.deviceAssetId -eq 'photo1.jpg'
+                }
+                Should -Invoke Get-IMAsset -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Id -eq '550e8400-e29b-41d4-a716-446655440000' -and $Session -eq $ExpectedSession
+                }
+            }
+
             It 'Should call Invoke-MultipartHttpUpload with correct parameters' {
                 Import-IMAsset -FilePath $TestFile1
 
@@ -2232,6 +2254,18 @@ InModuleScope $ProjectName {
                 } -ModuleName PSImmich
 
                 { Import-IMAsset -FilePath $TestFile1 } | Should -Throw 'HTTP 400: Bad Request'
+            }
+
+            It 'Does not upload or retrieve assets with WhatIf' {
+                Import-IMAsset -FilePath $TestFile1 -WhatIf
+                Should -Invoke Invoke-MultipartHttpUpload -Times 0 -Exactly -Scope It -ModuleName PSImmich
+                Should -Invoke Get-IMAsset -Times 0 -Exactly -Scope It -ModuleName PSImmich
+            }
+
+            It 'Rejects an upload response without an asset ID' {
+                Mock Invoke-MultipartHttpUpload { return '{}' } -ModuleName PSImmich
+                { Import-IMAsset -FilePath $TestFile1 } | Should -Throw '*did not contain an asset ID*'
+                Should -Invoke Get-IMAsset -Times 0 -Exactly -Scope It -ModuleName PSImmich
             }
         }
 
@@ -2382,6 +2416,14 @@ InModuleScope $ProjectName {
 
                 Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -ParameterFilter {
                     $Body.ids -contains $TestAssetId
+                }
+            }
+
+            It 'Should include force when removing an asset piped by id alias' {
+                [PSCustomObject]@{ id = $TestAssetId } | Remove-IMAsset -Force -Confirm:$false
+
+                Should -Invoke Invoke-ImmichApiDeleteAssets -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.ids.Count -eq 1 -and $Body.ids[0] -eq $TestAssetId -and $Body.force -eq $true
                 }
             }
 
@@ -4922,6 +4964,15 @@ InModuleScope $ProjectName {
             $Result.GetType().Name | Should -Be 'MaintenanceStatusResponseDto'
             $Result.active | Should -BeTrue
             $Result.progress | Should -Be 42
+        }
+
+        It 'Should preserve the rollback action and FUTO Backups job ID' {
+            Mock Invoke-ImmichApiGetMaintenanceStatus -ModuleName PSImmich {
+                [pscustomobject]@{ action = 'rollback'; active = $true; futoBackupsJobId = 'job-123' }
+            }
+            $Result = Get-IMMaintenanceStatus
+            $Result.action | Should -Be 'rollback'
+            $Result.futoBackupsJobId | Should -Be 'job-123'
         }
 
         It 'Should forward the session' {
@@ -8237,6 +8288,22 @@ InModuleScope $ProjectName {
                 Should -Invoke Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
+        Context '-PublicConfiguration' {
+            BeforeAll {
+                Mock Invoke-ImmichApiGetPublicConfig -ModuleName PSImmich {
+                    [pscustomobject]@{ passkey = [pscustomobject]@{ enabled = $true }; map = [pscustomobject]@{ enabled = $false } }
+                }
+            }
+            It 'Returns the public configuration and forwards an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                $Result = Get-IMServer -PublicConfiguration -Session $Session
+                $Result.passkey.enabled | Should -BeTrue
+                $Result.map.enabled | Should -BeFalse
+                Should -Invoke Invoke-ImmichApiGetPublicConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+        }
         Context '-VersionCheckState' {
             BeforeAll {
                 Mock Invoke-ImmichApiGetVersionCheckState -ModuleName PSImmich {
@@ -8266,15 +8333,26 @@ InModuleScope $ProjectName {
         }
         Context '-Theme' {
             BeforeAll {
-                Mock Invoke-ImmichApiGetPublicConfig -ModuleName PSImmich { return [pscustomobject]@{ theme = [pscustomobject]@{ customCss = 'body { color: red; }' } } }
+                Mock Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich { return [pscustomobject]@{ theme = [pscustomobject]@{ customCss = 'body { color: red; }' } } }
             }
-            It 'Should get theme through the generated public config wrapper' {
+            It 'Should get theme through the generated admin config wrapper' {
                 Get-IMServer -Theme
-                Should -Invoke Invoke-ImmichApiGetPublicConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
             It 'Should return the theme object with customCss' {
                 $Result = Get-IMServer -Theme
                 $Result.customCss | Should -Be 'body { color: red; }'
+            }
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMServer -Theme -Session $Session
+                Should -Invoke Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+            It 'Should propagate admin configuration errors' {
+                Mock Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich { throw 'Access denied' }
+                { Get-IMServer -Theme } | Should -Throw '*Access denied*'
             }
         }
         Context '-MediaTypes' {
@@ -8286,10 +8364,11 @@ InModuleScope $ProjectName {
         }
         Context '-Version' {
             It 'Should get server version through the generated wrapper and format it' {
-                Mock Invoke-ImmichApiGetServerVersion -ModuleName PSImmich { return [pscustomobject]@{ Major = 3; Minor = 3; Patch = 6 } }
+                Mock Invoke-ImmichApiGetServerVersion -ModuleName PSImmich { return [pscustomobject]@{ Major = 3; Minor = 4; Patch = 0; featureLevel = 0 } }
                 $Result = Get-IMServer -Version
                 Should -Invoke Invoke-ImmichApiGetServerVersion -ModuleName PSImmich -Times 1 -Exactly -Scope It
-                $Result.version | Should -Be '3.3.6'
+                $Result.version | Should -Be '3.4.0'
+                $Result.featureLevel | Should -Be 0
             }
         }
         Context '-Storage' {
@@ -9625,6 +9704,13 @@ InModuleScope $ProjectName {
                 }
             }
 
+            It 'Should forward the OCR extraction trigger' {
+                Get-IMPluginMethod -Trigger 'AssetOcrExtraction'
+                Should -Invoke Invoke-ImmichApiSearchPluginMethods -Times 1 -Exactly -Scope It -ModuleName PSImmich -ParameterFilter {
+                    $Trigger -eq 'AssetOcrExtraction'
+                }
+            }
+
             It 'Should filter the returned methods by type without sending the type to the API' {
                 $Result = @(Get-IMPluginMethod -Type 'AssetV1')
 
@@ -9737,6 +9823,13 @@ InModuleScope $ProjectName {
 
                 Should -Invoke Invoke-ImmichApiSearchWorkflows -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $Name -eq 'Test' -and $Description -eq 'Desc' -and $Trigger -eq 'AssetCreate' -and $null -eq $Enabled -and $null -eq $Logging
+                }
+            }
+
+            It 'Should forward the OCR extraction trigger' {
+                Get-IMWorkflow -Trigger 'AssetOcrExtraction'
+                Should -Invoke Invoke-ImmichApiSearchWorkflows -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Trigger -eq 'AssetOcrExtraction'
                 }
             }
 
@@ -9859,6 +9952,13 @@ InModuleScope $ProjectName {
                 }
             }
 
+            It 'Should send the OCR extraction trigger' {
+                New-IMWorkflow -Name 'OCR' -Trigger 'AssetOcrExtraction'
+                Should -Invoke Invoke-ImmichApiCreateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.trigger -eq 'AssetOcrExtraction'
+                }
+            }
+
             It 'Should send description, logging and steps when specified' {
                 $steps = @(@{ method = 'TagAsset'; config = @{ tagId = 'tag' }; enabled = $true })
                 New-IMWorkflow -Name 'Test' -Trigger 'AssetTagged' -Description 'Desc' -Logging:$true -Steps $steps
@@ -9917,6 +10017,13 @@ InModuleScope $ProjectName {
 
                 Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
                     $Body.enabled -eq $false -and -not $Body.ContainsKey('name') -and -not $Body.ContainsKey('trigger') -and -not $Body.ContainsKey('steps')
+                }
+            }
+
+            It 'Should send the OCR extraction trigger' {
+                Set-IMWorkflow -Id '123e4567-e89b-12d3-a456-426614174000' -Trigger 'AssetOcrExtraction' -Confirm:$false
+                Should -Invoke Invoke-ImmichApiUpdateWorkflow -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $Body.trigger -eq 'AssetOcrExtraction'
                 }
             }
 

@@ -9,7 +9,7 @@ function Invoke-ImmichApiSearchWorkflows
         [string]$Id,
         [bool]$Logging,
         [string]$Name,
-        [ValidateSet('AssetCreate', 'AssetMetadataExtraction', 'AssetTagged')][string]$Trigger,
+        [ValidateSet('AssetCreate', 'AssetMetadataExtraction', 'AssetOcrExtraction', 'AssetTagged')][string]$Trigger,
         [ImmichSession]$ImmichSession = $null
     )
 

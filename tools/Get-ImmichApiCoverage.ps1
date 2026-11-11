@@ -7,15 +7,16 @@
     Invoke-ImmichApi<operationId in PascalCase> (see tools/New-ImmichApiLayer.ps1).
     Every operation is classified as:
     - Excluded:    listed in api/exclusions.json by method and path.
-    - Tested:      its function is referenced under the unit test folder (Mock or Should -Invoke).
-    - Reachable:   its function is referenced from module source outside source/private/api.
-    - Unreachable: none of the above.
+    - Tested:      referenced by module source and a non-generated unit test.
+    - Reachable:   referenced by module source but not a non-generated unit test.
+    - Unreachable: not referenced by module source outside source/private/api.
 
-    Reachability and testing are static name references, so they show that a route is wired
-    and exercised by a test, not that its parameters or response mapping are correct.
+    Reachability and testing are static name references, not proof that parameters,
+    response mapping or cmdlet behavior are correct. Generated route tests are excluded
+    because they exist even for operations without a public caller.
 
 .PARAMETER SpecPath
-    OpenAPI JSON specification. Defaults to api/api.3.3.6.json.
+    OpenAPI JSON specification. Defaults to api/api.3.4.0.json.
 
 .PARAMETER ExclusionsPath
     Exclusion list with ExcludedPaths entries (Path, Method, Reason).
@@ -40,7 +41,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$SpecPath = (Join-Path $PSScriptRoot '..\api\api.3.3.6.json'),
+    [string]$SpecPath = (Join-Path $PSScriptRoot '..\api\api.3.4.0.json'),
     [string]$ExclusionsPath = (Join-Path $PSScriptRoot '..\api\exclusions.json'),
     [string]$SourcePath = (Join-Path $PSScriptRoot '..\source'),
     [string]$TestPath = (Join-Path $PSScriptRoot '..\tests\Unit'),
@@ -60,14 +61,15 @@ function ConvertTo-PascalCase([string]$Name)
     return (($Parts | ForEach-Object { $_.Substring(0, 1).ToUpperInvariant() + $_.Substring(1) }) -join '')
 }
 
-function Get-ReferencedFunctionName([string[]]$Folders, [string[]]$ExcludeFolders = @())
+function Get-ReferencedFunctionName([string[]]$Folders, [string[]]$ExcludeFolders = @(), [string[]]$ExcludeFiles = @())
 {
     $Files = foreach ($Folder in $Folders)
     {
         Get-ChildItem -LiteralPath $Folder -Filter '*.ps1' -Recurse -File |
             Where-Object {
                 $FullName = $_.FullName
-                -not ($ExcludeFolders | Where-Object { $FullName.StartsWith($_, [StringComparison]::OrdinalIgnoreCase) })
+                -not ($ExcludeFolders | Where-Object { $FullName.StartsWith($_, [StringComparison]::OrdinalIgnoreCase) }) -and
+                -not ($ExcludeFiles | Where-Object { $FullName.Equals($_, [StringComparison]::OrdinalIgnoreCase) })
             }
     }
 
@@ -89,7 +91,9 @@ $Exclusions = (Get-Content -LiteralPath (Resolve-Path -LiteralPath $ExclusionsPa
 $SourceFull = (Resolve-Path -LiteralPath $SourcePath).Path
 $GeneratedFolder = Join-Path $SourceFull 'private\api'
 $ReachableNames = Get-ReferencedFunctionName -Folders @($SourceFull) -ExcludeFolders @($GeneratedFolder)
-$TestedNames = Get-ReferencedFunctionName -Folders @((Resolve-Path -LiteralPath $TestPath).Path)
+$TestFull = (Resolve-Path -LiteralPath $TestPath).Path
+$GeneratedRouteTests = Join-Path $TestFull 'Private\ImmichApi.Generated.Tests.ps1'
+$TestedNames = Get-ReferencedFunctionName -Folders @($TestFull) -ExcludeFiles @($GeneratedRouteTests)
 
 $Report = foreach ($PathProperty in $Spec.paths.PSObject.Properties)
 {
@@ -106,33 +110,52 @@ $Report = foreach ($PathProperty in $Spec.paths.PSObject.Properties)
         $MethodUpper = $Method.ToUpperInvariant()
 
         $Exclusion = $Exclusions | Where-Object { $_.Path -eq $Path -and $_.Method -eq $MethodUpper } | Select-Object -First 1
-        $Status = if ($Exclusion) { 'Excluded' }
-            elseif ($TestedNames.ContainsKey($FunctionName)) { 'Tested' }
-            elseif ($ReachableNames.ContainsKey($FunctionName)) { 'Reachable' }
-            else { 'Unreachable' }
+        $Status = if ($Exclusion)
+        {
+            'Excluded' 
+        }
+        elseif (-not $ReachableNames.ContainsKey($FunctionName))
+        {
+            'Unreachable'
+        }
+        elseif ($TestedNames.ContainsKey($FunctionName))
+        {
+            'Tested'
+        }
+        else
+        {
+            'Reachable'
+        }
 
         [pscustomobject]@{
-            Method     = $MethodUpper
-            Path       = $Path
+            Method      = $MethodUpper
+            Path        = $Path
             OperationId = [string]$Operation.operationId
-            Function   = $FunctionName
-            Deprecated = [bool]$Operation.deprecated
-            Status     = $Status
-            Reason     = if ($Exclusion) { [string]$Exclusion.Reason } else { '' }
+            Function    = $FunctionName
+            Deprecated  = [bool]$Operation.deprecated
+            Status      = $Status
+            Reason      = if ($Exclusion)
+            {
+                [string]$Exclusion.Reason 
+            }
+            else
+            {
+                '' 
+            }
         }
     }
 }
 
 $Total = @($Report).Count
 $Counts = $Report | Group-Object Status | ForEach-Object { [pscustomobject]@{ Status = $_.Name; Count = $_.Count } }
-$Eligible = $Total - (@($Report | Where-Object Status -eq 'Excluded')).Count
+$Eligible = $Total - (@($Report | Where-Object Status -EQ 'Excluded')).Count
 $Covered = @($Report | Where-Object { $_.Status -in 'Tested', 'Reachable' }).Count
 
-Write-Host ("Spec: {0} ({1} operations, {2} excluded)" -f (Split-Path $SpecFullPath -Leaf), $Total, (@($Report | Where-Object Status -eq 'Excluded')).Count)
+Write-Host ('Spec: {0} ({1} operations, {2} excluded)' -f (Split-Path $SpecFullPath -Leaf), $Total, (@($Report | Where-Object Status -EQ 'Excluded')).Count)
 $Counts | Format-Table -AutoSize | Out-String | Write-Host
 if ($Eligible -gt 0)
 {
-    Write-Host ("Wired (reachable or tested) for {0} of {1} non-excluded operations ({2:P1})." -f $Covered, $Eligible, ($Covered / $Eligible))
+    Write-Host ('Wired (reachable or tested) for {0} of {1} non-excluded operations ({2:P1}).' -f $Covered, $Eligible, ($Covered / $Eligible))
 }
 
 if ($OutputPath)
@@ -146,7 +169,7 @@ if ($PassThru)
     $Report
 }
 
-if ($Strict -and (@($Report | Where-Object Status -eq 'Unreachable')).Count -gt 0)
+if ($Strict -and (@($Report | Where-Object Status -EQ 'Unreachable')).Count -gt 0)
 {
     Write-Error 'Non-excluded operations are unreachable from the module.'
     exit 1

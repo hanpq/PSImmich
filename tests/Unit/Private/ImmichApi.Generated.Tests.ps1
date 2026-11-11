@@ -2065,6 +2065,109 @@ InModuleScope $ProjectName {
         }
     }
 
+    Describe 'Invoke-ImmichApiSearchPasskeys' -Tag 'Unit', 'ImmichApiLayer', 'Generated' {
+        BeforeAll {
+            Mock -CommandName InvokeImmichRestMethod -MockWith { }
+        }
+        It 'Should send the route method and path with required parameters' {
+            Invoke-ImmichApiSearchPasskeys
+            Should -Invoke -CommandName InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                ($Method -eq 'get') -and ($RelativePath -eq '/passkeys') -and (-not [bool]$NoAuth)
+            }
+        }
+
+        It 'Should forward every supplied query and header parameter' {
+            Invoke-ImmichApiSearchPasskeys -Id 'sample'
+            Should -Invoke -CommandName InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                ($Method -eq 'get') -and ($RelativePath -eq '/passkeys') -and (-not [bool]$NoAuth) -and ($QueryParameters['id'] -eq 'sample')
+            }
+        }
+    }
+
+    Describe 'Invoke-ImmichApiFinishAuthentication' -Tag 'Unit', 'ImmichApiLayer', 'Generated' {
+        BeforeAll {
+            Mock -CommandName InvokeImmichRestMethod -MockWith { }
+        }
+        It 'Should send the route method and path with required parameters' {
+            Invoke-ImmichApiFinishAuthentication -Body @{}
+            Should -Invoke -CommandName InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                ($Method -eq 'post') -and ($RelativePath -eq '/passkeys/authentication/finish') -and ([bool]$NoAuth) -and ($Body -is [hashtable])
+            }
+        }
+    }
+
+    Describe 'Invoke-ImmichApiStartAuthentication' -Tag 'Unit', 'ImmichApiLayer', 'Generated' {
+        BeforeAll {
+            Mock -CommandName InvokeImmichRestMethod -MockWith { }
+        }
+        It 'Should send the route method and path with required parameters' {
+            Invoke-ImmichApiStartAuthentication
+            Should -Invoke -CommandName InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                ($Method -eq 'post') -and ($RelativePath -eq '/passkeys/authentication/start') -and ([bool]$NoAuth)
+            }
+        }
+    }
+
+    Describe 'Invoke-ImmichApiFinishRegistration' -Tag 'Unit', 'ImmichApiLayer', 'Generated' {
+        BeforeAll {
+            Mock -CommandName InvokeImmichRestMethod -MockWith { }
+        }
+        It 'Should send the route method and path with required parameters' {
+            Invoke-ImmichApiFinishRegistration -Body @{}
+            Should -Invoke -CommandName InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                ($Method -eq 'post') -and ($RelativePath -eq '/passkeys/registration/finish') -and (-not [bool]$NoAuth) -and ($Body -is [hashtable])
+            }
+        }
+    }
+
+    Describe 'Invoke-ImmichApiStartRegistration' -Tag 'Unit', 'ImmichApiLayer', 'Generated' {
+        BeforeAll {
+            Mock -CommandName InvokeImmichRestMethod -MockWith { }
+        }
+        It 'Should send the route method and path with required parameters' {
+            Invoke-ImmichApiStartRegistration
+            Should -Invoke -CommandName InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                ($Method -eq 'post') -and ($RelativePath -eq '/passkeys/registration/start') -and (-not [bool]$NoAuth)
+            }
+        }
+    }
+
+    Describe 'Invoke-ImmichApiGetPasskey' -Tag 'Unit', 'ImmichApiLayer', 'Generated' {
+        BeforeAll {
+            Mock -CommandName InvokeImmichRestMethod -MockWith { }
+        }
+        It 'Should send the route method and path with required parameters' {
+            Invoke-ImmichApiGetPasskey -Id 'sample'
+            Should -Invoke -CommandName InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                ($Method -eq 'get') -and ($RelativePath -eq '/passkeys/sample') -and (-not [bool]$NoAuth)
+            }
+        }
+    }
+
+    Describe 'Invoke-ImmichApiUpdatePasskey' -Tag 'Unit', 'ImmichApiLayer', 'Generated' {
+        BeforeAll {
+            Mock -CommandName InvokeImmichRestMethod -MockWith { }
+        }
+        It 'Should send the route method and path with required parameters' {
+            Invoke-ImmichApiUpdatePasskey -Id 'sample' -Body @{}
+            Should -Invoke -CommandName InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                ($Method -eq 'patch') -and ($RelativePath -eq '/passkeys/sample') -and (-not [bool]$NoAuth) -and ($Body -is [hashtable])
+            }
+        }
+    }
+
+    Describe 'Invoke-ImmichApiDeletePasskey' -Tag 'Unit', 'ImmichApiLayer', 'Generated' {
+        BeforeAll {
+            Mock -CommandName InvokeImmichRestMethod -MockWith { }
+        }
+        It 'Should send the route method and path with required parameters' {
+            Invoke-ImmichApiDeletePasskey -Id 'sample'
+            Should -Invoke -CommandName InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
+                ($Method -eq 'delete') -and ($RelativePath -eq '/passkeys/sample') -and (-not [bool]$NoAuth)
+            }
+        }
+    }
+
     Describe 'Invoke-ImmichApiGetAllPeople' -Tag 'Unit', 'ImmichApiLayer', 'Generated' {
         BeforeAll {
             Mock -CommandName InvokeImmichRestMethod -MockWith { }

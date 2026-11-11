@@ -24,32 +24,85 @@ BeforeDiscovery {
 Describe 'Tag' -Tag 'Integration' {
     # Intentionally excluded cmdlets: none.
     # Tags are only created by these tests. Pre-existing tags (including any named 'TestTag') are never modified or deleted.
-    # Pre-existing assets are only tagged with test-created tags, and those tags are removed in finally blocks.
+    # Asset tagging tests use uniquely uploaded disposable assets and test-created tags.
 
     BeforeAll {
         Connect-Immich -BaseURL $env:PSIMMICHURI -AccessToken $env:PSIMMICHAPIKEY
-        $script:AssetA = 'd54f1eb3-076f-4c5b-a9e6-61c694559e3c'
-        $script:AssetB = 'bdc6d2c8-6168-4a88-a51f-6da11bf8f506'
+        . (Join-Path $PSScriptRoot 'Support\Wait-TestAssetTagState.ps1')
         $script:CreatedTagIds = [System.Collections.Generic.List[string]]::new()
+        $script:CreatedAssetIds = [System.Collections.Generic.List[string]]::new()
+        $script:TempAssetFiles = [System.Collections.Generic.List[string]]::new()
         $script:NewTestTag = {
             $Name = "PSImmich-IT-$($env:GITHUB_RUN_ID)-$(Get-Random)"
             $Tag = New-IMTag -Name $Name
             $script:CreatedTagIds.Add($Tag.id)
             $Tag
         }
+        function New-TestTagAsset
+        {
+            $Path = Join-Path ([System.IO.Path]::GetTempPath()) "psimmich-tag-$([guid]::NewGuid().ToString('N')).png"
+            $script:TempAssetFiles.Add($Path)
+            $Image = [System.IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'Immich.png'))
+            $Marker = [System.Text.Encoding]::ASCII.GetBytes("psimmich-tag:$([guid]::NewGuid().ToString('N'))")
+            [System.IO.File]::WriteAllBytes($Path, [byte[]]($Image + $Marker))
+            $File = Get-Item -LiteralPath $Path
+            $FormData = @{
+                deviceAssetId = $File.Name
+                deviceId = 'PSImmich'
+                fileCreatedAt = ([DateTimeOffset]$File.CreationTime).UtcDateTime.ToString('o')
+                fileModifiedAt = ([DateTimeOffset]$File.LastWriteTime).UtcDateTime.ToString('o')
+            }
+            $Upload = & (Get-Module PSImmich) {
+                param($File, $FormData)
+                Invoke-ImmichApiUploadAsset -FileInfo $File -FormData $FormData
+            } $File $FormData
+            if ($Upload.status -ne 'created' -or [string]::IsNullOrWhiteSpace($Upload.id))
+            {
+                throw "Disposable asset upload did not create an asset (status: '$($Upload.status)', id: '$($Upload.id)')."
+            }
+            $script:CreatedAssetIds.Add($Upload.id)
+            $Upload.id
+        }
+        function Assert-TestTagResult
+        {
+            param($Result, [string[]]$AssetIds)
+            $Entries = @($Result)
+            $Entries.Count | Should -Be $AssetIds.Count
+            foreach ($AssetId in $AssetIds)
+            {
+                $Entry = @($Entries | Where-Object { $_.id -eq $AssetId })
+                $Entry.Count | Should -Be 1
+                $Entry[0].success | Should -BeTrue -Because "tag operation for asset '$AssetId' failed: $($Entry[0].error) $($Entry[0].errorMessage)"
+            }
+        }
     }
 
     AfterAll {
+        $CleanupErrors = [System.Collections.Generic.List[string]]::new()
         foreach ($Id in $script:CreatedTagIds)
         {
             try
             {
-                Remove-IMTag -id $Id -Confirm:$false
+                Remove-IMTag -id $Id -Confirm:$false -ErrorAction Stop
             }
             catch
             {
-                $null = $_
+                $CleanupErrors.Add("Tag '$Id': $($_.Exception.Message)")
             }
+        }
+        foreach ($Id in $script:CreatedAssetIds)
+        {
+            try { Remove-IMAsset -Ids $Id -Force -Confirm:$false -ErrorAction Stop }
+            catch { $CleanupErrors.Add("Asset '$Id': $($_.Exception.Message)") }
+        }
+        foreach ($Path in $script:TempAssetFiles)
+        {
+            try { Remove-Item -LiteralPath $Path -Force -ErrorAction Stop }
+            catch { $CleanupErrors.Add("File '$Path': $($_.Exception.Message)") }
+        }
+        if ($CleanupErrors.Count -gt 0)
+        {
+            throw "Test cleanup failed: $($CleanupErrors -join '; ')"
         }
     }
 
@@ -149,51 +202,34 @@ Describe 'Tag' -Tag 'Integration' {
             { Set-IMTag -tagName "PSImmich-IT-missing-$(Get-Random)" -Color '#0000FF' } | Should -Throw
         }
 
-        It 'Tags an asset with a test-created tag and removes it in finally' {
+        It 'Tags a disposable asset with a test-created tag' {
             $Tag = & $script:NewTestTag
-            try
-            {
-                Set-IMTag -Id $Tag.id -AddAssets $script:AssetA
-                $Asset = Get-IMAsset -id $script:AssetA
-                $Asset.tags.id | Should -Contain $Tag.id
-            }
-            finally
-            {
-                Set-IMTag -Id $Tag.id -RemoveAssets $script:AssetA
-            }
+            $AssetId = New-TestTagAsset
+            $Result = Set-IMTag -Id $Tag.id -AddAssets $AssetId
+            Assert-TestTagResult -Result $Result -AssetIds $AssetId
+            Wait-TestAssetTagState -AssetId $AssetId -TagId $Tag.id -Present $true
         }
 
-        It 'Tags multiple assets with a test-created tag and removes them in finally' {
+        It 'Tags multiple disposable assets with a test-created tag' {
             $Tag = & $script:NewTestTag
-            try
+            $AssetIds = @(New-TestTagAsset; New-TestTagAsset)
+            $Result = Set-IMTag -Id $Tag.id -AddAssets $AssetIds
+            Assert-TestTagResult -Result $Result -AssetIds $AssetIds
+            foreach ($AssetId in $AssetIds)
             {
-                Set-IMTag -Id $Tag.id -AddAssets $script:AssetA, $script:AssetB
-                $Assets = @(foreach ($AssetId in $script:AssetA, $script:AssetB) { Get-IMAsset -id $AssetId })
-                $Assets | Should -HaveCount 2
-                foreach ($Asset in $Assets)
-                {
-                    $Asset.tags.id | Should -Contain $Tag.id
-                }
-            }
-            finally
-            {
-                Set-IMTag -Id $Tag.id -RemoveAssets $script:AssetA, $script:AssetB
+                Wait-TestAssetTagState -AssetId $AssetId -TagId $Tag.id -Present $true
             }
         }
 
         It 'Removes a tag from an asset' {
             $Tag = & $script:NewTestTag
-            try
-            {
-                Set-IMTag -Id $Tag.id -AddAssets $script:AssetA
-                Set-IMTag -Id $Tag.id -RemoveAssets $script:AssetA
-                $Asset = Get-IMAsset -id $script:AssetA
-                $Asset.tags.id | Should -Not -Contain $Tag.id
-            }
-            finally
-            {
-                Set-IMTag -Id $Tag.id -RemoveAssets $script:AssetA
-            }
+            $AssetId = New-TestTagAsset
+            $Result = Set-IMTag -Id $Tag.id -AddAssets $AssetId
+            Assert-TestTagResult -Result $Result -AssetIds $AssetId
+            Wait-TestAssetTagState -AssetId $AssetId -TagId $Tag.id -Present $true
+            $Result = Set-IMTag -Id $Tag.id -RemoveAssets $AssetId
+            Assert-TestTagResult -Result $Result -AssetIds $AssetId
+            Wait-TestAssetTagState -AssetId $AssetId -TagId $Tag.id -Present $false
         }
 
         It 'Does not change the color with -WhatIf' {
