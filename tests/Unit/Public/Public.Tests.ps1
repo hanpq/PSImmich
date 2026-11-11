@@ -8266,15 +8266,26 @@ InModuleScope $ProjectName {
         }
         Context '-Theme' {
             BeforeAll {
-                Mock Invoke-ImmichApiGetPublicConfig -ModuleName PSImmich { return [pscustomobject]@{ theme = [pscustomobject]@{ customCss = 'body { color: red; }' } } }
+                Mock Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich { return [pscustomobject]@{ theme = [pscustomobject]@{ customCss = 'body { color: red; }' } } }
             }
-            It 'Should get theme through the generated public config wrapper' {
+            It 'Should get theme through the generated admin config wrapper' {
                 Get-IMServer -Theme
-                Should -Invoke Invoke-ImmichApiGetPublicConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It
+                Should -Invoke Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
             It 'Should return the theme object with customCss' {
                 $Result = Get-IMServer -Theme
                 $Result.customCss | Should -Be 'body { color: red; }'
+            }
+            It 'Should forward an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                Get-IMServer -Theme -Session $Session
+                Should -Invoke Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+            It 'Should propagate admin configuration errors' {
+                Mock Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich { throw 'Access denied' }
+                { Get-IMServer -Theme } | Should -Throw '*Access denied*'
             }
         }
         Context '-MediaTypes' {

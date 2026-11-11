@@ -34,7 +34,7 @@
     .PARAMETER MediaTypes
         Retrieves supported media types and formats.
     .PARAMETER Theme
-        Retrieves server theme configuration.
+        Retrieves server theme configuration. Requires permission to read admin configuration.
     .PARAMETER APKLinks
         Retrieves mobile application download links.
     .PARAMETER VersionCheck
@@ -208,7 +208,7 @@
         }
         'theme'
         {
-            $Result = Invoke-ImmichApiGetPublicConfig -ImmichSession:$Session
+            $Result = Invoke-ImmichApiGetAdminConfig -ImmichSession:$Session
             $Result.theme
         }
         'ping'
