@@ -3,6 +3,44 @@
 The format is based on and uses the types of changes according to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0](https://github.com/hanpq/PSImmich/compare/v3.3.7...v3.4.0) (2026-11-11)
+
+### ⚠ BREAKING CHANGES
+
+* **api-key:** Permission values absent from the Immich 3.4 enum, including legacy admin.user and album.addAsset names, are no longer accepted.
+
+* **api:** PublicConfigDto and UserConfigDto no longer contain theme, matching the target API. Their former theme DTO classes are removed.
+
+* **server:** Get-IMServer -Theme now requires permission to read admin configuration on Immich 3.4.
+
+### Features
+
+* **api:** align generated contracts with Immich 3.4 ([fa6e440](https://github.com/hanpq/PSImmich/commit/fa6e440a5229354a3dd2a14c24c2dab229736345))
+
+* **passkey:** manage existing passkeys ([2b9e467](https://github.com/hanpq/PSImmich/commit/2b9e4677fe4d79ef5a6ec8ba253c539e8a1e4d11))
+
+* **server:** expose public configuration ([fbc8594](https://github.com/hanpq/PSImmich/commit/fbc85943a1b892eba6fc6571862ed91180b5b97a))
+
+* **server:** expose server feature level ([abacf5a](https://github.com/hanpq/PSImmich/commit/abacf5a8f5ff3a7b50dc7d0e8642cb5d02335bf8))
+
+* **workflow:** support OCR extraction triggers ([821cee9](https://github.com/hanpq/PSImmich/commit/821cee9262d87bf30fbc2d5870b32cdbd0d96247))
+
+### Bug Fixes
+
+* **api-key:** align permissions with Immich 3.4 ([48e6ff9](https://github.com/hanpq/PSImmich/commit/48e6ff93af48b061be2e4c20b73ca8fc663769e1))
+
+* **asset:** route uploads through the API wrapper ([86d6833](https://github.com/hanpq/PSImmich/commit/86d68336bf5b808fff083ae297e5a9cd4b919d15))
+
+* **coverage:** exclude generated tests from reachability ([dea7754](https://github.com/hanpq/PSImmich/commit/dea7754107951749d129907240a3a3c2da892e1e))
+
+* **docs:** publish module help to the correct site folder ([7e34226](https://github.com/hanpq/PSImmich/commit/7e3422670d2259196c3a677a450cf7989de1f382))
+
+* **server:** retrieve theme from admin configuration ([cba77e4](https://github.com/hanpq/PSImmich/commit/cba77e4ff7e7d3a669e045795ab85875be255aa6))
+
+* trigger beta release ([ffe92ff](https://github.com/hanpq/PSImmich/commit/ffe92ffb89a0b2fac957d9fd32e195bcacfe46f5))
+
+* trigger beta release Release-As: 3.4.0-beta001 ([a2ef741](https://github.com/hanpq/PSImmich/commit/a2ef741bc7d866e39d9482f227635862f2553a01))
+
 ## [3.4.0-beta001](https://github.com/hanpq/PSImmich/compare/v3.3.7...v3.4.0-beta001) (2026-11-11)
 
 
