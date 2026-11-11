@@ -14,9 +14,9 @@ verified based on static reachability alone.
 | Target | [Immich v3.4.0](https://github.com/immich-app/immich/releases/tag/v3.4.0), published 2026-11-10; spec `info.version` is `3.4.0` |
 | Provenance | Tag commit `0715bcf8dab4b91118d6184479e2be2767ef8294`; [immutable upstream spec](https://raw.githubusercontent.com/immich-app/immich/0715bcf8dab4b91118d6184479e2be2767ef8294/open-api/immich-openapi-specs.json). Local SHA256 `6DEBF0AE8D7A41498EF8C6D69621A320371CD7C2182E6EDDF42ECDB6C7595C6A`; upstream SHA256 `B5E5F82DDA2E378D53DD5FF852AA8F5D081FFEFECAE5564F42BEAB5589A3ED1A`. Parsed objects are recursively identical with unordered object keys and ordered arrays. |
 | Compatibility | Target 3.4.x only, per maintainer decision. |
-| Passkeys | Management only; maintainer explicitly deferred WebAuthn registration and authentication. The four deferred operations remain blocked, not counted as implemented. |
+| Passkeys | Management only; maintainer explicitly excluded the four interactive WebAuthn registration and authentication operations. They are not implemented. |
 | Maintenance | Maintainer deferred rollback and the disabled maintenance lifecycle pending a separate safety investigation. |
-| Exclusions | Existing exclusions retained; no new exclusions made. Prior exclusions need separate review against target. |
+| Exclusions | Four maintainer-approved passkey exclusions added; prior exclusions need separate review against target. |
 
 ## Inventory and findings
 
@@ -28,13 +28,14 @@ verified based on static reachability alone.
   newly deprecated. Its exclusion-aware console shows 10 modified. An
   independent comparison found 18 changed common operation objects: the same
   14 plus four permission-metadata changes.
-- Corrected static reachability: 185 referenced by source and non-generated
-  tests, 4 reachable without a direct test reference, 5 unreachable and 93
-  excluded; 189/194 (97.4%) wired through the generated layer. The five
-  unreachable entries include four deliberately deferred WebAuthn operations
-  and `POST /assets`, which is reached through direct multipart transport by
-  `Import-IMAsset` and is a static false negative. Existing exclusions total 97;
-  93 match. Static references do not establish contract or behavior parity.
+- Static reachability: 190 referenced by source and non-generated tests,
+  0 reachable without a direct test reference, 0 unreachable and 97 excluded;
+  190/190 (100%) wired through the generated layer. The exclusions file has
+  101 entries, of which 97 match this spec. `POST /assets` was already
+  implemented through direct multipart transport; it now uses the generated
+  wrapper. The passkey management tests already checked transport contracts;
+  additional tests now assert their public cmdlets' wrapper calls. Static
+  references do not establish contract or behavior parity.
 - Before fixing the coverage tool, generated route tests alone caused all 194
   non-excluded operations, including the deferred WebAuthn routes, to be
   reported as tested. That result is not a valid coverage or parity claim.
@@ -145,6 +146,16 @@ validation for database-restore filenames that is not represented in OpenAPI.
   the feature-level batch; its targeted `Get-IMServer` run passed 30 tests.
 - `.\build.ps1` after the feature-level and maintenance-status batches: passed;
   4,742 passed, 1,161 skipped, with source instruction coverage 93.14%.
+- `.\build.ps1 -Task Test -TestSuite Module -Tag 'Import-IMAsset','Get-IMPasskey','Rename-IMPasskey','Remove-IMPasskey','New-IMFace'`:
+  85 passed after upload and passkey wrapper tests.
+- `.\build.ps1 -Task Test -TestSuite Infrastructure -Tag 'ApiCoverage'`:
+  an initial concurrent run failed to remove the shared build output; rerun
+  sequentially passed 1 test.
+- `.\tools\Get-ImmichApiCoverage.ps1 -SpecPath .\api\api.3.4.0.json`:
+  190 tested, 97 excluded, zero reachable-only or unreachable.
+- `.\build.ps1` after the coverage follow-up: passed; 4,749 passed, 1,161
+  skipped, with source instruction coverage 93.14%. No live tests were run
+  for this follow-up.
 - Authorized demo server: version check first reported 3.3.6; after the
   maintainer upgraded it, 3.4.0 was confirmed. Approved read-only theme, public
   configuration and passkey listing checks passed. There were no existing
@@ -174,7 +185,7 @@ validation for database-restore filenames that is not represented in OpenAPI.
 ## Operation ledger
 
 Counts: 189 unreviewed or partially reviewed/needs-change, 0
-missing, 5 blocked, 93 existing exclusions,
+missing, 1 blocked, 97 exclusions,
 0 verified; total 287. No removed routes require a separate row.
 Rows list recursively referenced changed schemas, not proof of their effect.
 Caller discovery is a static public-source name search and is not exhaustive
@@ -242,7 +253,7 @@ for direct transport calls. Unit/live behavior remains unverified for every row.
 | GET /asset-files/{id} | getAssetFile | Get-IMAssetFile, Save-IMAssetFile | No structural delta detected | Review mappings and test behavior | needs-change |
 | DELETE /asset-files/{id} | deleteAssetFile | No public caller found | No structural delta detected | Existing exclusion: Deleting generated asset derivatives (previews, thumbnails, sidecars) can break the server's media state; not exposed by the module | excluded |
 | GET /asset-files/{id}/download | downloadAssetFile | Save-IMAssetFile | No structural delta detected | Review mappings and test behavior | needs-change |
-| POST /assets | uploadAsset | No public caller found | No structural delta detected | Review mappings and test behavior | needs-change |
+| POST /assets | uploadAsset | Import-IMAsset | No structural delta detected | Existing multipart upload now uses wrapper; review full mapping and behavior | needs-change |
 | PUT /assets | updateAssets | Set-IMAsset | operation: deprecated, tags, x-immich-history, x-immich-state | Review mappings and test behavior | needs-change |
 | DELETE /assets | deleteAssets | Remove-IMAsset | No structural delta detected | Review mappings and test behavior | needs-change |
 | POST /assets/bulk-upload-check | checkBulkUpload | No public caller found | No structural delta detected | Existing exclusion: Mobile app specific | excluded |
@@ -338,10 +349,10 @@ for direct transport calls. Unit/live behavior remains unverified for every row.
 | PUT /partners/{id} | updatePartner | Set-IMPartner | No structural delta detected | Review mappings and test behavior | needs-change |
 | DELETE /partners/{id} | removePartner | Remove-IMPartner | No structural delta detected | Review mappings and test behavior | needs-change |
 | GET /passkeys | searchPasskeys | Get-IMPasskey | New operation | Unit and read-only live listing passed; contract review remains | needs-change |
-| POST /passkeys/authentication/finish | finishAuthentication | No public caller found | New operation | Deferred by maintainer; owner: maintainer | blocked |
-| POST /passkeys/authentication/start | startAuthentication | No public caller found | New operation | Deferred by maintainer; owner: maintainer | blocked |
-| POST /passkeys/registration/finish | finishRegistration | No public caller found | New operation | Deferred by maintainer; owner: maintainer | blocked |
-| POST /passkeys/registration/start | startRegistration | No public caller found | New operation | Deferred by maintainer; owner: maintainer | blocked |
+| POST /passkeys/authentication/finish | finishAuthentication | No public caller found | New operation | Maintainer-approved exclusion: interactive WebAuthn authentication | excluded |
+| POST /passkeys/authentication/start | startAuthentication | No public caller found | New operation | Maintainer-approved exclusion: interactive WebAuthn authentication | excluded |
+| POST /passkeys/registration/finish | finishRegistration | No public caller found | New operation | Maintainer-approved exclusion: interactive WebAuthn registration | excluded |
+| POST /passkeys/registration/start | startRegistration | No public caller found | New operation | Maintainer-approved exclusion: interactive WebAuthn registration | excluded |
 | GET /passkeys/{id} | getPasskey | Get-IMPasskey | New operation | Unit tests passed; live retrieval skipped without a passkey | needs-change |
 | PATCH /passkeys/{id} | updatePasskey | Rename-IMPasskey | New operation | Unit tests passed; no disposable passkey for live test | needs-change |
 | DELETE /passkeys/{id} | deletePasskey | Remove-IMPasskey | New operation | Unit tests passed; no disposable passkey for live test | needs-change |
@@ -474,8 +485,8 @@ for direct transport calls. Unit/live behavior remains unverified for every row.
 
 1. Review every remaining eligible ledger row and affected public parameter
    mapping, including nullable DTO properties and changed configuration fields.
-2. Audit existing exclusions and direct REST calls; resolve the separately
-   deferred maintenance and WebAuthn operations with the maintainer.
+2. Audit prior exclusions and direct REST calls; resolve the separately
+   deferred maintenance operation with the maintainer.
 3. Rerun full verification after the latest batches and obtain explicit
    approval for each further live run. Create disposable passkeys before any
    live update/delete tests and restore state afterwards.
@@ -487,3 +498,11 @@ The local final-version spec differs in bytes from the upstream file because of
 formatting. A recursive parsed-object comparison established equivalence without
 mistaking a byte-hash mismatch for a contract mismatch. The same check should be
 used before replacing a contributor's downloaded spec.
+
+The coverage classifier missed real tests when they asserted transport calls
+rather than generated wrapper names, and missed a multipart upload that bypassed
+the wrapper. Explicit wrapper-call tests and routing the upload through the
+generated wrapper corrected the report while retaining transport assertions;
+the report remains a static reference check, not contract-parity evidence.
+Concurrent `build.ps1` runs also collided while rebuilding the shared output
+directory; sequential reruns passed.

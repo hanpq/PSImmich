@@ -41,6 +41,26 @@
             "Reason": "Interactive web operation"
         },
         {
+            "Path": "/passkeys/authentication/start",
+            "Method": "POST",
+            "Reason": "Maintainer excluded interactive WebAuthn passkey sign-in; authenticator-driven authentication is not supported."
+        },
+        {
+            "Path": "/passkeys/authentication/finish",
+            "Method": "POST",
+            "Reason": "Maintainer excluded interactive WebAuthn passkey sign-in; authenticator-driven authentication is not supported."
+        },
+        {
+            "Path": "/passkeys/registration/start",
+            "Method": "POST",
+            "Reason": "Maintainer excluded interactive WebAuthn passkey registration; authenticator-driven registration is not supported."
+        },
+        {
+            "Path": "/passkeys/registration/finish",
+            "Method": "POST",
+            "Reason": "Maintainer excluded interactive WebAuthn passkey registration; authenticator-driven registration is not supported."
+        },
+        {
             "Path": "/oauth/authorize",
             "Method": "POST",
             "Reason": "OIDC web flow - not for interactive use"

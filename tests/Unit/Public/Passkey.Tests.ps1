@@ -29,6 +29,22 @@ InModuleScope $ProjectName {
                 $Method -eq 'Get' -and $RelativePath -eq '/passkeys' -and $null -eq $QueryParameters
             }
         }
+        It 'Routes listing through the search wrapper with the selected session' {
+            $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+            Mock Invoke-ImmichApiSearchPasskeys {}
+            Get-IMPasskey -Session $Session
+            Should -Invoke Invoke-ImmichApiSearchPasskeys -Times 1 -Exactly -ParameterFilter {
+                $ImmichSession -eq $Session
+            }
+        }
+        It 'Routes an ID through the get wrapper with the selected session' {
+            $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+            Mock Invoke-ImmichApiGetPasskey {}
+            Get-IMPasskey -Id $Id -Session $Session
+            Should -Invoke Invoke-ImmichApiGetPasskey -Times 1 -Exactly -ParameterFilter {
+                $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and $ImmichSession -eq $Session
+            }
+        }
         It 'Retrieves each specified passkey by ID' {
             Get-IMPasskey -Id $Id, $OtherId
             Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
@@ -74,6 +90,15 @@ InModuleScope $ProjectName {
                 $Body.Count -eq 1 -and $Body.name -eq 'Security key'
             }
         }
+        It 'Routes updates through the wrapper with ID, body, and session' {
+            $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+            Mock Invoke-ImmichApiUpdatePasskey {}
+            Rename-IMPasskey -Id $Id -Name 'Security key' -Session $Session -Confirm:$false
+            Should -Invoke Invoke-ImmichApiUpdatePasskey -Times 1 -Exactly -ParameterFilter {
+                $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and
+                $Body.Count -eq 1 -and $Body.name -eq 'Security key' -and $ImmichSession -eq $Session
+            }
+        }
         It 'Sends explicit null when clearing the name' {
             Rename-IMPasskey -Id $Id -ClearName -Confirm:$false
             Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
@@ -112,6 +137,14 @@ InModuleScope $ProjectName {
             }
             Should -Invoke InvokeImmichRestMethod -Times 1 -Exactly -ParameterFilter {
                 $Method -eq 'Delete' -and $RelativePath -eq "/passkeys/$OtherId"
+            }
+        }
+        It 'Routes deletion through the wrapper with ID and session' {
+            $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+            Mock Invoke-ImmichApiDeletePasskey {}
+            Remove-IMPasskey -Id $Id -Session $Session -Confirm:$false
+            Should -Invoke Invoke-ImmichApiDeletePasskey -Times 1 -Exactly -ParameterFilter {
+                $Id -eq 'bde7ceba-f301-4e9e-87a2-163937a2a3db' -and $ImmichSession -eq $Session
             }
         }
         It 'Accepts pipeline objects and forwards an explicit session' {
