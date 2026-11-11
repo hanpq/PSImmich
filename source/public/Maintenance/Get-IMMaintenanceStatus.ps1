@@ -4,7 +4,8 @@ function Get-IMMaintenanceStatus
     .SYNOPSIS
         Retrieves the Immich maintenance mode status
     .DESCRIPTION
-        Shows whether the Immich server is in maintenance mode, the current maintenance action, its progress and any error that occurred.
+        Shows whether the Immich server is in maintenance mode, the current maintenance action, its progress,
+        any error and the FUTO Backups job ID when provided by the server.
     .PARAMETER Session
         Optionally define an Immich session object to use. This is useful when you are connected to more than one Immich instance.
     .EXAMPLE

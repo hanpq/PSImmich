@@ -4941,6 +4941,15 @@ InModuleScope $ProjectName {
             $Result.progress | Should -Be 42
         }
 
+        It 'Should preserve the rollback action and FUTO Backups job ID' {
+            Mock Invoke-ImmichApiGetMaintenanceStatus -ModuleName PSImmich {
+                [pscustomobject]@{ action = 'rollback'; active = $true; futoBackupsJobId = 'job-123' }
+            }
+            $Result = Get-IMMaintenanceStatus
+            $Result.action | Should -Be 'rollback'
+            $Result.futoBackupsJobId | Should -Be 'job-123'
+        }
+
         It 'Should forward the session' {
             $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
 
