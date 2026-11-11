@@ -64,19 +64,23 @@ Describe 'Integration workflow summary' -Tag 'IntegrationWorkflow' {
         }
     }
 
-    It 'records results and skipped test names from the NUnit report' {
+    It 'records results and skipped test names for <Representation> reports' -ForEach @(
+        @{ Representation = 'Skipped'; Attributes = 'skipped="1" ignored="0"'; Cases = '<test-case name="Tag.test" result="Skipped" />'; ExpectedSkipped = 1 }
+        @{ Representation = 'Ignored'; Attributes = 'skipped="0" ignored="1"'; Cases = '<test-case name="Tag.test" result="Ignored" />'; ExpectedSkipped = 1 }
+        @{ Representation = 'mixed'; Attributes = 'skipped="0" ignored="2"'; Cases = '<test-case name="Tag.test" result="Skipped" /><test-case name="Other.test" result="Ignored" />'; ExpectedSkipped = 2 }
+    ) {
         New-Item -ItemType Directory -Force -Path 'output\testResults' | Out-Null
-        @'
-<test-results total="3" failures="1" errors="0" skipped="1">
-  <test-case name="Tag.test" result="Skipped" />
+        @"
+<test-results total="3" failures="1" errors="0" $Attributes>
+  $Cases
 </test-results>
-'@ | Set-Content -LiteralPath 'output\testResults\PSImmich.Tests.xml'
+"@ | Set-Content -LiteralPath 'output\testResults\PSImmich.Tests.xml'
         & $Summary
         $Text = Get-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Raw
         $Text | Should -Match 'Commit: abcdef'
         $Text | Should -Match 'Server version: 3\.4\.0'
         $Text | Should -Match 'Test step: failure'
-        $Text | Should -Match 'Total: 3; failures: 1; errors: 0; skipped: 1'
+        $Text | Should -Match "Total: 3; failures: 1; errors: 0; skipped: $ExpectedSkipped"
         $Text | Should -Match 'Tag\.test'
         $Report = Get-Content -LiteralPath 'output\testResults\integration-summary.json' -Raw | ConvertFrom-Json
         $Report.commit | Should -Be 'abcdef'
@@ -85,7 +89,7 @@ Describe 'Integration workflow summary' -Tag 'IntegrationWorkflow' {
         $Report.total | Should -Be 3
         $Report.failures | Should -Be 1
         $Report.errors | Should -Be 0
-        $Report.skipped | Should -Be 1
+        $Report.skipped | Should -Be $ExpectedSkipped
     }
 
     It 'does not copy plaintext or XML-escaped assertion secrets into the published report' {
@@ -106,6 +110,7 @@ Describe 'Integration workflow summary' -Tag 'IntegrationWorkflow' {
         $Report = $Published | ConvertFrom-Json
         @($Report.PSObject.Properties.Name) | Should -HaveCount 7
         $Report.failures | Should -Be 1
+        $Report.skipped | Should -Be 0
         Get-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Raw | Should -Not -Match 'synthetic-'
     }
 

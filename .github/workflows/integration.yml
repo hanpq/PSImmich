@@ -88,6 +88,7 @@ jobs:
             [xml]$result = Get-Content -LiteralPath $path -Raw
             $counts = $result.'test-results'
             if ($null -eq $counts) { throw 'Integration test report has no test-results element.' }
+            $skipped = @($result.SelectNodes('//test-case[@result="Skipped" or @result="Ignored"]'))
             $report = [ordered]@{
               commit = $env:TEST_COMMIT
               serverVersion = $env:SERVER_VERSION
@@ -95,11 +96,10 @@ jobs:
               total = [int]$counts.total
               failures = [int]$counts.failures
               errors = [int]$counts.errors
-              skipped = [int]$counts.skipped
+              skipped = $skipped.Count
             }
             $report | ConvertTo-Json | Set-Content -LiteralPath 'output/testResults/integration-summary.json' -Encoding utf8
             "- Total: $($report.total); failures: $($report.failures); errors: $($report.errors); skipped: $($report.skipped)" >> $env:GITHUB_STEP_SUMMARY
-            $skipped = @($result.SelectNodes('//test-case[@result="Skipped" or @result="Ignored"]'))
             if ($skipped.Count) {
               '### Skipped tests' >> $env:GITHUB_STEP_SUMMARY
               foreach ($test in $skipped) { "- $($test.name)" >> $env:GITHUB_STEP_SUMMARY }
