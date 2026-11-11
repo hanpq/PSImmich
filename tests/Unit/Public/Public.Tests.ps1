@@ -1335,6 +1335,14 @@ InModuleScope $ProjectName {
                 }
             }
 
+            It 'Should send passkey management permissions' {
+                New-IMAPIKey -Name 'Passkey Key' -Permission 'passkey.read', 'passkey.update', 'passkey.delete'
+
+                Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    ($Body.permissions -join ',') -eq 'passkey.read,passkey.update,passkey.delete'
+                }
+            }
+
             It 'Should handle admin permissions' {
                 $adminPermissions = @('admin.user.create', 'admin.user.read', 'admin.user.update')
                 New-IMAPIKey -Name 'Admin Key' -Permission $adminPermissions
