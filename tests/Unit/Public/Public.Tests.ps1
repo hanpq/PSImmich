@@ -8245,6 +8245,22 @@ InModuleScope $ProjectName {
                 Should -Invoke Invoke-ImmichApiGetAdminConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It
             }
         }
+        Context '-PublicConfiguration' {
+            BeforeAll {
+                Mock Invoke-ImmichApiGetPublicConfig -ModuleName PSImmich {
+                    [pscustomobject]@{ passkey = [pscustomobject]@{ enabled = $true }; map = [pscustomobject]@{ enabled = $false } }
+                }
+            }
+            It 'Returns the public configuration and forwards an explicit session' {
+                $Session = [System.Runtime.Serialization.FormatterServices]::GetUninitializedObject([ImmichSession])
+                $Result = Get-IMServer -PublicConfiguration -Session $Session
+                $Result.passkey.enabled | Should -BeTrue
+                $Result.map.enabled | Should -BeFalse
+                Should -Invoke Invoke-ImmichApiGetPublicConfig -ModuleName PSImmich -Times 1 -Exactly -Scope It -ParameterFilter {
+                    $ImmichSession -eq $Session
+                }
+            }
+        }
         Context '-VersionCheckState' {
             BeforeAll {
                 Mock Invoke-ImmichApiGetVersionCheckState -ModuleName PSImmich {

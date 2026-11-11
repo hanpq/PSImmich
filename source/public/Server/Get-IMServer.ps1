@@ -20,6 +20,8 @@
         Retrieves server usage statistics.
     .PARAMETER Configuration
         Retrieves server configuration settings.
+    .PARAMETER PublicConfiguration
+        Retrieves the public configuration, including passkey and map availability.
     .PARAMETER AppliedSystemConfiguration
         Retrieves currently applied system configuration.
     .PARAMETER DefaultSystemConfiguration
@@ -60,6 +62,10 @@
 
         Gets current system configuration as raw JSON.
     .EXAMPLE
+        Get-IMServer -PublicConfiguration
+
+        Gets the server's public configuration.
+    .EXAMPLE
         Get-IMServer -Ping
 
         Tests if the server is responding.
@@ -94,6 +100,10 @@
         [Parameter(ParameterSetName = 'configuration')]
         [switch]
         $Configuration,
+
+        [Parameter(ParameterSetName = 'publicconfiguration')]
+        [switch]
+        $PublicConfiguration,
 
         [Parameter(ParameterSetName = 'appliedsystemconfiguration')]
         [switch]
@@ -169,6 +179,10 @@
         'configuration'
         {
             Invoke-ImmichApiGetServerConfig -ImmichSession:$Session
+        }
+        'publicconfiguration'
+        {
+            Invoke-ImmichApiGetPublicConfig -ImmichSession:$Session
         }
         'appliedsystemconfiguration'
         {
