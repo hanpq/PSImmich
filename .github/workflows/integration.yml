@@ -51,6 +51,9 @@ jobs:
             throw 'Server version response is missing version components.'
           }
           $serverVersion = '{0}.{1}.{2}' -f $version.major, $version.minor, $version.patch
+          if ($null -ne $version.prerelease) {
+            $serverVersion += " (prerelease $($version.prerelease))"
+          }
           "commit=$commit" >> $env:GITHUB_OUTPUT
           "server_version=$serverVersion" >> $env:GITHUB_OUTPUT
           Write-Host "Testing commit $commit against Immich $serverVersion."
