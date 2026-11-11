@@ -61,13 +61,20 @@ Describe 'Asset' -Tag 'Integration' {
     }
 
     AfterAll {
+        $CleanupErrors = [System.Collections.Generic.List[string]]::new()
         foreach ($Id in $script:ImportedAssetIds)
         {
-            try { Remove-IMAsset -Ids $Id -Force -Confirm:$false } catch { $null = $_ }
+            try { Remove-IMAsset -Ids $Id -Force -Confirm:$false -ErrorAction Stop }
+            catch { $CleanupErrors.Add("Asset '$Id': $($_.Exception.Message)") }
         }
         foreach ($Path in $script:TempImportFiles)
         {
-            Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+            try { Remove-Item -LiteralPath $Path -Force -ErrorAction Stop }
+            catch { $CleanupErrors.Add("File '$Path': $($_.Exception.Message)") }
+        }
+        if ($CleanupErrors.Count -gt 0)
+        {
+            throw "Test cleanup failed: $($CleanupErrors -join '; ')"
         }
     }
 
@@ -549,8 +556,10 @@ Describe 'Asset' -Tag 'Integration' {
         It 'Should permanently delete an asset when Force is specified' {
             $File = New-TestImportFile
             $Asset = Import-IMAsset -FilePath $File.FullName
+            $script:ImportedAssetIds.Add($Asset.id)
             Remove-IMAsset -Ids $Asset.id -Force -Confirm:$false
             { Get-IMAsset -Id $Asset.id } | Should -Throw
+            $script:ImportedAssetIds.Remove($Asset.id) | Out-Null
         }
 
         It 'Should move an asset to trash when Force is not specified' {
@@ -564,8 +573,10 @@ Describe 'Asset' -Tag 'Integration' {
         It 'Should remove an asset piped by property name' {
             $File = New-TestImportFile
             $Asset = Import-IMAsset -FilePath $File.FullName
+            $script:ImportedAssetIds.Add($Asset.id)
             [pscustomobject]@{ id = $Asset.id } | Remove-IMAsset -Force -Confirm:$false
             { Get-IMAsset -Id $Asset.id } | Should -Throw
+            $script:ImportedAssetIds.Remove($Asset.id) | Out-Null
         }
 
         It 'Should throw for a malformed asset ID' {

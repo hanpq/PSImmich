@@ -195,6 +195,17 @@ validation for database-restore filenames that is not represented in OpenAPI.
   cmdlet's wrapper arguments, not the live server's deletion timing.
 - `.\build.ps1` after the deletion regression test: 4,755 passed, 1,161
   skipped; source instruction coverage 93.14%.
+- A separately approved 3.4.0 deletion investigation compared three direct
+  and three pipeline forced deletions of uniquely uploaded assets. All six
+  returned the same missing-asset response immediately and were verified
+  absent; the earlier intermittent failure was not reproduced.
+- The two forced-deletion integration cases now register their assets for
+  cleanup before deleting; cleanup errors are reported. This does not resolve
+  the unconfirmed cause of the earlier failure. The failed historical case
+  had not registered its asset, so its cleanup cannot be established from the
+  test report.
+- `.\build.ps1 -Task Test -TestSuite Integration -Tag 'Remove-IMAsset'`:
+  approved run on 3.4.0 passed 4 tests with no reported cleanup errors.
 
 ## Completed batch
 
