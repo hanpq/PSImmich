@@ -117,18 +117,46 @@ function Get-ScalarType($Schema, [string]$Context)
     {
         'string'
         {
-            if ($Format -eq 'date-time') { $Type = 'datetime' }
-            elseif ($Format -eq 'binary') { $Type = 'object' }
-            else { $Type = 'string' }
+            if ($Format -eq 'date-time')
+            {
+                $Type = 'datetime' 
+            }
+            elseif ($Format -eq 'binary')
+            {
+                $Type = 'object' 
+            }
+            else
+            {
+                $Type = 'string' 
+            }
         }
         'integer'
         {
-            if ($Format -eq 'int64') { $Type = 'long' } else { $Type = 'int' }
+            if ($Format -eq 'int64')
+            {
+                $Type = 'long' 
+            }
+            else
+            {
+                $Type = 'int' 
+            }
         }
-        'number' { $Type = 'double' }
-        'boolean' { $Type = 'bool' }
-        'object' { $Type = 'object' }
-        default { throw "$Context has unsupported schema type '$($Schema.type)'." }
+        'number'
+        {
+            $Type = 'double' 
+        }
+        'boolean'
+        {
+            $Type = 'bool' 
+        }
+        'object'
+        {
+            $Type = 'object' 
+        }
+        default
+        {
+            throw "$Context has unsupported schema type '$($Schema.type)'." 
+        }
     }
     return [pscustomobject]@{ Type = $Type; Values = $null }
 }
@@ -237,9 +265,9 @@ function Get-TestSampleValue($ParameterType, [string]$Context)
     {
         if ($ParameterType.Values)
         {
-            return ,@(@($ParameterType.Values | ForEach-Object { [string]$_ }) | Select-Object -First 2)
+            return , @(@($ParameterType.Values | ForEach-Object { [string]$_ }) | Select-Object -First 2)
         }
-        return ,@('sample-a', 'sample-b')
+        return , @('sample-a', 'sample-b')
     }
     if ($ParameterType.Values)
     {
@@ -247,13 +275,34 @@ function Get-TestSampleValue($ParameterType, [string]$Context)
     }
     switch ($ParameterType.Type)
     {
-        'string' { return 'sample' }
-        'int' { return [int]1 }
-        'long' { return [long]1 }
-        'double' { return [double]1.5 }
-        'bool' { return $true }
-        'datetime' { return [datetime]::SpecifyKind([datetime]'2024-01-02T03:04:05', [DateTimeKind]::Utc) }
-        default { throw "$Context has no test sample for type '$($ParameterType.Type)'." }
+        'string'
+        {
+            return 'sample' 
+        }
+        'int'
+        {
+            return [int]1 
+        }
+        'long'
+        {
+            return [long]1 
+        }
+        'double'
+        {
+            return [double]1.5 
+        }
+        'bool'
+        {
+            return $true 
+        }
+        'datetime'
+        {
+            return [datetime]::SpecifyKind([datetime]'2024-01-02T03:04:05', [DateTimeKind]::Utc) 
+        }
+        default
+        {
+            throw "$Context has no test sample for type '$($ParameterType.Type)'." 
+        }
     }
 }
 
@@ -262,11 +311,20 @@ function ConvertTo-TestText($Value)
     $Invariant = [System.Globalization.CultureInfo]::InvariantCulture
     if ($Value -is [bool])
     {
-        if ($Value) { return 'True' }
+        if ($Value)
+        {
+            return 'True' 
+        }
         return 'False'
     }
-    if ($Value -is [datetime]) { return $Value.ToString('o', $Invariant) }
-    if ($Value -is [double]) { return $Value.ToString($Invariant) }
+    if ($Value -is [datetime])
+    {
+        return $Value.ToString('o', $Invariant) 
+    }
+    if ($Value -is [double])
+    {
+        return $Value.ToString($Invariant) 
+    }
     return [string]$Value
 }
 
@@ -276,13 +334,22 @@ function ConvertTo-TestLiteral($Value)
     {
         return '@(' + ((@($Value) | ForEach-Object { ConvertTo-TestLiteral $_ }) -join ', ') + ')'
     }
-    if ($Value -is [string]) { return ConvertTo-SingleQuoted $Value }
+    if ($Value -is [string])
+    {
+        return ConvertTo-SingleQuoted $Value 
+    }
     if ($Value -is [bool])
     {
-        if ($Value) { return '$true' }
+        if ($Value)
+        {
+            return '$true' 
+        }
         return '$false'
     }
-    if ($Value -is [datetime]) { return "([datetime]'" + (ConvertTo-TestText $Value) + "')" }
+    if ($Value -is [datetime])
+    {
+        return "([datetime]'" + (ConvertTo-TestText $Value) + "')" 
+    }
     return ConvertTo-TestText $Value
 }
 
@@ -313,7 +380,14 @@ function New-RouteTests([string]$FunctionName, [string]$HttpMethodName, [string]
     $Conditions += '$RelativePath -eq ' + (ConvertTo-SingleQuoted $ExpectedPath)
     if (-not $Multipart)
     {
-        if ($Secured) { $Conditions += '-not [bool]$NoAuth' } else { $Conditions += '[bool]$NoAuth' }
+        if ($Secured)
+        {
+            $Conditions += '-not [bool]$NoAuth' 
+        }
+        else
+        {
+            $Conditions += '[bool]$NoAuth' 
+        }
     }
 
     $CallArgs = @($Bindings | Where-Object { $_.Kind -eq 'path' } | ForEach-Object { ' -' + $_.Name + ' ' + (ConvertTo-TestLiteral $_.Value) })
@@ -430,7 +504,7 @@ BeforeDiscovery {
 
 InModuleScope $ProjectName {
 '@
-    $Head = (@("# $MarkerText") + @($Header -split "\r?\n")) -join $NewLine
+    $Head = (@("# $MarkerText") + @($Header -split '\r?\n')) -join $NewLine
     return $Head + $NewLine + (@($RouteTests) -join ($NewLine + $NewLine)) + $NewLine + '}' + $NewLine
 }
 
@@ -801,8 +875,14 @@ function Get-DtoPropertyType($Property, [string]$Context, [hashtable]$Done)
     if ((Test-Property $Property 'anyOf') -or (Test-Property $Property 'oneOf'))
     {
         $Members = @()
-        if (Test-Property $Property 'anyOf') { $Members += @($Property.anyOf) }
-        if (Test-Property $Property 'oneOf') { $Members += @($Property.oneOf) }
+        if (Test-Property $Property 'anyOf')
+        {
+            $Members += @($Property.anyOf) 
+        }
+        if (Test-Property $Property 'oneOf')
+        {
+            $Members += @($Property.oneOf) 
+        }
         if ($Members.Count -eq 0 -or @($Members | Where-Object { -not (Test-Property $_ '$ref') }).Count -gt 0)
         {
             throw "$Context uses a union that is not a set of references, which the generator does not support."
@@ -881,9 +961,18 @@ function New-ClassText([string]$Name, $Schema, [hashtable]$Done)
         $Source = "`$Source.$PropertyName"
         switch ($Type.Kind)
         {
-            'class' { $Constructor.Add("        if (`$null -ne $Source) { `$this.$PropertyName = [$($Type.Type)]::new($Source) }") }
-            'classarray' { $Constructor.Add("        if (`$null -ne $Source) { `$this.$PropertyName = @($Source | ForEach-Object { [$($Type.Type)]::new(`$_) }) }") }
-            default { $Constructor.Add("        if (`$null -ne $Source) { `$this.$PropertyName = $Source }") }
+            'class'
+            {
+                $Constructor.Add("        if (`$null -ne $Source) { `$this.$PropertyName = [$($Type.Type)]::new($Source) }") 
+            }
+            'classarray'
+            {
+                $Constructor.Add("        if (`$null -ne $Source) { `$this.$PropertyName = @($Source | ForEach-Object { [$($Type.Type)]::new(`$_) }) }") 
+            }
+            default
+            {
+                $Constructor.Add("        if (`$null -ne $Source) { `$this.$PropertyName = $Source }") 
+            }
         }
     }
     $Text.Add('')

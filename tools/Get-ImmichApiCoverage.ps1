@@ -110,33 +110,52 @@ $Report = foreach ($PathProperty in $Spec.paths.PSObject.Properties)
         $MethodUpper = $Method.ToUpperInvariant()
 
         $Exclusion = $Exclusions | Where-Object { $_.Path -eq $Path -and $_.Method -eq $MethodUpper } | Select-Object -First 1
-        $Status = if ($Exclusion) { 'Excluded' }
-            elseif (-not $ReachableNames.ContainsKey($FunctionName)) { 'Unreachable' }
-            elseif ($TestedNames.ContainsKey($FunctionName)) { 'Tested' }
-            else { 'Reachable' }
+        $Status = if ($Exclusion)
+        {
+            'Excluded' 
+        }
+        elseif (-not $ReachableNames.ContainsKey($FunctionName))
+        {
+            'Unreachable'
+        }
+        elseif ($TestedNames.ContainsKey($FunctionName))
+        {
+            'Tested'
+        }
+        else
+        {
+            'Reachable'
+        }
 
         [pscustomobject]@{
-            Method     = $MethodUpper
-            Path       = $Path
+            Method      = $MethodUpper
+            Path        = $Path
             OperationId = [string]$Operation.operationId
-            Function   = $FunctionName
-            Deprecated = [bool]$Operation.deprecated
-            Status     = $Status
-            Reason     = if ($Exclusion) { [string]$Exclusion.Reason } else { '' }
+            Function    = $FunctionName
+            Deprecated  = [bool]$Operation.deprecated
+            Status      = $Status
+            Reason      = if ($Exclusion)
+            {
+                [string]$Exclusion.Reason 
+            }
+            else
+            {
+                '' 
+            }
         }
     }
 }
 
 $Total = @($Report).Count
 $Counts = $Report | Group-Object Status | ForEach-Object { [pscustomobject]@{ Status = $_.Name; Count = $_.Count } }
-$Eligible = $Total - (@($Report | Where-Object Status -eq 'Excluded')).Count
+$Eligible = $Total - (@($Report | Where-Object Status -EQ 'Excluded')).Count
 $Covered = @($Report | Where-Object { $_.Status -in 'Tested', 'Reachable' }).Count
 
-Write-Host ("Spec: {0} ({1} operations, {2} excluded)" -f (Split-Path $SpecFullPath -Leaf), $Total, (@($Report | Where-Object Status -eq 'Excluded')).Count)
+Write-Host ('Spec: {0} ({1} operations, {2} excluded)' -f (Split-Path $SpecFullPath -Leaf), $Total, (@($Report | Where-Object Status -EQ 'Excluded')).Count)
 $Counts | Format-Table -AutoSize | Out-String | Write-Host
 if ($Eligible -gt 0)
 {
-    Write-Host ("Wired (reachable or tested) for {0} of {1} non-excluded operations ({2:P1})." -f $Covered, $Eligible, ($Covered / $Eligible))
+    Write-Host ('Wired (reachable or tested) for {0} of {1} non-excluded operations ({2:P1}).' -f $Covered, $Eligible, ($Covered / $Eligible))
 }
 
 if ($OutputPath)
@@ -150,7 +169,7 @@ if ($PassThru)
     $Report
 }
 
-if ($Strict -and (@($Report | Where-Object Status -eq 'Unreachable')).Count -gt 0)
+if ($Strict -and (@($Report | Where-Object Status -EQ 'Unreachable')).Count -gt 0)
 {
     Write-Error 'Non-excluded operations are unreachable from the module.'
     exit 1
