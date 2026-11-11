@@ -3,6 +3,7 @@
     <#
     .DESCRIPTION
         Function that is responsible for making the rest api web call
+        Debug output omits request values to avoid exposing credentials.
     .PARAMETER NoAuth
         Specifies that the REST API call do not need authentication
     .PARAMETER Method
@@ -16,7 +17,8 @@
     .PARAMETER Headers
         Defines header attributes for the REST API call
     .PARAMETER QueryParameters
-         Defines QueryParameters for the REST API call
+        Defines query parameters. Keys and values are percent-encoded individually;
+        array values use repeated bracketed keys.
     .PARAMETER ContentType
         Defines the contenttype for the request
     .PARAMETER OutFilePath
@@ -107,50 +109,55 @@
         $InvokeRestMethodSplat.Uri += '?'
         $QueryParameterStringArray = foreach ($QueryParameter in $QueryParameters.Keys)
         {
+            $EncodedKey = [uri]::EscapeDataString($QueryParameter)
             # Arrays are sent as bracketed keys, e.g. status[]=a&status[]=b. A single repeated-key value
             # is parsed as a string by the server, which rejects it for array-typed parameters.
             if ($QueryParameters.$QueryParameter -is [System.Collections.IEnumerable] -and $QueryParameters.$QueryParameter -isnot [string])
             {
                 foreach ($Item in $QueryParameters.$QueryParameter)
                 {
-                    "$($QueryParameter)[]=$($Item)"
+                    $EncodedKey + '[]=' + [uri]::EscapeDataString([string]$Item)
                 }
                 continue
             }
 
-            switch ($QueryParameters.$QueryParameter.GetType().Name)
+            $QueryValue = switch ($QueryParameters.$QueryParameter.GetType().Name)
             {
                 'string'
                 {
-                    "$($QueryParameter)=$($QueryParameters.$QueryParameter)"
+                    [string]$QueryParameters.$QueryParameter
                 }
                 'boolean'
                 {
-                    "$($QueryParameter)=$($QueryParameters.$QueryParameter.ToString().ToLower())"
+                    $QueryParameters.$QueryParameter.ToString().ToLowerInvariant()
                 }
                 'SwitchParameter'
                 {
-                    "$($QueryParameter)=$(($QueryParameters.$QueryParameter -as [boolean]).ToString().ToLower())"
+                    ([bool]$QueryParameters.$QueryParameter).ToString().ToLowerInvariant()
                 }
                 'int32'
                 {
-                    "$($QueryParameter)=$($QueryParameters.$QueryParameter)"
+                    $QueryParameters.$QueryParameter.ToString([Globalization.CultureInfo]::InvariantCulture)
                 }
                 'double'
                 {
-                    "$($QueryParameter)=$($QueryParameters.$QueryParameter)"
+                    $QueryParameters.$QueryParameter.ToString([Globalization.CultureInfo]::InvariantCulture)
                 }
                 'datetime'
                 {
-                    "$($QueryParameter)=$(([DateTimeOffset]$QueryParameters.$QueryParameter).UtcDateTime.ToString('o'))"
+                    ([DateTimeOffset]$QueryParameters.$QueryParameter).UtcDateTime.ToString('o')
                 }
                 default
                 {
                     Write-Warning -Message "Unknown type of queryparameter $QueryParameter : $($QueryParameters.$QueryParameter.GetType().Name)"
                 }
             }
+            if ($null -ne $QueryValue)
+            {
+                $EncodedKey + '=' + [uri]::EscapeDataString($QueryValue)
+            }
         }
-        $InvokeRestMethodSplat.Uri += [URI]::EscapeUriString(($QueryParameterStringArray -join '&'))
+        $InvokeRestMethodSplat.Uri += $QueryParameterStringArray -join '&'
     }
 
     # Skip token validation on auth/login calls because the token is not retreived at that point
@@ -159,7 +166,7 @@
         $ImmichSession.ValidateToken()
     }
 
-    Write-Debug -Message "InvokeImmichRestMethod; Calling Invoke-RestMethod with settings`r`n$($InvokeRestMethodSplat | ConvertTo-Json)"
+    Write-Debug -Message 'InvokeImmichRestMethod; Calling Invoke-RestMethod'
 
     # Write the response to the requested file when an output path is supplied
     if ($OutFilePath)

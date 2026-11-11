@@ -129,6 +129,73 @@ InModuleScope $ProjectName {
                 $Uri -match 'status\[\]=waiting$'
             }
         }
+        It 'encodes scalar keys and values without allowing extra parameters or fragments' {
+            InvokeImmichRestMethod -Method get -ImmichSession $Session -RelativePath '/auth/login' -QueryParameters @{
+                'name&key' = 'a&admin=true#fragment +/%'
+            }
+            Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
+                $Uri -eq 'https://immich.domain.com/api/auth/login?name%26key=a%26admin%3Dtrue%23fragment%20%2B%2F%25'
+            }
+        }
+        It 'encodes every array value while preserving bracketed array keys' {
+            InvokeImmichRestMethod -Method get -ImmichSession $Session -RelativePath '/auth/login' -QueryParameters @{
+                'tag&name' = @('a&b=c', 'x#y +%')
+            }
+            Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
+                $Uri -eq 'https://immich.domain.com/api/auth/login?tag%26name[]=a%26b%3Dc&tag%26name[]=x%23y%20%2B%25'
+            }
+        }
+        It 'preserves empty strings and lowercase boolean query values' {
+            InvokeImmichRestMethod -Method get -ImmichSession $Session -RelativePath '/auth/login' -QueryParameters @{
+                empty = ''; enabled = $false; switched = [switch]$true
+            }
+            Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
+                $Uri -match '[?&]empty=(&|$)' -and $Uri -match '[?&]enabled=false(&|$)' -and
+                $Uri -match '[?&]switched=true(&|$)'
+            }
+        }
+        It 'does not expose headers, bodies, query secrets or raw JSON in debug messages' {
+            $DebugOutput = InvokeImmichRestMethod -Method post -ImmichSession $Session -RelativePath '/auth/login' -NoAuth `
+                -Headers @{ Authorization = 'synthetic-bearer-secret' } -Body @{ password = 'synthetic-password' } `
+                -RawBody '{"password":"synthetic-raw-secret"}' -QueryParameters @{ key = 'synthetic-query-secret' } -Debug 5>&1
+            ($DebugOutput | Out-String) | Should -Not -Match 'synthetic-|password|Authorization'
+            Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
+                $Headers.Authorization -eq 'synthetic-bearer-secret' -and
+                $Body -eq '{"password":"synthetic-raw-secret"}' -and $Uri -match 'key=synthetic-query-secret'
+            }
+        }
+        It 'does not expose the decrypted API key in debug messages' {
+            $DebugOutput = InvokeImmichRestMethod -Method get -ImmichSession $Session -RelativePath '/auth/login' -Debug 5>&1
+            ($DebugOutput | Out-String) | Should -Not -Match 'accesstoken|X-API-Key'
+            Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
+                $Headers.'X-API-Key' -eq 'accesstoken'
+            }
+        }
+        It 'does not expose a credential JWT or login password in debug messages' {
+            $CredentialSession = [ImmichSession]::New('https://immich.domain.com', 'Credential', $null, $true, $null, (ConvertTo-SecureString 'synthetic-jwt' -AsPlainText -Force), '3.4.0', (New-Guid).Guid)
+            $DebugOutput = InvokeImmichRestMethod -Method post -ImmichSession $CredentialSession -RelativePath '/auth/login' `
+                -Body @{ password = 'synthetic-password' } -Debug 5>&1
+            ($DebugOutput | Out-String) | Should -Not -Match 'synthetic-|password|Authorization'
+            Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
+                $Headers.Authorization -eq 'Bearer synthetic-jwt' -and
+                ($Body | ConvertFrom-Json).password -eq 'synthetic-password'
+            }
+        }
+        It 'formats numeric query values independently of the current culture' {
+            $OriginalCulture = [Threading.Thread]::CurrentThread.CurrentCulture
+            try
+            {
+                [Threading.Thread]::CurrentThread.CurrentCulture = [Globalization.CultureInfo]::GetCultureInfo('sv-SE')
+                InvokeImmichRestMethod -Method get -ImmichSession $Session -RelativePath '/auth/login' -QueryParameters @{ value = 1.5 }
+            }
+            finally
+            {
+                [Threading.Thread]::CurrentThread.CurrentCulture = $OriginalCulture
+            }
+            Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
+                $Uri -eq 'https://immich.domain.com/api/auth/login?value=1.5'
+            }
+        }
         It 'Should write a POST octet-stream response to the output path' {
             $OutFile = Join-Path $TestDrive 'out.zip'
             InvokeImmichRestMethod -Method post -ImmichSession:$Session -RelativePath '/auth/login' -Body:@{ assetIds = @() } -OutFilePath $OutFile

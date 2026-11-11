@@ -9,7 +9,7 @@
     .PARAMETER RelativePath
         The relative path for the API endpoint (e.g., '/assets', '/users/profile-image')
     .PARAMETER Session
-        The ImmichSession object containing API URI and access token
+        The ImmichSession object containing API URI and API key or credential JWT
     .PARAMETER FormData
         Hashtable containing form fields to include in the multipart request
     .PARAMETER FileInfo
@@ -83,9 +83,21 @@
             throw 'FileInfo object must have FullName and Name properties'
         }
 
-        # Add API key header
-        $ApiKey = ConvertFromSecureString -SecureString $Session.AccessToken
-        $HttpClient.DefaultRequestHeaders.Add('x-api-key', $ApiKey)
+        switch ($Session.AuthMethod)
+        {
+            'Credential'
+            {
+                $HttpClient.DefaultRequestHeaders.Add('Authorization', "Bearer $(ConvertFromSecureString -SecureString $Session.JWT)")
+            }
+            'AccessToken'
+            {
+                $HttpClient.DefaultRequestHeaders.Add('x-api-key', (ConvertFromSecureString -SecureString $Session.AccessToken))
+            }
+            default
+            {
+                throw "Unsupported authentication method '$($Session.AuthMethod)'."
+            }
+        }
 
         foreach ($header in $Headers.GetEnumerator())
         {
