@@ -301,6 +301,7 @@ For targeted unit tests, use `.\build.ps1 -Task Test -TestSuite Module -Tag '<cm
 Tag-filtered runs skip coverage. Check that
 tests were actually selected and executed. This does not replace the final
 full verification or its coverage conversion.
+Run build invocations sequentially because they rebuild the same output directory.
 
 Use [Get-IMLibrary tests](../../../tests/Unit/Public/Public.Tests.ps1) as a
 pattern, locating the current block rather than relying on historical line
