@@ -278,7 +278,7 @@ InModuleScope $ProjectName {
                     since = [datetime]::SpecifyKind([datetime]'2026-11-06T10:00:00', 'Utc')
                 }
                 Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
-                    $Uri -match 'since=2026-11-06T10:00:00(\.0+)?Z$'
+                    [uri]::UnescapeDataString($Uri) -match 'since=2026-11-06T10:00:00(\.0+)?Z$'
                 }
             }
         }
@@ -400,8 +400,54 @@ InModuleScope $ProjectName {
     }
 
     Describe 'Invoke-MultipartHttpUpload' -Tag 'Unit', 'Invoke-MultipartHttpUpload' {
-        It 'Should be true' {
-            $true | Should -Be $true
+        BeforeEach {
+            $Session = [ImmichSession]::New('https://immich.domain.com', 'AccessToken', (ConvertTo-SecureString 'synthetic-api-key' -AsPlainText -Force), $true, $null, (ConvertTo-SecureString 'synthetic-jwt' -AsPlainText -Force), '3.4.0', (New-Guid).Guid)
+            $File = New-Item -Path (Join-Path $TestDrive 'upload.jpg') -ItemType File -Force
+            $Client = [pscustomobject]@{ DefaultRequestHeaders = @{}; Disposed = $false; RequestUri = $null }
+            $Client | Add-Member ScriptMethod PostAsync {
+                param($Uri, $Content)
+                $this.RequestUri = $Uri
+                @{ Result = @{ IsSuccessStatusCode = $true; Content = [System.Net.Http.StringContent]::new('{"id":"uploaded"}') } }
+            }
+            $Client | Add-Member ScriptMethod Dispose { $this.Disposed = $true }
+            Mock New-Object { $Client } -ParameterFilter { $TypeName -eq 'System.Net.Http.HttpClient' }
+        }
+        It 'uses the API key header for access-token sessions' {
+            Invoke-MultipartHttpUpload -Session $Session -RelativePath '/assets' -FileInfo $File -FileFieldName 'assetData' |
+                Should -Be '{"id":"uploaded"}'
+            $Client.DefaultRequestHeaders['x-api-key'] | Should -Be 'synthetic-api-key'
+            $Client.DefaultRequestHeaders.ContainsKey('Authorization') | Should -BeFalse
+            $Client.Disposed | Should -BeTrue
+        }
+        It 'uses the JWT bearer header for credential sessions' {
+            $Session.AuthMethod = 'Credential'
+            Invoke-MultipartHttpUpload -Session $Session -RelativePath '/users/profile-image' -FileInfo $File -FileFieldName 'file' | Out-Null
+            $Client.DefaultRequestHeaders['Authorization'] | Should -Be 'Bearer synthetic-jwt'
+            $Client.DefaultRequestHeaders.ContainsKey('x-api-key') | Should -BeFalse
+            $Client.Disposed | Should -BeTrue
+        }
+        It 'rejects unknown auth methods and disposes the client' {
+            $Session.AuthMethod = 'Unknown'
+            { Invoke-MultipartHttpUpload -Session $Session -RelativePath '/assets' -FileInfo $File -FileFieldName 'assetData' } |
+                Should -Throw '*Unsupported authentication method*'
+            $Client.Disposed | Should -BeTrue
+        }
+        It 'uses the default session and preserves custom headers and query encoding' {
+            $OriginalSession = $script:ImmichSession
+            try
+            {
+                $script:ImmichSession = $Session
+                Invoke-MultipartHttpUpload -RelativePath '/assets' -FileInfo $File -FileFieldName 'assetData' `
+                    -Headers @{ 'x-immich-checksum' = 'checksum' } -QueryParameters @{ key = 'a&b=c' } | Out-Null
+            }
+            finally
+            {
+                $script:ImmichSession = $OriginalSession
+            }
+            $Client.DefaultRequestHeaders['x-api-key'] | Should -Be 'synthetic-api-key'
+            $Client.DefaultRequestHeaders['x-immich-checksum'] | Should -Be 'checksum'
+            $Client.RequestUri | Should -Be 'https://immich.domain.com/api/assets?key=a%26b%3Dc'
+            $Client.Disposed | Should -BeTrue
         }
     }
 
