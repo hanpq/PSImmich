@@ -1344,7 +1344,7 @@ InModuleScope $ProjectName {
             }
 
             It 'Should handle admin permissions' {
-                $adminPermissions = @('admin.user.create', 'admin.user.read', 'admin.user.update')
+                $adminPermissions = @('adminUser.create', 'adminUser.read', 'adminUser.update')
                 New-IMAPIKey -Name 'Admin Key' -Permission $adminPermissions
 
                 Should -Invoke Invoke-ImmichApiCreateApiKey -ModuleName PSImmich -Times 1 -Exactly -Scope It
@@ -1358,6 +1358,15 @@ InModuleScope $ProjectName {
 
             It 'Should validate Permission parameter values' {
                 { New-IMAPIKey -Name 'Invalid Permission' -Permission 'invalid.permission' } | Should -Throw
+            }
+
+            It 'Should match the 3.4.0 permission enum exactly' {
+                $Root = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
+                $Spec = Get-Content -Raw -LiteralPath (Join-Path $Root 'api\api.3.4.0.json') | ConvertFrom-Json
+                $Validation = (Get-Command New-IMAPIKey).Parameters['Permission'].Attributes |
+                    Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] }
+                $Differences = Compare-Object @($Spec.components.schemas.Permission.enum) @($Validation.ValidValues)
+                $Differences | Should -BeNullOrEmpty
             }
 
             It 'Should accept valid permission values' {
