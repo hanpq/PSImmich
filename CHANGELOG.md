@@ -3,6 +3,16 @@
 The format is based on and uses the types of changes according to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.1-beta001](https://github.com/hanpq/PSImmich/compare/v3.4.0...v3.4.1-beta001) (2026-11-12)
+
+
+### Bug Fixes
+
+* **http:** correct upload auth and protect request values ([fc0afde](https://github.com/hanpq/PSImmich/commit/fc0afdec66251d234b5203538ef63503e13eedcc))
+* **http:** correct upload auth and protect request values ([#38](https://github.com/hanpq/PSImmich/issues/38)) ([54fad82](https://github.com/hanpq/PSImmich/commit/54fad82060db9dbac1bc58e5bd2d7ff0ce140918))
+* update integration workflow to correctly count skipped and ignored tests ([300761b](https://github.com/hanpq/PSImmich/commit/300761b833e98375dc0161270f5fbe3f161bb68a))
+* update integration workflow to output JSON summary and improve error handling ([09bb407](https://github.com/hanpq/PSImmich/commit/09bb407b42b866ec1af8389835bad607181b11c1))
+
 ## [3.4.0](https://github.com/hanpq/PSImmich/compare/v3.3.7...v3.4.0) (2026-11-11)
 
 ### ⚠ BREAKING CHANGES
