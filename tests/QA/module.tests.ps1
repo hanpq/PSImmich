@@ -126,7 +126,13 @@ Describe 'Changelog Management' -Tag 'TestQuality' {
     It 'Changelog format compliant with keepachangelog format' -Skip:(![bool](Get-Command git -EA SilentlyContinue)) {
         $changelog = Get-Content (Join-Path $projectRoot 'CHANGELOG.md') -Raw
         $changelog | Should -Match '(?m)^## \[Unreleased\]\s*$'
-        $changelog | Should -Match '(?m)^## \[\d+\.\d+\.\d+[^]]*\] - \d{4}-\d{2}-\d{2}\s*$'
+        $releaseHeadings = @($changelog -split "`r?`n" | Where-Object {
+                $_ -match '^## \[' -and $_ -notmatch '^## \[Unreleased\]'
+            })
+        foreach ($heading in $releaseHeadings)
+        {
+            $heading | Should -Match '^## \[\d+\.\d+\.\d+(?:-[A-Za-z0-9.]+)?\](?:\([^)]+\))?(?: - | \()\d{4}-\d{2}-\d{2}\)?$'
+        }
     }
 }
 
