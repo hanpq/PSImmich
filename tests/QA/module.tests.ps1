@@ -131,7 +131,7 @@ Describe 'Changelog Management' -Tag 'TestQuality' {
             })
         foreach ($heading in $releaseHeadings)
         {
-            $heading | Should -Match '^## \[\d+\.\d+\.\d+(?:-[A-Za-z0-9.]+)?\](?:\([^)]+\))?(?: - | \()\d{4}-\d{2}-\d{2}\)?$'
+            $heading | Should -Match '^## \[\d+\.\d+\.\d+(?:-[A-Za-z0-9.]+)?\](?:\([^)]+\))?(?: \[YANKED\])?(?: - | \()\d{4}-\d{2}-\d{2}\)?$'
         }
     }
 }
